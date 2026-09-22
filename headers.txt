@@ -1,0 +1,11 @@
+HTTP/1.1 200 OK
+Host: 127.0.0.1:8080
+Date: Thu, 03 Sep 2026 10:07:00 GMT
+Connection: close
+X-Powered-By: PHP/8.2.12
+Expires: Thu, 19 Nov 1981 08:52:00 GMT
+Cache-Control: no-store, no-cache, must-revalidate
+Pragma: no-cache
+Set-Cookie: ci_session=d0ea9f420f444fb3c7ab86c1ade15600; expires=Thu, 03 Sep 2026 12:07:00 GMT; Max-Age=7200; path=/; HttpOnly; SameSite=Lax
+Content-Type: text/html; charset=UTF-8
+
