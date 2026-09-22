@@ -205,13 +205,14 @@
 
                   <tr>
 
+                    <td></td>
+
+                    <td></td>
+
+                    <td></td>
+
                     <td class="text-center text-muted py-4">
-                      No records
-                    </td>
-
-                    <td></td>
-
-                    <td></td>
+                      No records</td>
 
                     <td></td>
 
