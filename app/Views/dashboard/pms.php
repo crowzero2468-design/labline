@@ -86,43 +86,77 @@
         PMS Records
     </h4>
 
-    <div>
+<div class="d-flex align-items-center gap-2 flex-nowrap">
 
-        <a
-            href="<?= site_url('pms/export') ?>"
-            class="btn btn-outline-success me-2"
-        >
-            <i class="bi bi-file-earmark-excel"></i>
-            Export Excel (All)
-        </a>
+    <!-- IMPORT PMS EXCEL -->
+    <form 
+        method="post" 
+        action="<?= site_url('pms/import') ?>" 
+        enctype="multipart/form-data" 
+        class="d-flex align-items-center gap-2 mb-0">
 
+        <?= csrf_field() ?>
 
-        <?php if (!empty($selected_tech)): ?>
+        <input 
+            type="file" 
+            name="excel_file" 
+            accept=".xlsx,.csv" 
+            class="form-control form-control-sm"
+            style="width: 220px;"
+            required>
 
-            <a
-                href="<?= site_url('pms/export') . '?tech=' . urlencode($selected_tech) ?>"
-                class="btn btn-success me-2"
-            >
-                <i class="bi bi-file-earmark-excel"></i>
-                Export <?= esc($selected_tech) ?>
-            </a>
-
-        <?php endif; ?>
-
-
-        <button
-            type="button"
-            class="btn btn-primary"
-            data-bs-toggle="modal"
-            data-bs-target="#addPmsModal"
-        >
-            <i class="bi bi-plus-circle"></i>
-            Add PMS
+        <button 
+            type="submit" 
+            class="btn btn-success btn-sm text-nowrap">
+            <i class="fas fa-file-import me-1"></i>
+            Import PMS Excel
         </button>
 
-    </div>
+        <a 
+            href="<?= base_url('templates/pms_import_template.xlsx') ?>" 
+            class="btn btn-success btn-sm text-nowrap"
+            download>
+            <i class="fas fa-download me-1"></i>
+            Download Excel Template Here
+        </a>
+
+    </form>
+
+
+    <!-- EXPORT ALL -->
+    <a
+        href="<?= site_url('pms/export') ?>"
+        class="btn btn-outline-success btn-sm text-nowrap">
+        <i class="bi bi-file-earmark-excel"></i>
+        Export Excel (All)
+    </a>
+
+
+    <!-- EXPORT FILTERED TECH -->
+    <?php if (!empty($selected_tech)): ?>
+
+        <a
+            href="<?= site_url('pms/export') . '?tech=' . urlencode($selected_tech) ?>"
+            class="btn btn-success btn-sm text-nowrap">
+            <i class="bi bi-file-earmark-excel"></i>
+            Export <?= esc($selected_tech) ?>
+        </a>
+
+    <?php endif; ?>
+
+
+    <!-- ADD PMS -->
+    <button
+        type="button"
+        class="btn btn-primary btn-sm text-nowrap"
+        data-bs-toggle="modal"
+        data-bs-target="#addPmsModal">
+        <i class="bi bi-plus-circle"></i>
+        Add PMS
+    </button>
 
 </div>
+    </div>
 
 
 <!-- =========================================================
@@ -240,6 +274,7 @@
 
                 <div class="table-responsive">
 
+
                     <table
                         id="pmsTable"
                         class="table table-striped table-hover table-sm table-bordered align-middle w-100"
@@ -260,106 +295,517 @@
                                 <th>MSF</th>
                                 <th>FSR</th>
                                 <th>Receipt</th>
+                                <th>Action</th>
 
                             </tr>
 
                         </thead>
 
 
-                        <tbody>
+                    <tbody>
 
-                            <?php if (!empty($pms_records)): ?>
+<?php
 
-                                <?php foreach ($pms_records as $r): ?>
+/*
+|--------------------------------------------------------------------------
+| GROUP PMS RECORDS
+|--------------------------------------------------------------------------
+| Records are grouped ONLY when:
+|
+|   1. PMS Number is the same
+|   2. Date is the same
+|
+| Example:
+|
+| PMS-001 + 2026-09-23 = Group 1
+| PMS-001 + 2026-09-24 = Group 2
+| PMS-002 + 2026-09-23 = Group 3
+|
+|--------------------------------------------------------------------------
+*/
+
+$pmsGroups = [];
+
+if (!empty($pms_records)) {
+
+    foreach ($pms_records as $r) {
+
+        $pmsNumber = trim($r['pms_number'] ?? '');
+        $pmsDate   = trim($r['date'] ?? '');
+
+        /*
+         * Create a unique grouping key
+         */
+        $groupKey = $pmsNumber . '||' . $pmsDate;
+
+        if (!isset($pmsGroups[$groupKey])) {
+
+            $pmsGroups[$groupKey] = [];
+
+        }
+
+        $pmsGroups[$groupKey][] = $r;
+    }
+}
+
+?>
+
+
+<?php if (!empty($pmsGroups)): ?>
+
+    <?php foreach ($pmsGroups as $groupKey => $groupRecords): ?>
+
+        <?php
+
+        /*
+        |--------------------------------------------------------------------------
+        | FIRST RECORD
+        |--------------------------------------------------------------------------
+        | Used for the main/parent row.
+        |--------------------------------------------------------------------------
+        */
+
+        $main = $groupRecords[0];
+
+        $groupCount = count($groupRecords);
+
+        ?>
+
+        <!-- ============================================================
+             MAIN PMS ROW
+             ============================================================ -->
+
+        <tr
+            class="pms-parent-row"
+            data-group="<?= esc(md5($groupKey)) ?>"
+        >
+
+            <!-- PMS NUMBER -->
+
+            <td class="text-nowrap">
+
+               <?php if ($groupCount > 1): ?>
+
+                        <?php $groupId = md5($groupKey); ?>
+
+                        <button
+                            type="button"
+                            class="btn btn-link btn-sm p-0 fw-bold text-decoration-none pms-expand-btn"
+                            data-group="<?= esc($groupId) ?>"
+                            aria-expanded="false"
+                            title="Show PMS records"
+                        >
+
+                            <i class="bi bi-chevron-right me-1"></i>
+
+                            <?= esc($main['pms_number'] ?? '') ?>
+
+                            <span class="badge bg-primary ms-1">
+                                <?= $groupCount ?>
+                            </span>
+
+                        </button>
+
+                    <?php else: ?>
+                    <span class="fw-bold">
+
+                        <?= esc($main['pms_number'] ?? '') ?>
+
+                    </span>
+
+                <?php endif; ?>
+
+            </td>
+
+
+            <!-- SERVICE ENGINEER -->
+
+            <td>
+
+                <?= esc($main['service_tech'] ?? '') ?>
+
+                <?php if ($groupCount > 1): ?>
+
+                    <span class="badge bg-light text-dark border ms-1">
+                        <?= $groupCount ?> records
+                    </span>
+
+                <?php endif; ?>
+
+            </td>
+
+
+            <!-- ACCOUNT -->
+
+            <td>
+
+                <?= esc($main['clinic'] ?? '') ?>
+
+            </td>
+
+
+            <!-- ADDRESS -->
+
+            <td>
+
+                <?= esc($main['address'] ?? '') ?>
+
+            </td>
+
+
+            <!-- DATE -->
+
+            <td class="text-nowrap">
+
+                <?= esc($main['date'] ?? '') ?>
+
+            </td>
+
+
+            <!-- MACHINE TYPE -->
+
+            <td>
+
+                <?= esc($main['machine'] ?? '') ?>
+
+            </td>
+
+
+            <!-- SERIAL NUMBER -->
+
+            <td>
+
+                <?= esc($main['sn'] ?? '') ?>
+
+            </td>
+
+
+            <!-- TECHNICAL DONE -->
+
+            <td>
+
+                <?= esc($main['status'] ?? '') ?>
+
+            </td>
+
+
+            <!-- MFS -->
+
+            <td class="text-center">
+
+                <?php if (!empty($main['mfs']) && (int)$main['mfs'] > 0): ?>
+
+                    <button
+                        type="button"
+                        class="btn btn-sm btn-success view-mfs-btn"
+                        data-bs-toggle="modal"
+                        data-bs-target="#mfsViewModal"
+                        data-mfs-id="<?= (int)$main['mfs'] ?>"
+                    >
+
+                        <i class="bi bi-check-circle me-1"></i>
+
+                        MSF
+
+                    </button>
+
+                <?php else: ?>
+
+                    <span class="badge bg-secondary">
+                        No MSF
+                    </span>
+
+                <?php endif; ?>
+
+            </td>
+
+
+            <!-- FSR -->
+
+            <td class="text-center">
+
+                <?php if (!empty($main['fsr']) && (int)$main['fsr'] > 0): ?>
+
+                    <button
+                        type="button"
+                        class="btn btn-sm btn-success view-fsr-btn"
+                        data-bs-toggle="modal"
+                        data-bs-target="#fsrViewModal"
+                        data-fsr-id="<?= (int)$main['fsr'] ?>"
+                    >
+
+                        <i class="bi bi-check-circle me-1"></i>
+
+                        FSR
+
+                    </button>
+
+                <?php else: ?>
+
+                    <span class="badge bg-secondary">
+                        No FSR
+                    </span>
+
+                <?php endif; ?>
+
+            </td>
+
+
+            <!-- RECEIPT -->
+
+            <td class="text-center">
+
+                <?php if (!empty($main['receipt'])): ?>
+
+                    <button
+                        type="button"
+                        class="btn btn-sm btn-outline-primary"
+                        data-bs-toggle="modal"
+                        data-bs-target="#receiptModal<?= (int)$main['id'] ?>"
+                    >
+
+                        <i class="bi bi-eye me-1"></i>
+
+                        View
+
+                    </button>
+
+                <?php else: ?>
+
+                    <span class="badge bg-secondary">
+                        No Receipt
+                    </span>
+
+                <?php endif; ?>
+
+            </td>
+
+
+            <!-- ACTION -->
+
+            <td class="text-center text-nowrap">
+
+                <button
+                    type="button"
+                    class="btn btn-outline-success btn-sm edit-pms-btn"
+                    data-id="<?= (int)$main['id'] ?>"
+                    title="Edit PMS"
+                >
+
+                    Edit PMS
+
+                </button>
+
+
+                <button
+                    type="button"
+                    class="btn btn-outline-danger btn-sm delete-pms-btn"
+                    data-id="<?= (int)$main['id'] ?>"
+                    data-pms="<?= esc($main['pms_number'] ?? '') ?>"
+                    title="Delete PMS"
+                >
+
+                    Delete
+
+                </button>
+
+            </td>
+
+        </tr>
+
+
+        <!-- ============================================================
+             HIDDEN CHILD DATA
+             ============================================================ -->
+
+        <?php if ($groupCount > 1): ?>
+
+            <tr
+                class="pms-child-data d-none"
+                data-parent-group="<?= esc(md5($groupKey)) ?>"
+            >
+
+                <td colspan="12">
+
+                    <div class="p-3 bg-light border rounded">
+
+                        <div class="fw-bold mb-3">
+
+                            <i class="bi bi-list-ul me-1"></i>
+
+                            PMS <?= esc($main['pms_number'] ?? '') ?>
+
+                            <span class="text-muted">
+                                — <?= esc($main['date'] ?? '') ?>
+                            </span>
+
+                        </div>
+
+
+                        <div class="table-responsive">
+
+                            <table class="table table-sm table-bordered table-hover mb-0 bg-white">
+
+                                <thead class="table-secondary">
 
                                     <tr>
 
-                                        <td>
-                                            <?= esc($r['pms_number'] ?? '') ?>
-                                        </td>
+                                        <th>#</th>
+
+                                        <th>Service Engr</th>
+
+                                        <th>Account</th>
+
+                                        <th>Address</th>
+
+                                        <th>Machine Type</th>
+
+                                        <th>Serial Number</th>
+
+                                        <th>Technical Done</th>
+
+                                        <th>MSF</th>
+
+                                        <th>FSR</th>
+
+                                        <th>Receipt</th>
+
+                                        <th>Action</th>
+
+                                    </tr>
+
+                                </thead>
+
+
+                                <tbody>
+
+                                <?php foreach ($groupRecords as $index => $r): ?>
+
+                                    <tr>
+
+                                        <!-- NUMBER -->
 
                                         <td>
+
+                                            <?= $index + 1 ?>
+
+                                        </td>
+
+
+                                        <!-- SERVICE ENGINEER -->
+
+                                        <td>
+
                                             <?= esc($r['service_tech'] ?? '') ?>
+
                                         </td>
 
+
+                                        <!-- ACCOUNT -->
+
                                         <td>
+
                                             <?= esc($r['clinic'] ?? '') ?>
+
                                         </td>
 
+
+                                        <!-- ADDRESS -->
+
                                         <td>
+
                                             <?= esc($r['address'] ?? '') ?>
+
                                         </td>
 
-                                        <td>
-                                            <?= esc($r['date'] ?? '') ?>
-                                        </td>
+
+                                        <!-- MACHINE -->
 
                                         <td>
+
                                             <?= esc($r['machine'] ?? '') ?>
+
                                         </td>
 
+
+                                        <!-- SERIAL NUMBER -->
+
                                         <td>
+
                                             <?= esc($r['sn'] ?? '') ?>
+
                                         </td>
+
+
+                                        <!-- TECHNICAL DONE -->
 
                                         <td>
+
                                             <?= esc($r['status'] ?? '') ?>
+
                                         </td>
 
 
+                                        <!-- MFS -->
 
-                                            <!-- MFS -->
+                                        <td class="text-center">
 
-                                               <td class="text-center">
-                                                    <?php if (!empty($r['mfs']) && (int)$r['mfs'] > 0): ?>
+                                            <?php if (!empty($r['mfs']) && (int)$r['mfs'] > 0): ?>
 
-                                                        <button
-                                                            type="button"
-                                                            class="btn btn-sm btn-success view-mfs-btn"
-                                                            data-bs-toggle="modal"
-                                                            data-bs-target="#mfsViewModal"
-                                                            data-mfs-id="<?= (int)$r['mfs'] ?>"
-                                                        >
-                                                            <i class="bi bi-check-circle me-1"></i>
-                                                            MSF
-                                                        </button>
+                                                <button
+                                                    type="button"
+                                                    class="btn btn-sm btn-success view-mfs-btn"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#mfsViewModal"
+                                                    data-mfs-id="<?= (int)$r['mfs'] ?>"
+                                                >
 
-                                                    <?php else: ?>
+                                                    <i class="bi bi-check-circle me-1"></i>
+                                                    MSF
 
-                                                        <span class="badge bg-secondary">
-                                                            No MSF
-                                                        </span>
+                                                </button>
 
-                                                    <?php endif; ?>
-                                                </td>
+                                            <?php else: ?>
+
+                                                <span class="badge bg-secondary">
+                                                    No MSF
+                                                </span>
+
+                                            <?php endif; ?>
+
+                                        </td>
 
 
-                                                <!-- FSR -->
+                                        <!-- FSR -->
 
-                                               <td class="text-center">
-                                                    <?php if (!empty($r['fsr']) && (int)$r['fsr'] > 0): ?>
+                                        <td class="text-center">
 
-                                                        <button
-                                                            type="button"
-                                                            class="btn btn-sm btn-success view-fsr-btn"
-                                                            data-bs-toggle="modal"
-                                                            data-bs-target="#fsrViewModal"
-                                                            data-fsr-id="<?= (int)$r['fsr'] ?>"
-                                                        >
-                                                            <i class="bi bi-check-circle me-1"></i>
-                                                            FSR
-                                                        </button>
+                                            <?php if (!empty($r['fsr']) && (int)$r['fsr'] > 0): ?>
 
-                                                    <?php else: ?>
+                                                <button
+                                                    type="button"
+                                                    class="btn btn-sm btn-success view-fsr-btn"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#fsrViewModal"
+                                                    data-fsr-id="<?= (int)$r['fsr'] ?>"
+                                                >
 
-                                                        <span class="badge bg-secondary">
-                                                            No FSR
-                                                        </span>
+                                                    <i class="bi bi-check-circle me-1"></i>
+                                                    FSR
 
-                                                    <?php endif; ?>
-                                                </td>
+                                                </button>
 
-                                        
+                                            <?php else: ?>
+
+                                                <span class="badge bg-secondary">
+                                                    No FSR
+                                                </span>
+
+                                            <?php endif; ?>
+
+                                        </td>
+
+
                                         <!-- RECEIPT -->
 
                                         <td class="text-center">
@@ -374,7 +820,6 @@
                                                 >
 
                                                     <i class="bi bi-eye me-1"></i>
-
                                                     View
 
                                                 </button>
@@ -389,15 +834,64 @@
 
                                         </td>
 
+
+                                        <!-- ACTION -->
+
+                                        <td class="text-center text-nowrap">
+
+                                            <button
+                                                type="button"
+                                                class="btn btn-outline-success btn-sm edit-pms-btn"
+                                                data-id="<?= (int)$r['id'] ?>"
+                                                title="Edit PMS"
+                                            >
+
+                                                Edit
+
+                                            </button>
+
+
+                                            <button
+                                                type="button"
+                                                class="btn btn-outline-danger btn-sm delete-pms-btn"
+                                                data-id="<?= (int)$r['id'] ?>"
+                                                data-pms="<?= esc($r['pms_number'] ?? '') ?>"
+                                                title="Delete PMS"
+                                            >
+
+                                                Delete
+
+                                            </button>
+
+                                        </td>
+
                                     </tr>
 
                                 <?php endforeach; ?>
 
-                            <?php endif; ?>
+                                </tbody>
 
-                        </tbody>
+                            </table>
+
+                        </div>
+
+                    </div>
+
+                </td>
+
+            </tr>
+
+        <?php endif; ?>
+
+    <?php endforeach; ?>
+
+<?php endif; ?>
+
+</tbody>
 
                     </table>
+
+
 
                 </div>
 
@@ -2008,3396 +2502,394 @@
 
 
 
+
 <!-- ==========================================================
-     JAVASCRIPT
+     EDIT PMS MODAL
      ========================================================== -->
 
-<script>
+<div
+    class="modal fade"
+    id="editPmsModal"
+    tabindex="-1"
+    aria-labelledby="editPmsModalLabel"
+    aria-hidden="true"
+>
 
-document.addEventListener('DOMContentLoaded', function () {
+    <div class="modal-dialog modal-lg modal-dialog-centered">
 
-    /* ==========================================================
-       SELECT2 ACCOUNT
-       ========================================================== */
+        <div class="modal-content">
 
-    if (typeof $ !== 'undefined' && typeof $.fn.select2 !== 'undefined') {
+            <div class="modal-header">
 
-        $('#data_id').select2({
-            placeholder: '-- Select Account --',
-            allowClear: true,
-            width: '100%',
-            minimumResultsForSearch: 0,
-            dropdownParent: $('#addPmsModal')
-        });
+                <h5
+                    class="modal-title"
+                    id="editPmsModalLabel"
+                >
 
-    }
+                    <i class="bi bi-pencil-square me-2"></i>
 
+                    Edit PMS Record
 
-    /* ==========================================================
-       FLASH MESSAGES
-       ========================================================== */
+                </h5>
 
-    function escapeFlashMessage(value) {
+                <button
+                    type="button"
+                    class="btn-close"
+                    data-bs-dismiss="modal"
+                    aria-label="Close"
+                ></button>
 
-        const div = document.createElement('div');
+            </div>
 
-        div.textContent = value ?? '';
 
-        return div.innerHTML;
+            <form
+                id="editPmsForm"
+                method="POST"
+                enctype="multipart/form-data"
+            >
 
-    }
+                <?= csrf_field() ?>
 
 
-    function showFlashMessage(message, type = 'success') {
+                <div class="modal-body">
 
-        document
-            .querySelectorAll('.js-flash-message')
-            .forEach(function (element) {
-                element.remove();
-            });
-
-
-        let icon = 'check-circle';
-
-        if (type === 'danger') {
-            icon = 'exclamation-triangle';
-        }
-        else if (type === 'warning') {
-            icon = 'exclamation-circle';
-        }
-        else if (type === 'info') {
-            icon = 'info-circle';
-        }
-
-
-        const flash = document.createElement('div');
-
-        flash.className =
-            'alert alert-' +
-            type +
-            ' alert-dismissible fade show js-flash-message';
-
-        flash.style.position = 'fixed';
-        flash.style.top = '12px';
-        flash.style.left = '50%';
-        flash.style.transform = 'translateX(-50%)';
-        flash.style.zIndex = '99999';
-        flash.style.width = 'min(90vw, 520px)';
-        flash.style.boxShadow = '0 4px 15px rgba(0,0,0,0.15)';
-        flash.style.transition = 'opacity 0.5s ease';
-
-
-        flash.innerHTML = `
-            <i class="bi bi-${icon} me-2"></i>
-
-            <strong>
-                ${type === 'success' ? 'Success!' : 'Notice!'}
-            </strong>
-
-            <span class="ms-1">
-                ${escapeFlashMessage(message)}
-            </span>
-
-            <button
-                type="button"
-                class="btn-close"
-                data-bs-dismiss="alert"
-                aria-label="Close">
-            </button>
-        `;
-
-
-        document.body.appendChild(flash);
-
-
-        setTimeout(function () {
-
-            if (!flash.parentNode) {
-                return;
-            }
-
-            flash.style.opacity = '0';
-
-            setTimeout(function () {
-
-                if (flash.parentNode) {
-                    flash.remove();
-                }
-
-            }, 500);
-
-        }, 5000);
-
-    }
-
-
-    setTimeout(function () {
-
-        document
-            .querySelectorAll('.flash-message')
-            .forEach(function (message) {
-
-                message.style.opacity = '0';
-                message.style.transition = 'opacity 0.5s ease';
-
-                setTimeout(function () {
-                    message.remove();
-                }, 500);
-
-            });
-
-    }, 5000);
-
-
-    /* ==========================================================
-       ELEMENTS
-       ========================================================== */
-
-    const dataSelect =
-        document.getElementById('data_id');
-
-    const addressInput =
-        document.getElementById('address');
-
-    const machineRows =
-        document.getElementById('machineRows');
-
-    const addMachineBtn =
-        document.getElementById('addMachineBtn');
-
-    const pmsForm =
-        document.getElementById('addPmsForm');
-
-    const mfsForm =
-        document.getElementById('mfsForm');
-
-    const fsrForm =
-        document.getElementById('fsrForm');
-
-
-    /* ==========================================================
-       STATE
-       ========================================================== */
-
-    let currentClinicMachines = {};
-
-    let machineRowIndex = 0;
-
-    let pendingMfs = false;
-
-    let pendingFsr = false;
-
-    let savedPmsData = null;
-
-    let savedPmsRecords = [];
-
-
-    /* ==========================================================
-       TECHNICAL DONE OPTIONS
-       ========================================================== */
-
-    function getTechnicalOptions(machine) {
-
-        const m =
-            (machine || '')
-                .toString()
-                .toLowerCase()
-                .trim();
-
-
-        if (m.indexOf('hematology') !== -1) {
-
-            return [
-                'Light PMS',
-                'Mid PMS',
-                'Heavy PMS',
-                'Troubleshooting',
-                'Quality Control',
-                'Installation',
-                'Relocation'
-            ];
-
-        }
-
-
-        if (m.indexOf('chemistry') !== -1) {
-
-            return [
-                'Manual Checking',
-                'For Release',
-                'New Accessed',
-                'Cancelled Service'
-            ];
-
-        }
-
-
-        if (m !== '') {
-
-            return [
-                'Manual Checking',
-                'For Release',
-                'New Accessed',
-                'Cancelled Service'
-            ];
-
-        }
-
-
-        return [];
-
-    }
-
-
-    /* ==========================================================
-       CREATE MACHINE ROW
-       ========================================================== */
-
-    function createMachineRow() {
-
-        const index = machineRowIndex++;
-
-
-        const row = document.createElement('div');
-
-        row.className =
-            'machine-row border rounded p-3 mb-3 bg-white';
-
-        row.dataset.index = index;
-
-
-        row.innerHTML = `
-
-            <div class="row g-3 align-items-end">
-
-                <div class="col-md-4">
-
-                    <label class="form-label fw-semibold">
-                        Machine Type
-                    </label>
-
-                    <select
-                        name="machines[${index}][machine]"
-                        class="form-select machine-select"
-                        required>
-
-                        <option value="">
-                            -- Select Machine --
-                        </option>
-
-                    </select>
-
-                </div>
-
-
-                <div class="col-md-3">
-
-                    <label class="form-label fw-semibold">
-                        Serial Number
-                    </label>
+                    <!-- PMS ID -->
 
                     <input
-                        type="text"
-                        name="machines[${index}][sn]"
-                        class="form-control machine-sn"
-                        readonly>
+                        type="hidden"
+                        name="id"
+                        id="edit_pms_id"
+                    >
+
+
+                    <!-- PMS NUMBER -->
+
+                    <div class="row g-3">
+
+                        <div class="col-md-6">
+
+                            <label
+                                class="form-label fw-semibold"
+                            >
+                                PMS Number
+                            </label>
+
+                            <input
+                                type="text"
+                                class="form-control"
+                                name="pms_number"
+                                id="edit_pms_number"
+                                required
+                            >
+
+                        </div>
+
+
+                        <!-- DATE -->
+
+                        <div class="col-md-6">
+
+                            <label
+                                class="form-label fw-semibold"
+                            >
+                                Date
+                            </label>
+
+                            <input
+                                type="date"
+                                class="form-control"
+                                name="date"
+                                id="edit_pms_date"
+                                required
+                            >
+
+                        </div>
+
+
+                        <!-- SERVICE ENGINEER -->
+
+                        <div class="col-md-6">
+
+                            <label
+                                class="form-label fw-semibold"
+                            >
+                                Service Engineer
+                            </label>
+
+                            <select
+                                class="form-select"
+                                name="service_eng_id"
+                                id="edit_service_eng_id"
+                                required
+                            >
+
+                                <option value="">
+                                    Select Service Engineer
+                                </option>
+
+                                <?php foreach ($users as $u): ?>
+
+                                    <?php
+                                        $fullName = trim(
+                                            ($u['fname'] ?? '') .
+                                            ' ' .
+                                            ($u['lname'] ?? '')
+                                        );
+                                    ?>
+
+                                    <option
+                                        value="<?= (int)$u['id'] ?>"
+                                        data-name="<?= esc($fullName) ?>"
+                                    >
+                                        <?= esc($fullName) ?>
+                                    </option>
+
+                                <?php endforeach; ?>
+
+                            </select>
+
+                        </div>
+
+
+                        <!-- ACCOUNT -->
+
+                        <div class="col-md-6">
+
+                            <label
+                                class="form-label fw-semibold"
+                            >
+                                Account
+                            </label>
+
+                            <select
+                                class="form-select"
+                                name="data_id"
+                                id="edit_data_id"
+                                required
+                            >
+
+                                <option value="">
+                                    Select Account
+                                </option>
+
+                                <?php foreach ($accounts as $account): ?>
+
+                                    <option
+                                        value="<?= (int)$account['id'] ?>"
+                                        data-address="<?= esc($account['Address'] ?? '') ?>"
+                                        data-machine="<?= esc($account['Machine'] ?? '') ?>"
+                                        data-sn="<?= esc($account['SN'] ?? '') ?>"
+                                    >
+
+                                        <?= esc($account['Clinic_name'] ?? '') ?>
+
+                                    </option>
+
+                                <?php endforeach; ?>
+
+                            </select>
+
+                        </div>
+
+
+                        <!-- ADDRESS -->
+
+                        <div class="col-12">
+
+                            <label
+                                class="form-label fw-semibold"
+                            >
+                                Address
+                            </label>
+
+                            <textarea
+                                class="form-control"
+                                name="address"
+                                id="edit_pms_address"
+                                rows="2"
+                            ></textarea>
+
+                        </div>
+
+
+                        <!-- MACHINE -->
+
+                        <div class="col-md-6">
+
+                            <label
+                                class="form-label fw-semibold"
+                            >
+                                Machine
+                            </label>
+
+                            <input
+                                type="text"
+                                class="form-control"
+                                name="machine"
+                                id="edit_pms_machine"
+                                required
+                            >
+
+                        </div>
+
+
+                        <!-- SERIAL NUMBER -->
+
+                        <div class="col-md-6">
+
+                            <label
+                                class="form-label fw-semibold"
+                            >
+                                Serial Number
+                            </label>
+
+                            <input
+                                type="text"
+                                class="form-control"
+                                name="sn"
+                                id="edit_pms_sn"
+                            >
+
+                        </div>
+
+
+                        <!-- TECHNICAL DONE -->
+
+                        <div class="col-12">
+
+                            <label
+                                class="form-label fw-semibold"
+                            >
+                                Technical Done
+                            </label>
+
+                            <select
+                                class="form-select"
+                                name="status"
+                                id="edit_pms_status"
+                                required
+                            >
+
+                                <option value="">
+                                    Select Technical Done
+                                </option>
+
+                                <option value="Light PMS">
+                                    Light PMS
+                                </option>
+
+                                <option value="Mid PMS">
+                                    Mid PMS
+                                </option>
+
+                                <option value="Heavy PMS">
+                                    Heavy PMS
+                                </option>
+
+                                <option value="Troubleshooting">
+                                    Troubleshooting
+                                </option>
+
+                                <option value="QC">
+                                    QC
+                                </option>
+
+                                <option value="Installation">
+                                    Installation
+                                </option>
+
+                                <option value="Relocation">
+                                    Relocation
+                                </option>
+
+                                <option value="Manual Checking">
+                                    Manual Checking
+                                </option>
+
+                                <option value="For Release">
+                                    For Release
+                                </option>
+
+                                <option value="New Accessed">
+                                    New Accessed
+                                </option>
+
+                                <option value="Cancelled Service">
+                                    Cancelled Service
+                                </option>
+
+                            </select>
+
+                        </div>
+
+
+                        <!-- EXISTING DOCUMENTS -->
+
+                        <div class="col-12">
+
+                            <div
+                                class="alert alert-light border mb-0"
+                                id="editPmsDocuments"
+                            >
+
+                                <div class="fw-semibold mb-2">
+                                    Existing Documents
+                                </div>
+
+                                <div
+                                    id="editPmsDocumentsContent"
+                                    class="small text-muted"
+                                >
+                                    Loading...
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
 
                 </div>
 
 
-                <div class="col-md-4">
-
-                    <label class="form-label fw-semibold">
-                        Technical Done
-                    </label>
-
-                    <select
-                        name="machines[${index}][technical_done]"
-                        class="form-select technical-done"
-                        required>
-
-                        <option value="">
-                            -- Select Technical Done --
-                        </option>
-
-                    </select>
-
-                </div>
-
-
-                <div class="col-md-1 text-end">
+                <div class="modal-footer">
 
                     <button
                         type="button"
-                        class="btn btn-outline-danger remove-machine"
-                        title="Remove Machine">
+                        class="btn btn-secondary"
+                        data-bs-dismiss="modal"
+                    >
 
-                        <i class="bi bi-trash"></i>
+                        <i class="bi bi-x-circle me-1"></i>
+
+                        Cancel
+
+                    </button>
+
+
+                    <button
+                        type="submit"
+                        class="btn btn-primary"
+                        id="saveEditPmsBtn"
+                    >
+
+                        <i class="bi bi-save me-1"></i>
+
+                        Save Changes
 
                     </button>
 
                 </div>
 
-            </div>
-        `;
+            </form>
 
+        </div>
 
-        if (!machineRows) {
-            return row;
-        }
+    </div>
 
+</div>
 
-        machineRows.appendChild(row);
-
-
-        const machineSelect =
-            row.querySelector('.machine-select');
-
-        const serialInput =
-            row.querySelector('.machine-sn');
-
-        const technicalSelect =
-            row.querySelector('.technical-done');
-
-        const removeButton =
-            row.querySelector('.remove-machine');
-
-
-        populateMachineSelect(machineSelect);
-
-
-        machineSelect.addEventListener('change', function () {
-
-            const machine = this.value;
-
-            serialInput.value =
-                currentClinicMachines[machine] || '';
-
-            populateTechnicalDone(
-                technicalSelect,
-                machine
-            );
-
-        });
-
-
-        removeButton.addEventListener('click', function () {
-
-            row.remove();
-
-            updateRemoveButtons();
-
-        });
-
-
-        updateRemoveButtons();
-
-
-        return row;
-
-    }
-
-
-    /* ==========================================================
-       POPULATE MACHINE SELECT
-       ========================================================== */
-
-    function populateMachineSelect(select) {
-
-        if (!select) {
-            return;
-        }
-
-
-        select.innerHTML = `
-            <option value="">
-                -- Select Machine --
-            </option>
-        `;
-
-
-        Object.keys(currentClinicMachines).forEach(function (machine) {
-
-            const option =
-                document.createElement('option');
-
-            option.value = machine;
-            option.textContent = machine;
-
-            select.appendChild(option);
-
-        });
-
-
-        select.disabled =
-            Object.keys(currentClinicMachines).length === 0;
-
-    }
-
-
-    /* ==========================================================
-       POPULATE TECHNICAL DONE
-       ========================================================== */
-
-    function populateTechnicalDone(select, machine) {
-
-        if (!select) {
-            return;
-        }
-
-
-        select.innerHTML = `
-            <option value="">
-                -- Select Technical Done --
-            </option>
-        `;
-
-
-        getTechnicalOptions(machine).forEach(function (text) {
-
-            const option =
-                document.createElement('option');
-
-            option.value = text;
-            option.textContent = text;
-
-            select.appendChild(option);
-
-        });
-
-    }
-
-
-    /* ==========================================================
-       UPDATE REMOVE BUTTONS
-       ========================================================== */
-
-    function updateRemoveButtons() {
-
-        if (!machineRows) {
-            return;
-        }
-
-
-        const rows =
-            machineRows.querySelectorAll('.machine-row');
-
-
-        rows.forEach(function (row) {
-
-            const button =
-                row.querySelector('.remove-machine');
-
-            if (button) {
-                button.disabled = rows.length === 1;
-            }
-
-        });
-
-    }
-
-
-    /* ==========================================================
-       RESET MACHINE ROWS
-       ========================================================== */
-
-    function resetMachineRows() {
-
-        if (!machineRows) {
-            return;
-        }
-
-
-        machineRows.innerHTML = '';
-
-        machineRowIndex = 0;
-
-        createMachineRow();
-
-    }
-
-
-    /* ==========================================================
-       LOAD SELECTED CLINIC
-       ========================================================== */
-
-    function loadSelectedClinic() {
-
-        if (!dataSelect) {
-            return;
-        }
-
-
-        const selected =
-            dataSelect.options[dataSelect.selectedIndex];
-
-
-        if (!selected || !selected.value) {
-
-            if (addressInput) {
-                addressInput.value = '';
-            }
-
-            currentClinicMachines = {};
-
-            if (addMachineBtn) {
-                addMachineBtn.disabled = true;
-            }
-
-            resetMachineRows();
-
-            return;
-        }
-
-
-        const clinic =
-            selected.getAttribute('data-clinic') || '';
-
-        const address =
-            selected.getAttribute('data-address') || '';
-
-        const machinesJson =
-            selected.getAttribute('data-machines') || '';
-
-
-        console.log('Selected Clinic:', clinic);
-        console.log('Selected Address:', address);
-        console.log('Machine JSON:', machinesJson);
-
-
-        if (addressInput) {
-            addressInput.value = address;
-        }
-
-
-        try {
-
-            currentClinicMachines =
-                machinesJson
-                    ? JSON.parse(machinesJson)
-                    : {};
-
-        }
-        catch (error) {
-
-            console.error(
-                'Unable to read machine data:',
-                error
-            );
-
-            currentClinicMachines = {};
-
-        }
-
-
-        console.log(
-            'Clinic Machines:',
-            currentClinicMachines
-        );
-
-
-        if (addMachineBtn) {
-
-            addMachineBtn.disabled =
-                Object.keys(currentClinicMachines).length === 0;
-
-        }
-
-
-        resetMachineRows();
-
-
-        const firstRow =
-            machineRows
-                ? machineRows.querySelector('.machine-row')
-                : null;
-
-
-        if (!firstRow) {
-            return;
-        }
-
-
-        const select =
-            firstRow.querySelector('.machine-select');
-
-        const serial =
-            firstRow.querySelector('.machine-sn');
-
-        const technical =
-            firstRow.querySelector('.technical-done');
-
-
-        const machines =
-            Object.keys(currentClinicMachines);
-
-
-        if (machines.length === 0) {
-            return;
-        }
-
-
-        const firstMachine = machines[0];
-
-
-        select.value = firstMachine;
-
-        serial.value =
-            currentClinicMachines[firstMachine] || '';
-
-
-        populateTechnicalDone(
-            technical,
-            firstMachine
-        );
-
-    }
-
-
-    /* ==========================================================
-       ACCOUNT CHANGE
-       ========================================================== */
-
-    if (
-        typeof $ !== 'undefined' &&
-        typeof $.fn.select2 !== 'undefined'
-    ) {
-
-        $('#data_id').on(
-            'change',
-            loadSelectedClinic
-        );
-
-    }
-    else if (dataSelect) {
-
-        dataSelect.addEventListener(
-            'change',
-            loadSelectedClinic
-        );
-
-    }
-
-
-    /* ==========================================================
-       ADD MACHINE
-       ========================================================== */
-
-    if (addMachineBtn) {
-
-        addMachineBtn.addEventListener(
-            'click',
-            function () {
-
-                if (
-                    Object.keys(currentClinicMachines).length === 0
-                ) {
-                    return;
-                }
-
-                createMachineRow();
-
-            }
-        );
-
-    }
-
-
-    /* ==========================================================
-       INITIAL MACHINE ROW
-       ========================================================== */
-
-    resetMachineRows();
-
-
-    /* ==========================================================
-       GET PMS DATA
-       ========================================================== */
-
-    function getPmsDataFromForm() {
-
-        const selectedAccount =
-            dataSelect
-                ? dataSelect.options[dataSelect.selectedIndex]
-                : null;
-
-
-        const engineerSelect =
-            document.getElementById('service_eng_id');
-
-
-        let serviceEngineer = '';
-
-
-        if (
-            engineerSelect &&
-            engineerSelect.selectedIndex >= 0
-        ) {
-
-            serviceEngineer =
-                engineerSelect.options[
-                    engineerSelect.selectedIndex
-                ].textContent.trim();
-
-        }
-
-
-        const rows =
-            machineRows
-                ? machineRows.querySelectorAll('.machine-row')
-                : [];
-
-
-        const machines = [];
-
-
-        rows.forEach(function (row) {
-
-            machines.push({
-
-                machine:
-                    row.querySelector('.machine-select')?.value || '',
-
-                sn:
-                    row.querySelector('.machine-sn')?.value || '',
-
-                technical_done:
-                    row.querySelector('.technical-done')?.value || ''
-
-            });
-
-        });
-
-
-        const firstMachine =
-            machines.length > 0
-                ? machines[0]
-                : {};
-
-
-        return {
-
-            pms_number:
-                document.getElementById('pms_number')?.value || '',
-
-            service_tech:
-                serviceEngineer,
-
-            clinic:
-                selectedAccount
-                    ? (
-                        selectedAccount.getAttribute('data-clinic') || ''
-                    )
-                    : '',
-
-            address:
-                addressInput?.value || '',
-
-            date:
-                document.getElementById('pms_date')?.value || '',
-
-            machine:
-                firstMachine.machine || '',
-
-            sn:
-                firstMachine.sn || '',
-
-            technical_done:
-                firstMachine.technical_done || '',
-
-            machines:
-                machines
-
-        };
-
-    }
-
-
-    /* ==========================================================
-       SHOW MFS MODAL
-       ========================================================== */
-
-    function showMfsModal() {
-
-        populateMfsFromPms(savedPmsData);
-
-
-        const element =
-            document.getElementById('mfsModal');
-
-
-        if (!element) {
-
-            console.error('MFS modal not found.');
-
-            return;
-
-        }
-
-
-        bootstrap.Modal
-            .getOrCreateInstance(element)
-            .show();
-
-    }
-
-
-    /* ==========================================================
-       SHOW FSR MODAL
-       ========================================================== */
-
-    function showFsrModal() {
-
-        populateFsrFromPms(savedPmsData);
-
-
-        const element =
-            document.getElementById('fsrModal');
-
-
-        if (!element) {
-
-            console.error('FSR modal not found.');
-
-            return;
-
-        }
-
-
-        bootstrap.Modal
-            .getOrCreateInstance(element)
-            .show();
-
-    }
-
-
-    /* ==========================================================
-       POPULATE MFS FROM PMS
-       ========================================================== */
-
-    function populateMfsFromPms(pms) {
-
-        if (!pms) {
-            return;
-        }
-
-
-        const employee =
-            document.getElementById('mfs_employee');
-
-        const accounts =
-            document.getElementById('mfs_accounts');
-
-        const address =
-            document.getElementById('mfs_address');
-
-        const machine =
-            document.getElementById('mfs_machine');
-
-        const serial =
-            document.getElementById('mfs_serial');
-
-        const date =
-            document.getElementById('mfs_date_status');
-
-
-        if (employee) {
-            employee.value = pms.service_tech || '';
-        }
-
-        if (accounts) {
-            accounts.value = pms.clinic || '';
-        }
-
-        if (address) {
-            address.value = pms.address || '';
-        }
-
-        if (machine) {
-            machine.value = pms.machine || '';
-        }
-
-        if (serial) {
-            serial.value = pms.sn || '';
-        }
-
-        if (date) {
-            date.value = pms.date || '';
-        }
-
-    }
-
-
-    /* ==========================================================
-       POPULATE FSR FROM PMS
-       ========================================================== */
-
-    function populateFsrFromPms(pms) {
-
-        if (!pms) {
-            return;
-        }
-
-
-        const engineer =
-            document.getElementById('fsr_service_engineer');
-
-        const account =
-            document.getElementById('fsr_account');
-
-        const address =
-            document.getElementById('fsr_address');
-
-        const machine =
-            document.getElementById('fsr_machine');
-
-        const serial =
-            document.getElementById('fsr_serial');
-
-
-        if (engineer) {
-            engineer.value = pms.service_tech || '';
-        }
-
-        if (account) {
-            account.value = pms.clinic || '';
-        }
-
-        if (address) {
-            address.value = pms.address || '';
-        }
-
-        if (machine) {
-            machine.value = pms.machine || '';
-        }
-
-        if (serial) {
-            serial.value = pms.sn || '';
-        }
-
-    }
-
-
-    /* ==========================================================
-       GET PMS ID
-       ========================================================== */
-
-    function getPmsId() {
-
-        if (
-            savedPmsData &&
-            savedPmsData.id
-        ) {
-
-            return savedPmsData.id;
-
-        }
-
-
-        if (
-            Array.isArray(savedPmsRecords) &&
-            savedPmsRecords.length > 0
-        ) {
-
-            const first =
-                savedPmsRecords[0];
-
-            return (
-                first.id ||
-                first.pms_id ||
-                ''
-            );
-
-        }
-
-
-        return '';
-
-    }
-
-
-    /* ==========================================================
-       UPDATE SAVED PMS MFS ID
-       ========================================================== */
-
-    function updateSavedPmsMfsId(mfsId) {
-
-        if (!mfsId) {
-            return;
-        }
-
-
-        if (!savedPmsData) {
-            savedPmsData = {};
-        }
-
-
-        savedPmsData.mfs = mfsId;
-        savedPmsData.mfs_id = mfsId;
-
-
-        if (
-            Array.isArray(savedPmsRecords) &&
-            savedPmsRecords.length > 0
-        ) {
-
-            savedPmsRecords[0].mfs = mfsId;
-            savedPmsRecords[0].mfs_id = mfsId;
-
-        }
-
-
-        console.log('Saved MFS ID:', mfsId);
-
-    }
-
-
-    /* ==========================================================
-       UPDATE SAVED PMS FSR ID
-       ========================================================== */
-
-    function updateSavedPmsFsrId(fsrId) {
-
-        if (!fsrId) {
-            return;
-        }
-
-
-        if (!savedPmsData) {
-            savedPmsData = {};
-        }
-
-
-        savedPmsData.fsr = fsrId;
-        savedPmsData.fsr_id = fsrId;
-
-
-        if (
-            Array.isArray(savedPmsRecords) &&
-            savedPmsRecords.length > 0
-        ) {
-
-            savedPmsRecords[0].fsr = fsrId;
-            savedPmsRecords[0].fsr_id = fsrId;
-
-        }
-
-
-        console.log('Saved FSR ID:', fsrId);
-
-    }
-
-
-    /* ==========================================================
-       PMS SUBMIT
-       ========================================================== */
-
-    if (pmsForm) {
-
-        pmsForm.addEventListener(
-            'submit',
-            function (event) {
-
-                event.preventDefault();
-
-
-                console.log(
-                    'PMS SUBMIT HANDLER RUNNING'
-                );
-
-
-                if (!machineRows) {
-
-                    showFlashMessage(
-                        'Machine rows container was not found.',
-                        'danger'
-                    );
-
-                    return;
-
-                }
-
-
-                const rows =
-                    machineRows.querySelectorAll('.machine-row');
-
-
-                if (rows.length === 0) {
-
-                    alert(
-                        'Please add at least one machine.'
-                    );
-
-                    return;
-
-                }
-
-
-                let valid = true;
-
-
-                rows.forEach(function (row) {
-
-                    const machine =
-                        row.querySelector(
-                            '.machine-select'
-                        )?.value || '';
-
-
-                    const technical =
-                        row.querySelector(
-                            '.technical-done'
-                        )?.value || '';
-
-
-                    if (!machine || !technical) {
-                        valid = false;
-                    }
-
-                });
-
-
-                if (!valid) {
-
-                    alert(
-                        'Please select a Machine and Technical Done for every machine.'
-                    );
-
-                    return;
-
-                }
-
-
-                pendingMfs =
-                    document.getElementById(
-                        'mfs_check'
-                    )?.checked || false;
-
-
-                pendingFsr =
-                    document.getElementById(
-                        'fsr_check'
-                    )?.checked || false;
-
-
-                savedPmsData =
-                    getPmsDataFromForm();
-
-
-                savedPmsRecords = [];
-
-
-                const saveButton =
-                    document.getElementById(
-                        'savePmsButton'
-                    );
-
-
-                if (saveButton) {
-
-                    saveButton.disabled = true;
-
-                    saveButton.innerHTML =
-                        '<span class="spinner-border spinner-border-sm me-1"></span> Saving...';
-
-                }
-
-
-                const formData =
-                    new FormData(pmsForm);
-
-
-                if (pendingMfs) {
-                    formData.set('mfs', '1');
-                }
-                else {
-                    formData.delete('mfs');
-                }
-
-
-                if (pendingFsr) {
-                    formData.set('fsr', '1');
-                }
-                else {
-                    formData.delete('fsr');
-                }
-
-
-                fetch(
-                    pmsForm.action,
-                    {
-                        method: 'POST',
-                        body: formData,
-                        headers: {
-                            'X-Requested-With': 'XMLHttpRequest',
-                            'Accept': 'application/json'
-                        }
-                    }
-                )
-
-                .then(async function (response) {
-
-                    const text =
-                        await response.text();
-
-
-                    console.log(
-                        'PMS response:',
-                        text
-                    );
-
-
-                    if (!response.ok) {
-
-                        throw new Error(
-                            'HTTP ' +
-                            response.status +
-                            ': ' +
-                            text.substring(0, 500)
-                        );
-
-                    }
-
-
-                    try {
-
-                        return JSON.parse(text);
-
-                    }
-                    catch (error) {
-
-                        throw new Error(
-                            'PMS server did not return valid JSON.'
-                        );
-
-                    }
-
-                })
-
-                .then(function (data) {
-
-                    console.log(
-                        'PMS save response:',
-                        data
-                    );
-
-
-                    if (!data.success) {
-
-                        throw new Error(
-                            data.message ||
-                            'Unable to save PMS record.'
-                        );
-
-                    }
-
-
-                    if (Array.isArray(data.records)) {
-
-                        savedPmsRecords =
-                            data.records;
-
-                    }
-                    else if (
-                        Array.isArray(data.pms_records)
-                    ) {
-
-                        savedPmsRecords =
-                            data.pms_records;
-
-                    }
-
-
-                    if (data.pms) {
-
-                        savedPmsData =
-                            Object.assign(
-                                {},
-                                savedPmsData,
-                                data.pms
-                            );
-
-                    }
-
-
-                    if (
-                        data.id &&
-                        !savedPmsData.id
-                    ) {
-
-                        savedPmsData.id =
-                            data.id;
-
-                    }
-
-
-                    console.log(
-                        'Final PMS data:',
-                        savedPmsData
-                    );
-
-
-                    showFlashMessage(
-                        data.message ||
-                        'PMS saved successfully.',
-                        'success'
-                    );
-
-
-                    const modalElement =
-                        document.getElementById(
-                            'addPmsModal'
-                        );
-
-
-                    const modalInstance =
-                        modalElement
-                            ? bootstrap.Modal.getInstance(
-                                modalElement
-                            )
-                            : null;
-
-
-                    if (modalInstance) {
-                        modalInstance.hide();
-                    }
-
-
-                    setTimeout(function () {
-
-                        if (pendingMfs) {
-
-                            showMfsModal();
-
-                        }
-                        else if (pendingFsr) {
-
-                            showFsrModal();
-
-                        }
-                        else {
-
-                            setTimeout(function () {
-                                location.reload();
-                            }, 1500);
-
-                        }
-
-                    }, 500);
-
-                })
-
-                .catch(function (error) {
-
-                    console.error(
-                        'PMS save error:',
-                        error
-                    );
-
-
-                    showFlashMessage(
-                        error.message ||
-                        'An error occurred while saving PMS.',
-                        'danger'
-                    );
-
-
-                    if (saveButton) {
-
-                        saveButton.disabled = false;
-
-                        saveButton.innerHTML =
-                            '<i class="bi bi-save"></i> Save PMS';
-
-                    }
-
-                });
-
-            }
-        );
-
-    }
-
-
-    /* ==========================================================
-       MFS SUBMIT
-       ========================================================== */
-
-    if (mfsForm) {
-
-        mfsForm.addEventListener(
-            'submit',
-            function (event) {
-
-                event.preventDefault();
-
-
-                console.log(
-                    'MFS SUBMIT HANDLER RUNNING'
-                );
-
-
-                const saveButton =
-                    document.getElementById(
-                        'saveMfsButton'
-                    );
-
-
-                if (saveButton) {
-
-                    saveButton.disabled = true;
-
-                    saveButton.innerHTML =
-                        '<span class="spinner-border spinner-border-sm me-1"></span> Saving...';
-
-                }
-
-
-                const formData =
-                    new FormData(mfsForm);
-
-
-                const pmsId =
-                    getPmsId();
-
-
-                if (!pmsId) {
-
-                    showFlashMessage(
-                        'PMS ID was not found. MFS cannot be linked to PMS.',
-                        'danger'
-                    );
-
-
-                    if (saveButton) {
-
-                        saveButton.disabled = false;
-
-                        saveButton.innerHTML =
-                            '<i class="bi bi-save"></i> Save MFS';
-
-                    }
-
-
-                    return;
-
-                }
-
-
-                /*
-                 * Send PMS ID.
-                 *
-                 * Controller:
-                 *
-                 * INSERT tb_mfs
-                 * GET tb_mfs.id
-                 * UPDATE tb_pms.mfs = tb_mfs.id
-                 */
-
-                formData.set(
-                    'pms_id',
-                    pmsId
-                );
-
-
-                console.log(
-                    'MFS PMS ID:',
-                    pmsId
-                );
-
-
-                fetch(
-                    mfsForm.action,
-                    {
-                        method: 'POST',
-                        body: formData,
-                        headers: {
-                            'X-Requested-With': 'XMLHttpRequest',
-                            'Accept': 'application/json'
-                        }
-                    }
-                )
-
-                .then(async function (response) {
-
-                    const text =
-                        await response.text();
-
-
-                    console.log(
-                        'MFS response:',
-                        text
-                    );
-
-
-                    if (!response.ok) {
-
-                        throw new Error(
-                            'HTTP ' +
-                            response.status +
-                            ': ' +
-                            text.substring(0, 500)
-                        );
-
-                    }
-
-
-                    try {
-
-                        return JSON.parse(text);
-
-                    }
-                    catch (error) {
-
-                        throw new Error(
-                            'MFS server did not return valid JSON.'
-                        );
-
-                    }
-
-                })
-
-                .then(function (data) {
-
-                    console.log(
-                        'MFS save response:',
-                        data
-                    );
-
-
-                    if (!data.success) {
-
-                        throw new Error(
-                            data.message ||
-                            'Unable to save MFS.'
-                        );
-
-                    }
-
-
-                    /*
-                     * IMPORTANT:
-                     *
-                     * This must be tb_mfs.id.
-                     */
-
-                    const mfsId =
-                        data.mfs_id ||
-                        data.id ||
-                        data.mfs?.id ||
-                        '';
-
-
-                    if (mfsId) {
-
-                        updateSavedPmsMfsId(
-                            mfsId
-                        );
-
-                    }
-
-
-                    console.log(
-                        'MFS ID returned:',
-                        mfsId
-                    );
-
-
-                    showFlashMessage(
-                        data.message ||
-                        'MFS saved successfully.',
-                        'success'
-                    );
-
-
-                    const modalElement =
-                        document.getElementById(
-                            'mfsModal'
-                        );
-
-
-                    const modal =
-                        modalElement
-                            ? bootstrap.Modal.getInstance(
-                                modalElement
-                            )
-                            : null;
-
-
-                    if (modal) {
-                        modal.hide();
-                    }
-
-
-                    setTimeout(function () {
-
-                        if (pendingFsr) {
-
-                            showFsrModal();
-
-                        }
-                        else {
-
-                            setTimeout(function () {
-                                location.reload();
-                            }, 1500);
-
-                        }
-
-                    }, 500);
-
-                })
-
-                .catch(function (error) {
-
-                    console.error(
-                        'MFS save error:',
-                        error
-                    );
-
-
-                    showFlashMessage(
-                        error.message ||
-                        'An error occurred while saving MFS.',
-                        'danger'
-                    );
-
-
-                    if (saveButton) {
-
-                        saveButton.disabled = false;
-
-                        saveButton.innerHTML =
-                            '<i class="bi bi-save"></i> Save MFS';
-
-                    }
-
-                });
-
-            }
-        );
-
-    }
-
-
-    /* ==========================================================
-       FSR SUBMIT
-       ========================================================== */
-
-    if (fsrForm) {
-
-        fsrForm.addEventListener(
-            'submit',
-            function (event) {
-
-                event.preventDefault();
-
-
-                console.log(
-                    'FSR SUBMIT HANDLER RUNNING'
-                );
-
-
-                const saveButton =
-                    document.getElementById(
-                        'saveFsrButton'
-                    );
-
-
-                if (saveButton) {
-
-                    saveButton.disabled = true;
-
-                    saveButton.innerHTML =
-                        '<span class="spinner-border spinner-border-sm me-1"></span> Saving...';
-
-                }
-
-
-                const formData =
-                    new FormData(fsrForm);
-
-
-                const pmsId =
-                    getPmsId();
-
-
-                if (!pmsId) {
-
-                    showFlashMessage(
-                        'PMS ID was not found. FSR cannot be linked to PMS.',
-                        'danger'
-                    );
-
-
-                    if (saveButton) {
-
-                        saveButton.disabled = false;
-
-                        saveButton.innerHTML =
-                            '<i class="bi bi-save"></i> Save FSR';
-
-                    }
-
-
-                    return;
-
-                }
-
-
-                /*
-                 * Send PMS ID.
-                 *
-                 * Controller:
-                 *
-                 * INSERT tb_fsr
-                 * GET tb_fsr.id
-                 * UPDATE tb_pms.fsr = tb_fsr.id
-                 */
-
-                formData.set(
-                    'pms_id',
-                    pmsId
-                );
-
-
-                console.log(
-                    'FSR PMS ID:',
-                    pmsId
-                );
-
-
-                fetch(
-                    fsrForm.action,
-                    {
-                        method: 'POST',
-                        body: formData,
-                        headers: {
-                            'X-Requested-With': 'XMLHttpRequest',
-                            'Accept': 'application/json'
-                        }
-                    }
-                )
-
-                .then(async function (response) {
-
-                    const text =
-                        await response.text();
-
-
-                    console.log(
-                        'FSR response:',
-                        text
-                    );
-
-
-                    if (!response.ok) {
-
-                        throw new Error(
-                            'HTTP ' +
-                            response.status +
-                            ': ' +
-                            text.substring(0, 500)
-                        );
-
-                    }
-
-
-                    try {
-
-                        return JSON.parse(text);
-
-                    }
-                    catch (error) {
-
-                        throw new Error(
-                            'FSR server did not return valid JSON.'
-                        );
-
-                    }
-
-                })
-
-                .then(function (data) {
-
-                    console.log(
-                        'FSR save response:',
-                        data
-                    );
-
-
-                    if (!data.success) {
-
-                        throw new Error(
-                            data.message ||
-                            'Unable to save FSR.'
-                        );
-
-                    }
-
-
-                    /*
-                     * IMPORTANT:
-                     *
-                     * This must be tb_fsr.id.
-                     */
-
-                    const fsrId =
-                        data.fsr_id ||
-                        data.id ||
-                        data.fsr?.id ||
-                        '';
-
-
-                    if (fsrId) {
-
-                        updateSavedPmsFsrId(
-                            fsrId
-                        );
-
-                    }
-
-
-                    console.log(
-                        'FSR ID returned:',
-                        fsrId
-                    );
-
-
-                    showFlashMessage(
-                        data.message ||
-                        'FSR saved successfully.',
-                        'success'
-                    );
-
-
-                    const modalElement =
-                        document.getElementById(
-                            'fsrModal'
-                        );
-
-
-                    const modal =
-                        modalElement
-                            ? bootstrap.Modal.getInstance(
-                                modalElement
-                            )
-                            : null;
-
-
-                    if (modal) {
-                        modal.hide();
-                    }
-
-
-                    setTimeout(function () {
-
-                        location.reload();
-
-                    }, 1200);
-
-                })
-
-                .catch(function (error) {
-
-                    console.error(
-                        'FSR save error:',
-                        error
-                    );
-
-
-                    showFlashMessage(
-                        error.message ||
-                        'An error occurred while saving FSR.',
-                        'danger'
-                    );
-
-
-                    if (saveButton) {
-
-                        saveButton.disabled = false;
-
-                        saveButton.innerHTML =
-                            '<i class="bi bi-save"></i> Save FSR';
-
-                    }
-
-                });
-
-            }
-        );
-
-    }
-
-
-    /* ==========================================================
-       RESET BUTTONS WHEN MODALS CLOSE
-       ========================================================== */
-
-    [
-        {
-            modal: 'addPmsModal',
-            button: 'savePmsButton',
-            html: '<i class="bi bi-save"></i> Save PMS'
-        },
-        {
-            modal: 'mfsModal',
-            button: 'saveMfsButton',
-            html: '<i class="bi bi-save"></i> Save MFS'
-        },
-        {
-            modal: 'fsrModal',
-            button: 'saveFsrButton',
-            html: '<i class="bi bi-save"></i> Save FSR'
-        }
-    ].forEach(function (item) {
-
-        const modal =
-            document.getElementById(item.modal);
-
-
-        if (!modal) {
-            return;
-        }
-
-
-        modal.addEventListener(
-            'hidden.bs.modal',
-            function () {
-
-                const button =
-                    document.getElementById(
-                        item.button
-                    );
-
-
-                if (button) {
-
-                    button.disabled = false;
-
-                    button.innerHTML =
-                        item.html;
-
-                }
-
-            }
-        );
-
-    });
-
-
-    /* ==========================================================
-       ESCAPE HTML
-       ========================================================== */
-
-    function escapeHtml(value) {
-
-        if (
-            value === null ||
-            value === undefined
-        ) {
-            return '';
-        }
-
-
-        return String(value)
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#039;');
-
-    }
-
-
-    /* ==========================================================
-       DISPLAY VALUE
-       ========================================================== */
-
-    function displayValue(value) {
-
-        if (
-            value === null ||
-            value === undefined ||
-            value === ''
-        ) {
-
-            return '<span class="text-muted">N/A</span>';
-
-        }
-
-
-        return escapeHtml(value);
-
-    }
-
-
-    /* ==========================================================
-       LOAD MFS RECORD
-       ========================================================== */
-
-/* ==========================================================
-   LOAD MFS RECORD
-   ========================================================== */
-
-document.addEventListener(
-    'click',
-    function (event) {
-
-        const button =
-            event.target.closest('.view-mfs-btn');
-
-        if (!button) {
-            return;
-        }
-
-        const mfsId =
-            button.getAttribute('data-mfs-id');
-
-        const content =
-            document.getElementById('mfsViewContent');
-
-        console.log('MFS BUTTON CLICKED');
-        console.log('MFS ID:', mfsId);
-
-        if (!content) {
-            console.error('mfsViewContent not found.');
-            return;
-        }
-
-        if (!mfsId || mfsId === '0') {
-
-            content.innerHTML = `
-                <div class="alert alert-danger">
-                    <i class="bi bi-exclamation-triangle me-2"></i>
-                    MFS ID is missing.
-                </div>
-            `;
-
-            return;
-        }
-
-        content.innerHTML = `
-            <div class="text-center py-5">
-
-                <div
-                    class="spinner-border text-primary"
-                    role="status">
-                </div>
-
-                <div class="mt-3">
-                    Loading MFS record...
-                </div>
-
-            </div>
-        `;
-
-        const url =
-            `<?= site_url('pms/view-mfs/') ?>${encodeURIComponent(mfsId)}`;
-
-        console.log('MFS REQUEST URL:', url);
-
-        fetch(
-            url,
-            {
-                method: 'GET',
-                headers: {
-                    'Accept': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            }
-        )
-
-        .then(async function (response) {
-
-            const text =
-                await response.text();
-
-            console.log(
-                'MFS HTTP STATUS:',
-                response.status
-            );
-
-            console.log(
-                'MFS SERVER RESPONSE:',
-                text
-            );
-
-            if (!response.ok) {
-
-                throw new Error(
-                    'HTTP ' +
-                    response.status +
-                    ': ' +
-                    text.substring(0, 500)
-                );
-
-            }
-
-            try {
-
-                return JSON.parse(text);
-
-            }
-            catch (error) {
-
-                throw new Error(
-                    'Server did not return valid JSON.'
-                );
-
-            }
-
-        })
-
-        .then(function (result) {
-
-            console.log('MFS RESULT:', result);
-
-            if (
-                !result ||
-                !result.success
-            ) {
-
-                throw new Error(
-                    result?.message ||
-                    'MFS record not found.'
-                );
-
-            }
-
-            const mfs =
-                result.data || {};
-
-
-            /* ==================================================
-               RECEIPT
-               ================================================== */
-
-            let receiptHtml = '';
-
-
-            if (
-                mfs.receipt &&
-                Number(mfs.receipt) > 0
-            ) {
-
-                const receiptUrl =
-                    `<?= site_url('pms/receipt/') ?>${encodeURIComponent(mfs.receipt)}`;
-
-
-                receiptHtml = `
-
-                    <div class="card border-0 shadow-sm mb-3">
-
-                        <div class="card-header bg-success text-white">
-
-                            <h5 class="mb-0">
-                                <i class="bi bi-receipt me-2"></i>
-                                Receipt
-                            </h5>
-
-                        </div>
-
-
-                        <div class="card-body">
-
-                            <div class="text-center">
-
-                                <div class="mb-3">
-
-                                    <span class="badge bg-success">
-
-                                        <i class="bi bi-check-circle me-1"></i>
-
-                                        Receipt Attached
-
-                                    </span>
-
-                                </div>
-
-
-                                <div
-                                    class="border rounded p-3 bg-light">
-
-                                    <img
-                                        src="${receiptUrl}"
-                                        class="img-fluid rounded shadow-sm"
-                                        style="
-                                            max-height: 650px;
-                                            max-width: 100%;
-                                            object-fit: contain;
-                                        "
-                                        alt="MFS Receipt"
-                                        onerror="
-                                            this.style.display='none';
-                                            this.nextElementSibling.style.display='block';
-                                        "
-                                    >
-
-
-                                    <div
-                                        style="display:none;"
-                                        class="alert alert-danger mb-0">
-
-                                        <i class="bi bi-exclamation-triangle me-2"></i>
-
-                                        Unable to display the receipt image.
-
-                                    </div>
-
-                                </div>
-
-
-                                <div class="mt-3">
-
-                                    <a
-                                        href="${receiptUrl}"
-                                        target="_blank"
-                                        class="btn btn-sm btn-outline-primary">
-
-                                        <i class="bi bi-box-arrow-up-right me-1"></i>
-
-                                        Open Receipt
-
-                                    </a>
-
-                                </div>
-
-
-                                ${
-                                    mfs.receipt_date
-                                    ? `
-                                        <div class="text-muted small mt-2">
-
-                                            Uploaded:
-                                            ${displayValue(mfs.receipt_date)}
-
-                                        </div>
-                                      `
-                                    : ''
-                                }
-
-                            </div>
-
-                        </div>
-
-                    </div>
-
-                `;
-
-            }
-            else {
-
-                receiptHtml = `
-
-                    <div class="card border-0 shadow-sm mb-3">
-
-                        <div class="card-header">
-
-                            <h5 class="mb-0">
-                                <i class="bi bi-receipt me-2"></i>
-                                Receipt
-                            </h5>
-
-                        </div>
-
-
-                        <div class="card-body">
-
-                            <div class="alert alert-secondary mb-0">
-
-                                <i class="bi bi-info-circle me-2"></i>
-
-                                No receipt attached to this MFS record.
-
-                            </div>
-
-                        </div>
-
-                    </div>
-
-                `;
-
-            }
-
-
-            /* ==================================================
-               MFS INFORMATION
-               ================================================== */
-
-            content.innerHTML = `
-
-                <div class="container-fluid">
-
-
-                    <!-- MFS INFORMATION -->
-
-                    <div class="card border-0 shadow-sm mb-3">
-
-                        <div class="card-header bg-primary text-white">
-
-                            <h5 class="mb-0">
-
-                                <i class="bi bi-file-earmark-text me-2"></i>
-
-                                MFS Information
-
-                            </h5>
-
-                        </div>
-
-
-                        <div class="card-body">
-
-                            <div class="row g-3">
-
-                                <div class="col-md-6">
-
-                                    <label class="form-label fw-bold">
-                                        MFS Number
-                                    </label>
-
-                                    <div class="form-control bg-light">
-                                        ${displayValue(mfs.mfs_number)}
-                                    </div>
-
-                                </div>
-
-
-                                <div class="col-md-6">
-
-                                    <label class="form-label fw-bold">
-                                        Employee
-                                    </label>
-
-                                    <div class="form-control bg-light">
-                                        ${displayValue(mfs.employee)}
-                                    </div>
-
-                                </div>
-
-
-                                <div class="col-md-6">
-
-                                    <label class="form-label fw-bold">
-                                        Account
-                                    </label>
-
-                                    <div class="form-control bg-light">
-                                        ${displayValue(mfs.accounts)}
-                                    </div>
-
-                                </div>
-
-
-                                <div class="col-md-3">
-
-                                    <label class="form-label fw-bold">
-                                        Date Fill-up
-                                    </label>
-
-                                    <div class="form-control bg-light">
-                                        ${displayValue(mfs.date_fillup)}
-                                    </div>
-
-                                </div>
-
-
-                                <div class="col-md-3">
-
-                                    <label class="form-label fw-bold">
-                                        Date Status
-                                    </label>
-
-                                    <div class="form-control bg-light">
-                                        ${displayValue(mfs.date_status)}
-                                    </div>
-
-                                </div>
-
-
-                                <div class="col-12">
-
-                                    <label class="form-label fw-bold">
-                                        Address
-                                    </label>
-
-                                    <div
-                                        class="form-control bg-light"
-                                        style="min-height:60px;">
-
-                                        ${displayValue(mfs.address)}
-
-                                    </div>
-
-                                </div>
-
-                            </div>
-
-                        </div>
-
-                    </div>
-
-
-                    <!-- MACHINE INFORMATION -->
-
-                    <div class="card border-0 shadow-sm mb-3">
-
-                        <div class="card-header bg-secondary text-white">
-
-                            <h5 class="mb-0">
-
-                                <i class="bi bi-cpu me-2"></i>
-
-                                Machine Information
-
-                            </h5>
-
-                        </div>
-
-
-                        <div class="card-body">
-
-                            <div class="row g-3">
-
-
-                                <div class="col-md-4">
-
-                                    <label class="form-label fw-bold">
-                                        Unit
-                                    </label>
-
-                                    <div class="form-control bg-light">
-                                        ${displayValue(mfs.unit)}
-                                    </div>
-
-                                </div>
-
-
-                                <div class="col-md-4">
-
-                                    <label class="form-label fw-bold">
-                                        Machine
-                                    </label>
-
-                                    <div class="form-control bg-light">
-                                        ${displayValue(mfs.machine)}
-                                    </div>
-
-                                </div>
-
-
-                                <div class="col-md-4">
-
-                                    <label class="form-label fw-bold">
-                                        Serial Number
-                                    </label>
-
-                                    <div class="form-control bg-light">
-                                        ${displayValue(mfs.serial_number)}
-                                    </div>
-
-                                </div>
-
-
-                            </div>
-
-                        </div>
-
-                    </div>
-
-
-                    <!-- CONSUMABLES -->
-
-                    <div class="card border-0 shadow-sm mb-3">
-
-                        <div class="card-header">
-
-                            <h5 class="mb-0">
-
-                                <i class="bi bi-box-seam me-2"></i>
-
-                                Consumables
-
-                            </h5>
-
-                        </div>
-
-
-                        <div class="card-body">
-
-                            <div class="row g-3">
-
-
-                                <div class="col-md-4">
-
-                                    <label class="form-label fw-bold">
-                                        Consumable Unit
-                                    </label>
-
-                                    <div class="form-control bg-light">
-                                        ${displayValue(mfs.consumable_unit)}
-                                    </div>
-
-                                </div>
-
-
-                                <div class="col-md-4">
-
-                                    <label class="form-label fw-bold">
-                                        Consumables
-                                    </label>
-
-                                    <div class="form-control bg-light">
-                                        ${displayValue(mfs.consumables)}
-                                    </div>
-
-                                </div>
-
-
-                                <div class="col-md-4">
-
-                                    <label class="form-label fw-bold">
-                                        Lot Number
-                                    </label>
-
-                                    <div class="form-control bg-light">
-                                        ${displayValue(mfs.lot_number)}
-                                    </div>
-
-                                </div>
-
-
-                            </div>
-
-                        </div>
-
-                    </div>
-
-
-                    <!-- DETAILS -->
-
-                    <div class="card border-0 shadow-sm mb-3">
-
-                        <div class="card-header">
-
-                            <h5 class="mb-0">
-
-                                <i class="bi bi-card-text me-2"></i>
-
-                                Details
-
-                            </h5>
-
-                        </div>
-
-
-                        <div class="card-body">
-
-                            <div class="row g-3">
-
-
-                                <div class="col-12">
-
-                                    <label class="form-label fw-bold">
-                                        Reason
-                                    </label>
-
-                                    <div
-                                        class="form-control bg-light"
-                                        style="min-height:80px; white-space:pre-wrap;">
-
-                                        ${displayValue(mfs.reason)}
-
-                                    </div>
-
-                                </div>
-
-
-                                <div class="col-12">
-
-                                    <label class="form-label fw-bold">
-                                        Remarks
-                                    </label>
-
-                                    <div
-                                        class="form-control bg-light"
-                                        style="min-height:80px; white-space:pre-wrap;">
-
-                                        ${displayValue(mfs.remarks)}
-
-                                    </div>
-
-                                </div>
-
-
-                                <div class="col-md-6">
-
-                                    <label class="form-label fw-bold">
-                                        Personnel
-                                    </label>
-
-                                    <div class="form-control bg-light">
-                                        ${displayValue(mfs.personnel)}
-                                    </div>
-
-                                </div>
-
-
-                                <div class="col-md-3">
-
-                                    <label class="form-label fw-bold">
-                                        Acknowledged
-                                    </label>
-
-                                    <div class="form-control bg-light">
-
-                                        ${
-                                            Number(mfs.acknowledged) === 1
-
-                                            ? `
-                                                <span class="badge bg-success">
-                                                    <i class="bi bi-check-circle me-1"></i>
-                                                    Yes
-                                                </span>
-                                              `
-
-                                            : `
-                                                <span class="badge bg-secondary">
-                                                    No
-                                                </span>
-                                              `
-                                        }
-
-                                    </div>
-
-                                </div>
-
-
-                                <div class="col-md-3">
-
-                                    <label class="form-label fw-bold">
-                                        Returned
-                                    </label>
-
-                                    <div class="form-control bg-light">
-
-                                        ${
-                                            Number(mfs.returned) === 1
-
-                                            ? `
-                                                <span class="badge bg-success">
-                                                    <i class="bi bi-check-circle me-1"></i>
-                                                    Yes
-                                                </span>
-                                              `
-
-                                            : `
-                                                <span class="badge bg-secondary">
-                                                    No
-                                                </span>
-                                              `
-                                        }
-
-                                    </div>
-
-                                </div>
-
-
-                            </div>
-
-                        </div>
-
-                    </div>
-
-
-                    <!-- RECEIPT -->
-
-                    ${receiptHtml}
-
-
-                </div>
-
-            `;
-
-        })
-
-        .catch(function (error) {
-
-            console.error(
-                'MFS LOAD ERROR:',
-                error
-            );
-
-            content.innerHTML = `
-
-                <div class="alert alert-danger">
-
-                    <h5>
-
-                        <i class="bi bi-exclamation-triangle me-2"></i>
-
-                        Unable to Load MFS
-
-                    </h5>
-
-                    <hr>
-
-                    <div>
-                        ${escapeHtml(error.message)}
-                    </div>
-
-                </div>
-
-            `;
-
-        });
-
-    }
-);
-
-
- /* ==========================================================
-   LOAD FSR RECORD
-   ========================================================== */
-
-document.addEventListener(
-    'click',
-    function (event) {
-
-        const button =
-            event.target.closest('.view-fsr-btn');
-
-        if (!button) {
-            return;
-        }
-
-        const fsrId =
-            button.getAttribute('data-fsr-id');
-
-        const content =
-            document.getElementById('fsrViewContent');
-
-        console.log('FSR BUTTON CLICKED');
-        console.log('FSR ID:', fsrId);
-
-        if (!content) {
-            console.error('fsrViewContent not found.');
-            return;
-        }
-
-        if (!fsrId || fsrId === '0') {
-
-            content.innerHTML = `
-                <div class="alert alert-danger">
-                    <i class="bi bi-exclamation-triangle me-2"></i>
-                    FSR ID is missing.
-                </div>
-            `;
-
-            return;
-        }
-
-        content.innerHTML = `
-            <div class="text-center py-5">
-
-                <div
-                    class="spinner-border text-primary"
-                    role="status">
-                </div>
-
-                <div class="mt-3">
-                    Loading FSR record...
-                </div>
-
-            </div>
-        `;
-
-        const url =
-            `<?= site_url('pms/view-fsr/') ?>${encodeURIComponent(fsrId)}`;
-
-        console.log('FSR REQUEST URL:', url);
-
-        fetch(
-            url,
-            {
-                method: 'GET',
-                headers: {
-                    'Accept': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            }
-        )
-
-        .then(async function (response) {
-
-            const text =
-                await response.text();
-
-            console.log(
-                'FSR HTTP STATUS:',
-                response.status
-            );
-
-            console.log(
-                'FSR SERVER RESPONSE:',
-                text
-            );
-
-            if (!response.ok) {
-
-                throw new Error(
-                    'HTTP ' +
-                    response.status +
-                    ': ' +
-                    text.substring(0, 500)
-                );
-
-            }
-
-            try {
-
-                return JSON.parse(text);
-
-            }
-            catch (error) {
-
-                throw new Error(
-                    'Server did not return valid JSON.'
-                );
-
-            }
-
-        })
-
-        .then(function (result) {
-
-            console.log('FSR RESULT:', result);
-
-            if (
-                !result ||
-                !result.success
-            ) {
-
-                throw new Error(
-                    result?.message ||
-                    'FSR record not found.'
-                );
-
-            }
-
-            const fsr =
-                result.data || {};
-
-
-            /* ==================================================
-               RECEIPT
-               ================================================== */
-
-            let receiptHtml = '';
-
-
-            if (
-                fsr.receipt &&
-                Number(fsr.receipt) > 0
-            ) {
-
-                const receiptUrl =
-                    `<?= site_url('pms/receipt/') ?>${encodeURIComponent(fsr.receipt)}`;
-
-
-                receiptHtml = `
-
-                    <div class="card border-0 shadow-sm mb-3">
-
-                        <div class="card-header bg-success text-white">
-
-                            <h5 class="mb-0">
-
-                                <i class="bi bi-receipt me-2"></i>
-
-                                Receipt
-
-                            </h5>
-
-                        </div>
-
-
-                        <div class="card-body">
-
-                            <div class="text-center">
-
-                                <div class="mb-3">
-
-                                    <span class="badge bg-success">
-
-                                        <i class="bi bi-check-circle me-1"></i>
-
-                                        Receipt Attached
-
-                                    </span>
-
-                                </div>
-
-
-                                <div
-                                    class="border rounded p-3 bg-light">
-
-                                    <img
-                                        src="${receiptUrl}"
-                                        class="img-fluid rounded shadow-sm"
-                                        style="
-                                            max-height: 650px;
-                                            max-width: 100%;
-                                            object-fit: contain;
-                                        "
-                                        alt="FSR Receipt"
-                                        onerror="
-                                            this.style.display='none';
-                                            this.nextElementSibling.style.display='block';
-                                        "
-                                    >
-
-
-                                    <div
-                                        style="display:none;"
-                                        class="alert alert-danger mb-0">
-
-                                        <i class="bi bi-exclamation-triangle me-2"></i>
-
-                                        Unable to display the receipt image.
-
-                                    </div>
-
-                                </div>
-
-
-                                <div class="mt-3">
-
-                                    <a
-                                        href="${receiptUrl}"
-                                        target="_blank"
-                                        class="btn btn-sm btn-outline-primary">
-
-                                        <i class="bi bi-box-arrow-up-right me-1"></i>
-
-                                        Open Receipt
-
-                                    </a>
-
-                                </div>
-
-
-                                ${
-                                    fsr.receipt_date
-                                    ? `
-                                        <div class="text-muted small mt-2">
-
-                                            Uploaded:
-                                            ${displayValue(fsr.receipt_date)}
-
-                                        </div>
-                                      `
-                                    : ''
-                                }
-
-                            </div>
-
-                        </div>
-
-                    </div>
-
-                `;
-
-            }
-            else {
-
-                receiptHtml = `
-
-                    <div class="card border-0 shadow-sm mb-3">
-
-                        <div class="card-header">
-
-                            <h5 class="mb-0">
-
-                                <i class="bi bi-receipt me-2"></i>
-
-                                Receipt
-
-                            </h5>
-
-                        </div>
-
-
-                        <div class="card-body">
-
-                            <div class="alert alert-secondary mb-0">
-
-                                <i class="bi bi-info-circle me-2"></i>
-
-                                No receipt attached to this FSR record.
-
-                            </div>
-
-                        </div>
-
-                    </div>
-
-                `;
-
-            }
-
-
-            /* ==================================================
-               FSR INFORMATION
-               ================================================== */
-
-            content.innerHTML = `
-
-                <div class="container-fluid">
-
-
-                    <!-- FSR INFORMATION -->
-
-                    <div class="card border-0 shadow-sm mb-3">
-
-                        <div class="card-header bg-primary text-white">
-
-                            <h5 class="mb-0">
-
-                                <i class="bi bi-file-earmark-text me-2"></i>
-
-                                FSR Information
-
-                            </h5>
-
-                        </div>
-
-
-                        <div class="card-body">
-
-                            <div class="row g-3">
-
-
-                                <div class="col-md-6">
-
-                                    <label class="form-label fw-bold">
-                                        FSR Number
-                                    </label>
-
-                                    <div class="form-control bg-light">
-                                        ${displayValue(fsr.fsr_number)}
-                                    </div>
-
-                                </div>
-
-
-                                <div class="col-md-6">
-
-                                    <label class="form-label fw-bold">
-                                        Service Engineer
-                                    </label>
-
-                                    <div class="form-control bg-light">
-                                        ${displayValue(fsr.service_engineer)}
-                                    </div>
-
-                                </div>
-
-
-                                <div class="col-md-6">
-
-                                    <label class="form-label fw-bold">
-                                        Account
-                                    </label>
-
-                                    <div class="form-control bg-light">
-                                        ${displayValue(fsr.account)}
-                                    </div>
-
-                                </div>
-
-
-                                <div class="col-md-6">
-
-                                    <label class="form-label fw-bold">
-                                        Date
-                                    </label>
-
-                                    <div class="form-control bg-light">
-                                        ${displayValue(fsr.date)}
-                                    </div>
-
-                                </div>
-
-
-                                <div class="col-12">
-
-                                    <label class="form-label fw-bold">
-                                        Address
-                                    </label>
-
-                                    <div
-                                        class="form-control bg-light"
-                                        style="min-height:60px;">
-
-                                        ${displayValue(fsr.address)}
-
-                                    </div>
-
-                                </div>
-
-
-                            </div>
-
-                        </div>
-
-                    </div>
-
-
-                    <!-- MACHINE INFORMATION -->
-
-                    <div class="card border-0 shadow-sm mb-3">
-
-                        <div class="card-header bg-secondary text-white">
-
-                            <h5 class="mb-0">
-
-                                <i class="bi bi-cpu me-2"></i>
-
-                                Machine Information
-
-                            </h5>
-
-                        </div>
-
-
-                        <div class="card-body">
-
-                            <div class="row g-3">
-
-
-                                <div class="col-md-6">
-
-                                    <label class="form-label fw-bold">
-                                        Machine
-                                    </label>
-
-                                    <div class="form-control bg-light">
-                                        ${displayValue(fsr.machine)}
-                                    </div>
-
-                                </div>
-
-
-                                <div class="col-md-6">
-
-                                    <label class="form-label fw-bold">
-                                        Serial Number
-                                    </label>
-
-                                    <div class="form-control bg-light">
-                                        ${displayValue(fsr.serial_number)}
-                                    </div>
-
-                                </div>
-
-
-                            </div>
-
-                        </div>
-
-                    </div>
-
-
-                    <!-- SERVICE DETAILS -->
-
-                    <div class="card border-0 shadow-sm mb-3">
-
-                        <div class="card-header">
-
-                            <h5 class="mb-0">
-
-                                <i class="bi bi-tools me-2"></i>
-
-                                Service Details
-
-                            </h5>
-
-                        </div>
-
-
-                        <div class="card-body">
-
-                            <div class="row g-3">
-
-
-                                <div class="col-12">
-
-                                    <label class="form-label fw-bold">
-                                        Technical Concern
-                                    </label>
-
-                                    <div
-                                        class="form-control bg-light"
-                                        style="
-                                            min-height:120px;
-                                            white-space:pre-wrap;
-                                        ">
-
-                                        ${displayValue(fsr.technical_concern)}
-
-                                    </div>
-
-                                </div>
-
-
-                                <div class="col-12">
-
-                                    <label class="form-label fw-bold">
-                                        Action Made
-                                    </label>
-
-                                    <div
-                                        class="form-control bg-light"
-                                        style="
-                                            min-height:120px;
-                                            white-space:pre-wrap;
-                                        ">
-
-                                        ${displayValue(fsr.action_made)}
-
-                                    </div>
-
-                                </div>
-
-
-                                <div class="col-12">
-
-                                    <label class="form-label fw-bold">
-                                        Remarks
-                                    </label>
-
-                                    <div
-                                        class="form-control bg-light"
-                                        style="
-                                            min-height:80px;
-                                            white-space:pre-wrap;
-                                        ">
-
-                                        ${displayValue(fsr.remarks)}
-
-                                    </div>
-
-                                </div>
-
-
-                                <div class="col-md-6">
-
-                                    <label class="form-label fw-bold">
-                                        Acknowledge
-                                    </label>
-
-                                    <div class="form-control bg-light">
-                                        ${displayValue(fsr.acknowledge)}
-                                    </div>
-
-                                </div>
-
-
-                            </div>
-
-                        </div>
-
-                    </div>
-
-
-                    <!-- RECEIPT -->
-
-                    ${receiptHtml}
-
-
-                </div>
-
-            `;
-
-        })
-
-        .catch(function (error) {
-
-            console.error(
-                'FSR LOAD ERROR:',
-                error
-            );
-
-            content.innerHTML = `
-
-                <div class="alert alert-danger">
-
-                    <h5>
-
-                        <i class="bi bi-exclamation-triangle me-2"></i>
-
-                        Unable to Load FSR
-
-                    </h5>
-
-                    <hr>
-
-                    <div>
-                        ${escapeHtml(error.message)}
-                    </div>
-
-                </div>
-
-            `;
-
-        });
-
-    }
-);
-
-});
-
-
-/* ==============================================================
-   DATATABLE
-   ============================================================== */
-
-$(document).ready(function () {
-
-    if (
-        typeof $ !== 'undefined' &&
-        typeof $.fn.DataTable !== 'undefined' &&
-        $('#pmsTable').length
-    ) {
-
-        $('#pmsTable').DataTable({
-
-            pageLength: 10,
-
-            lengthMenu: [
-                [10, 25, 50, 100, -1],
-                [10, 25, 50, 100, 'All']
-            ],
-
-            order: [
-                [0, 'asc']
-            ],
-
-            responsive: true,
-
-            autoWidth: false
-
-        });
-
-    }
-
-});
-
-</script>
-
-
+<?= view('dashboard/script/pmsscript') ?>
 
 </body>
 </html>

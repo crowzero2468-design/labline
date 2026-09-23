@@ -202,7 +202,7 @@
             <div class="table-responsive">
 
                 <table id="mfsTable"
-                       class="table table-striped table-hover table-sm mb-0">
+                    class="table table-striped table-hover table-sm mb-0">
 
                     <thead>
                         <tr>
@@ -223,6 +223,7 @@
                             <th>Acknowledged</th>
                             <th>Returned</th>
                             <th>Remarks</th>
+                            <th>Action</th>
                         </tr>
                     </thead>
 
@@ -234,35 +235,79 @@
 
                             <tr>
 
-                                <td><?= esc($r['mfs_number'] ?? '') ?></td>
-
-                                <td><?= esc($r['employee'] ?? '') ?></td>
-
-                                <td><?= esc($r['accounts'] ?? '') ?></td>
-
-                                <td><?= esc($r['address'] ?? '') ?></td>
-
-                                <td><?= esc($r['date_fillup'] ?? '') ?></td>
-
-                                <td><?= esc($r['unit'] ?? '') ?></td>
-
-                                <td><?= esc($r['machine'] ?? '') ?></td>
-
-                                <td><?= esc($r['serial_number'] ?? '') ?></td>
-
-                                <td><?= esc($r['consumable_unit'] ?? '') ?></td>
-
-                                <td><?= esc($r['consumables'] ?? '') ?></td>
-
-                                <td><?= esc($r['lot_number'] ?? '') ?></td>
-
-                                <td><?= esc($r['reason'] ?? '') ?></td>
-
-                                <td><?= esc($r['date_status'] ?? '') ?></td>
-
-                                <td><?= esc($r['personnel'] ?? '') ?></td>
-
+                                <!-- MFS NUMBER -->
                                 <td>
+                                    <?= esc($r['mfs_number'] ?? '') ?>
+                                </td>
+
+                                <!-- EMPLOYEE -->
+                                <td>
+                                    <?= esc($r['employee'] ?? '') ?>
+                                </td>
+
+                                <!-- ACCOUNT -->
+                                <td>
+                                    <?= esc($r['accounts'] ?? '') ?>
+                                </td>
+
+                                <!-- ADDRESS -->
+                                <td>
+                                    <?= esc($r['address'] ?? '') ?>
+                                </td>
+
+                                <!-- DATE -->
+                                <td>
+                                    <?= esc($r['date_fillup'] ?? '') ?>
+                                </td>
+
+                                <!-- UNIT -->
+                                <td>
+                                    <?= esc($r['unit'] ?? '') ?>
+                                </td>
+
+                                <!-- MACHINE -->
+                                <td>
+                                    <?= esc($r['machine'] ?? '') ?>
+                                </td>
+
+                                <!-- SERIAL NUMBER -->
+                                <td>
+                                    <?= esc($r['serial_number'] ?? '') ?>
+                                </td>
+
+                                <!-- CONSUMABLE UNIT -->
+                                <td>
+                                    <?= esc($r['consumable_unit'] ?? '') ?>
+                                </td>
+
+                                <!-- CONSUMABLES -->
+                                <td>
+                                    <?= esc($r['consumables'] ?? '') ?>
+                                </td>
+
+                                <!-- LOT NUMBER -->
+                                <td>
+                                    <?= esc($r['lot_number'] ?? '') ?>
+                                </td>
+
+                                <!-- REASON -->
+                                <td>
+                                    <?= esc($r['reason'] ?? '') ?>
+                                </td>
+
+                                <!-- DATE STATUS -->
+                                <td>
+                                    <?= esc($r['date_status'] ?? '') ?>
+                                </td>
+
+                                <!-- PERSONNEL -->
+                                <td>
+                                    <?= esc($r['personnel'] ?? '') ?>
+                                </td>
+
+                                <!-- ACKNOWLEDGED -->
+                                <td>
+
                                     <?php if ((int) ($r['acknowledged'] ?? 0) === 1): ?>
 
                                         <span class="badge bg-success">
@@ -276,11 +321,44 @@
                                         </span>
 
                                     <?php endif; ?>
+
                                 </td>
 
-                                <td><?= (int) ($r['returned'] ?? 0) ?></td>
+                                <!-- RETURNED -->
+                                <td>
+                                    <?= (int) ($r['returned'] ?? 0) ?>
+                                </td>
 
-                                <td><?= esc($r['remarks'] ?? '') ?></td>
+                                <!-- REMARKS -->
+                                <td>
+                                    <?= esc($r['remarks'] ?? '') ?>
+                                </td>
+
+                                <!-- ACTION -->
+                                <td class="text-center text-nowrap">
+
+                                    <!-- EDIT -->
+                                    <button
+                                        type="button"
+                                        class="btn btn-sm btn-outline-success edit-mfs-btn"
+                                        data-id="<?= (int) ($r['id'] ?? 0) ?>"
+                                    >
+                                        <i class="bi bi-pencil-square me-1"></i>
+                                        Edit
+                                    </button>
+
+                                    <!-- DELETE -->
+                                   <button
+                                        type="button"
+                                        class="btn btn-sm btn-outline-danger delete-mfs-btn"
+                                        data-id="<?= (int) ($r['id'] ?? 0) ?>"
+                                        data-mfs="<?= esc($r['mfs_number'] ?? '') ?>"
+                                    >
+                                        <i class="bi bi-trash me-1"></i>
+                                        Delete
+                                    </button>
+
+                                </td>
 
                             </tr>
 
@@ -687,234 +765,297 @@
 
 </div>
 
+<!-- ============================================================
+     EDIT MFS MODAL
+     ============================================================ -->
+<div class="modal fade"
+     id="editMfsModal"
+     tabindex="-1"
+     aria-labelledby="editMfsModalLabel"
+     aria-hidden="true">
+
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+
+        <div class="modal-content">
+
+            <div class="modal-header">
+
+                <h5 class="modal-title" id="editMfsModalLabel">
+                    <i class="bi bi-pencil-square me-2"></i>
+                    Edit MFS Record
+                </h5>
+
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="modal">
+                </button>
+
+            </div>
+
+            <form id="editMfsForm" method="POST">
+
+                <?= csrf_field() ?>
+
+                <div class="modal-body">
+
+                    <input type="hidden"
+                           id="edit_mfs_id"
+                           name="id">
+
+                    <div class="row g-3">
+
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">
+                                MFS Number
+                            </label>
+
+                            <input type="text"
+                                   class="form-control"
+                                   id="edit_mfs_number"
+                                   name="mfs_number"
+                                   required>
+                        </div>
+
+
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">
+                                Employee
+                            </label>
+
+                            <input type="text"
+                                   class="form-control"
+                                   id="edit_employee"
+                                   name="employee">
+                        </div>
+
+
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">
+                                Date
+                            </label>
+
+                            <input type="date"
+                                   class="form-control"
+                                   id="edit_date_fillup"
+                                   name="date_fillup">
+                        </div>
+
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">
+                                Account
+                            </label>
+
+                            <input type="text"
+                                   class="form-control"
+                                   id="edit_accounts"
+                                   name="accounts">
+                        </div>
+
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">
+                                Address
+                            </label>
+
+                            <input type="text"
+                                   class="form-control"
+                                   id="edit_address"
+                                   name="address">
+                        </div>
+
+
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">
+                                Unit
+                            </label>
+
+                            <input type="text"
+                                   class="form-control"
+                                   id="edit_unit"
+                                   name="unit">
+                        </div>
+
+
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">
+                                Machine
+                            </label>
+
+                            <input type="text"
+                                   class="form-control"
+                                   id="edit_machine"
+                                   name="machine">
+                        </div>
+
+
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">
+                                Serial Number
+                            </label>
+
+                            <input type="text"
+                                   class="form-control"
+                                   id="edit_serial_number"
+                                   name="serial_number">
+                        </div>
+
+
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">
+                                Consumable Unit
+                            </label>
+
+                            <input type="text"
+                                   class="form-control"
+                                   id="edit_consumable_unit"
+                                   name="consumable_unit">
+                        </div>
+
+
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">
+                                Consumables
+                            </label>
+
+                            <input type="text"
+                                   class="form-control"
+                                   id="edit_consumables"
+                                   name="consumables">
+                        </div>
+
+
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">
+                                Lot Number
+                            </label>
+
+                            <input type="text"
+                                   class="form-control"
+                                   id="edit_lot_number"
+                                   name="lot_number">
+                        </div>
+
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">
+                                Reason
+                            </label>
+
+                            <textarea class="form-control"
+                                      id="edit_reason"
+                                      name="reason"
+                                      rows="2"></textarea>
+                        </div>
+
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">
+                                Date Status
+                            </label>
+
+                            <input type="date"
+                                   class="form-control"
+                                   id="edit_date_status"
+                                   name="date_status">
+                        </div>
+
+
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">
+                                Personnel
+                            </label>
+
+                            <input type="text"
+                                   class="form-control"
+                                   id="edit_personnel"
+                                   name="personnel">
+                        </div>
+
+
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">
+                                Acknowledged
+                            </label>
+
+                            <select class="form-select"
+                                    id="edit_acknowledged"
+                                    name="acknowledged">
+
+                                <option value="0">No</option>
+                                <option value="1">Yes</option>
+
+                            </select>
+                        </div>
+
+
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">
+                                Returned
+                            </label>
+
+                            <select class="form-select"
+                                    id="edit_returned"
+                                    name="returned">
+
+                                <option value="0">No</option>
+                                <option value="1">Yes</option>
+
+                            </select>
+                        </div>
+
+
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">
+                                Remarks
+                            </label>
+
+                            <textarea class="form-control"
+                                      id="edit_remarks"
+                                      name="remarks"
+                                      rows="3"></textarea>
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div class="modal-footer">
+
+                    <button type="button"
+                            class="btn btn-secondary"
+                            data-bs-dismiss="modal">
+
+                        <i class="bi bi-x-circle me-1"></i>
+                        Cancel
+
+                    </button>
+
+                    <button type="submit"
+                            class="btn btn-primary"
+                            id="updateMfsBtn">
+
+                        <i class="bi bi-save me-1"></i>
+                        Update MFS
+
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
+</div>
+
 
 <?= view('dashboard/layout/footer') ?>
 
 
-<script>
-$(document).ready(function () {
-
-    $('#mfsTable').DataTable({
-        pageLength: 10,
-
-        lengthMenu: [
-            [10, 25, 50, 100, -1],
-            [10, 25, 50, 100, "All"]
-        ],
-
-        order: [[4, 'desc']],
-
-        responsive: true,
-
-        autoWidth: false
-    });
-
-});
-    /*
-     * Automatically hide flash messages
-     */
-    setTimeout(function () {
-
-        const messages =
-            document.querySelectorAll('.flash-message');
-
-        messages.forEach(function (message) {
-
-            message.style.opacity = '0';
-
-            setTimeout(function () {
-                message.remove();
-            }, 500);
-
-        });
-
-    }, 5000);
-
-document.addEventListener('DOMContentLoaded', function () {
-
-    const accountSelect = document.getElementById('mfs_accounts');
-    const addressInput  = document.getElementById('mfs_address');
-    const machineSelect = document.getElementById('mfs_machine');
-    const serialInput   = document.getElementById('mfs_serial');
-
-    // Stores:
-    // Machine => Serial Number
-    let currentMachines = {};
-
-
-    /*
-     * ACCOUNT / CLINIC CHANGED
-     */
-    if (accountSelect) {
-
-        accountSelect.addEventListener('change', function () {
-
-            const selected =
-                accountSelect.options[
-                    accountSelect.selectedIndex
-                ];
-
-            if (!selected || !selected.value) {
-
-                if (addressInput) {
-                    addressInput.value = '';
-                }
-
-                if (machineSelect) {
-
-                    machineSelect.innerHTML =
-                        '<option value="">-- Select Machine --</option>';
-
-                    machineSelect.disabled = true;
-                }
-
-                if (serialInput) {
-                    serialInput.value = '';
-                }
-
-                currentMachines = {};
-
-                return;
-            }
-
-
-            /*
-             * GET ADDRESS
-             */
-            const address =
-                selected.getAttribute('data-address') || '';
-
-            if (addressInput) {
-                addressInput.value = address;
-            }
-
-
-            /*
-             * GET MACHINE => SERIAL MAP
-             */
-            const machinesJson =
-                selected.getAttribute('data-machines') || '{}';
-
-            try {
-
-                currentMachines =
-                    JSON.parse(machinesJson);
-
-            } catch (error) {
-
-                console.error(
-                    'Invalid machine mapping:',
-                    error
-                );
-
-                currentMachines = {};
-            }
-
-
-            /*
-             * POPULATE MACHINE DROPDOWN
-             */
-            if (machineSelect) {
-
-                machineSelect.innerHTML =
-                    '<option value="">-- Select Machine --</option>';
-
-                const machines =
-                    Object.keys(currentMachines);
-
-                if (machines.length > 0) {
-
-                    machines.forEach(function (machine) {
-
-                        const option =
-                            document.createElement('option');
-
-                        option.value = machine;
-                        option.textContent = machine;
-
-                        machineSelect.appendChild(option);
-
-                    });
-
-                    machineSelect.disabled = false;
-
-                } else {
-
-                    machineSelect.innerHTML =
-                        '<option value="">-- No Machine Found --</option>';
-
-                    machineSelect.disabled = true;
-
-                }
-            }
-
-
-            /*
-             * CLEAR SERIAL
-             */
-            if (serialInput) {
-                serialInput.value = '';
-            }
-
-        });
-
-    }
-
-
-    /*
-     * MACHINE CHANGED
-     */
-    if (machineSelect) {
-
-        machineSelect.addEventListener('change', function () {
-
-            const selectedMachine =
-                (machineSelect.value || '')
-                    .toString()
-                    .trim()
-                    .toLowerCase();
-
-            let serial = '';
-
-
-            /*
-             * Find serial number
-             * using case-insensitive machine name
-             */
-            Object.keys(currentMachines).some(function (machine) {
-
-                if (
-                    machine
-                        .toString()
-                        .trim()
-                        .toLowerCase() === selectedMachine
-                ) {
-
-                    serial =
-                        currentMachines[machine] || '';
-
-                    return true;
-                }
-
-                return false;
-
-            });
-
-
-            /*
-             * SET SERIAL NUMBER
-             */
-            if (serialInput) {
-                serialInput.value = serial;
-            }
-
-        });
-
-    }
-
-});
-
-</script>
+<?= view('dashboard/script/mfs') ?>
 
 </div>
 

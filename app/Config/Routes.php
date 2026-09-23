@@ -59,6 +59,11 @@ $routes->post('dashboard/pms/save_fsr', 'Pms::save_fsr');
 $routes->get('mfs', 'Mfs::index');
 $routes->post('mfs/save', 'Mfs::save');
 $routes->get('mfs/export', 'Mfs::export');
+$routes->get('mfs/edit/(:num)', 'Mfs::edit/$1');
+$routes->post('mfs/update/(:num)', 'Mfs::update/$1');
+$routes->post('mfs/delete/(:num)', 'Mfs::delete/$1');
+
+
 
 $routes->get('fsr', 'Fsr::index');
 $routes->post('fsr/save', 'Fsr::save');
@@ -71,6 +76,10 @@ $routes->get('pms/receipt/(:num)', 'Pms::receipt/$1');
 
 $routes->get('pms/view-mfs/(:num)', 'Pms::viewMfs/$1');
 $routes->get('pms/view-fsr/(:num)', 'Pms::viewFsr/$1');
+$routes->get('pms/edit/(:num)', 'Pms::edit/$1');
+$routes->post('pms/update/(:num)', 'Pms::update/$1');
+$routes->post('pms/delete/(:num)', 'Pms::delete/$1');
+$routes->post('pms/import', 'Pms::importExcel');
 
 
 

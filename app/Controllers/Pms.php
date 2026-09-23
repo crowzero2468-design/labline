@@ -2860,4 +2860,2444 @@ public function save_fsr()
                 file_get_contents($filePath)
             );
     }
+
+
+/**
+ * ============================================================
+ * EDIT PMS
+ * ============================================================
+ *
+ * Returns one PMS record as JSON.
+ *
+ * GET:
+ *     /pms/edit/{id}
+ *
+ * ============================================================
+ */
+public function edit($id)
+{
+    if (!session()->get('logged_in')) {
+
+        return $this->jsonError(
+            'Your session has expired. Please login again.',
+            401
+        );
+    }
+
+    $db = db_connect();
+
+    $id = (int) $id;
+
+    if ($id <= 0) {
+
+        return $this->jsonError(
+            'Invalid PMS ID.',
+            422
+        );
+    }
+
+    /*
+     * ========================================================
+     * CHECK PMS TABLE
+     * ========================================================
+     */
+
+    if (!$db->tableExists('tb_pms')) {
+
+        return $this->jsonError(
+            'PMS table does not exist.',
+            500
+        );
+    }
+
+    /*
+     * ========================================================
+     * GET PMS RECORD
+     * ========================================================
+     */
+
+    $pms = $db
+        ->table('tb_pms')
+        ->where('id', $id)
+        ->get()
+        ->getRowArray();
+
+    if (!$pms) {
+
+        return $this->jsonError(
+            'PMS record not found.',
+            404
+        );
+    }
+
+    /*
+     * ========================================================
+     * CHECK PMS COLUMNS
+     * ========================================================
+     */
+
+    $pmsColumns = $db->getFieldNames('tb_pms');
+
+    /*
+     * ========================================================
+     * FIND ACCOUNT ID
+     * ========================================================
+     *
+     * If tb_pms has data_id, use it.
+     *
+     * Otherwise find the active tb_data record using
+     * the stored clinic name.
+     * ========================================================
+     */
+
+    $dataId = 0;
+
+    if (
+        in_array('data_id', $pmsColumns, true) &&
+        !empty($pms['data_id'])
+    ) {
+
+        $dataId = (int) $pms['data_id'];
+    }
+
+    if (
+        $dataId <= 0 &&
+        $db->tableExists('tb_data')
+    ) {
+
+        $clinicName = trim(
+            (string) ($pms['clinic'] ?? '')
+        );
+
+        if ($clinicName !== '') {
+
+            $accountQuery = $db
+                ->table('tb_data')
+                ->select('id')
+                ->where('Clinic_name', $clinicName)
+                ->where('status', 'A')
+                ->orderBy('id', 'ASC')
+                ->limit(1)
+                ->get()
+                ->getRowArray();
+
+            if ($accountQuery) {
+
+                $dataId = (int) $accountQuery['id'];
+            }
+        }
+    }
+
+    /*
+     * ========================================================
+     * FIND SERVICE ENGINEER ID
+     * ========================================================
+     *
+     * tb_pms stores the engineer name.
+     *
+     * tb_user stores:
+     *     id
+     *     fname
+     *     lname
+     * ========================================================
+     */
+
+    $serviceEngId = 0;
+
+    $engineerName = trim(
+        (string) ($pms['service_tech'] ?? '')
+    );
+
+    if (
+        $engineerName !== '' &&
+        $db->tableExists('tb_user')
+    ) {
+
+        $users = $db
+            ->table('tb_user')
+            ->select('id,fname,lname')
+            ->get()
+            ->getResultArray();
+
+        foreach ($users as $user) {
+
+            $fullName = trim(
+                ($user['fname'] ?? '') .
+                ' ' .
+                ($user['lname'] ?? '')
+            );
+
+            if (
+                strcasecmp(
+                    $fullName,
+                    $engineerName
+                ) === 0
+            ) {
+
+                $serviceEngId = (int) $user['id'];
+
+                break;
+            }
+        }
+    }
+
+    /*
+     * ========================================================
+     * GET MFS
+     * ========================================================
+     */
+
+    $mfs = null;
+
+    if (
+        !empty($pms['mfs']) &&
+        $db->tableExists('tb_mfs')
+    ) {
+
+        $mfs = $db
+            ->table('tb_mfs')
+            ->select('id,mfs_number')
+            ->where(
+                'id',
+                (int) $pms['mfs']
+            )
+            ->get()
+            ->getRowArray();
+    }
+
+    /*
+     * ========================================================
+     * GET FSR
+     * ========================================================
+     */
+
+    $fsr = null;
+
+    if (
+        !empty($pms['fsr']) &&
+        $db->tableExists('tb_fsr')
+    ) {
+
+        $fsr = $db
+            ->table('tb_fsr')
+            ->select('id,fsr_number')
+            ->where(
+                'id',
+                (int) $pms['fsr']
+            )
+            ->get()
+            ->getRowArray();
+    }
+
+    /*
+     * ========================================================
+     * GET RECEIPT
+     * ========================================================
+     */
+
+    $receipt = null;
+
+    if (
+        !empty($pms['receipt']) &&
+        $db->tableExists('tb_receipt')
+    ) {
+
+        $receipt = $db
+            ->table('tb_receipt')
+            ->select(
+                'id,file_location,date_upload'
+            )
+            ->where(
+                'id',
+                (int) $pms['receipt']
+            )
+            ->get()
+            ->getRowArray();
+    }
+
+    /*
+     * ========================================================
+     * RETURN JSON
+     * ========================================================
+     */
+
+    return $this->jsonSuccess(
+        'PMS record loaded successfully.',
+        [
+            'data' => [
+
+                'id' =>
+                    (int) ($pms['id'] ?? 0),
+
+                'pms_number' =>
+                    (string) ($pms['pms_number'] ?? ''),
+
+                'service_tech' =>
+                    (string) ($pms['service_tech'] ?? ''),
+
+                'service_eng_id' =>
+                    $serviceEngId,
+
+                'data_id' =>
+                    $dataId,
+
+                'clinic' =>
+                    (string) ($pms['clinic'] ?? ''),
+
+                'address' =>
+                    (string) ($pms['address'] ?? ''),
+
+                'date' =>
+                    (string) ($pms['date'] ?? ''),
+
+                'machine' =>
+                    (string) ($pms['machine'] ?? ''),
+
+                'sn' =>
+                    (string) ($pms['sn'] ?? ''),
+
+                'status' =>
+                    (string) ($pms['status'] ?? ''),
+
+                'mfs' =>
+                    $mfs,
+
+                'fsr' =>
+                    $fsr,
+
+                'receipt' =>
+                    $receipt
+            ]
+        ]
+    );
 }
+
+
+/**
+ * ============================================================
+ * UPDATE PMS
+ * ============================================================
+ *
+ * Updates ONE PMS machine record.
+ *
+ * IMPORTANT:
+ *
+ * Existing:
+ *     MFS
+ *     FSR
+ *     Receipt
+ *
+ * are NOT changed.
+ *
+ * ============================================================
+ */
+public function update($id)
+{
+    $wantsJson = $this->wantsJson();
+
+    /*
+     * ========================================================
+     * LOGIN CHECK
+     * ========================================================
+     */
+
+    if (!session()->get('logged_in')) {
+
+        if ($wantsJson) {
+
+            return $this->jsonError(
+                'Your session has expired. Please login again.',
+                401
+            );
+        }
+
+        return redirect()
+            ->to(site_url('login'))
+            ->with(
+                'error',
+                'Please login first.'
+            );
+    }
+
+    $db = db_connect();
+
+    $id = (int) $id;
+
+    /*
+     * ========================================================
+     * VALIDATE ID
+     * ========================================================
+     */
+
+    if ($id <= 0) {
+
+        return $this->jsonError(
+            'Invalid PMS ID.',
+            422
+        );
+    }
+
+    /*
+     * ========================================================
+     * CHECK TABLE
+     * ========================================================
+     */
+
+    if (!$db->tableExists('tb_pms')) {
+
+        return $this->jsonError(
+            'PMS table does not exist.',
+            500
+        );
+    }
+
+    /*
+     * ========================================================
+     * GET EXISTING PMS RECORD
+     * ========================================================
+     */
+
+    $pms = $db
+        ->table('tb_pms')
+        ->where('id', $id)
+        ->get()
+        ->getRowArray();
+
+    if (!$pms) {
+
+        return $this->jsonError(
+            'PMS record not found.',
+            404
+        );
+    }
+
+    /*
+     * ========================================================
+     * GET FORM VALUES
+     * ========================================================
+     */
+
+    $pmsNumber = trim(
+        (string) $this->request->getPost('pms_number')
+    );
+
+    $serviceEngId = (int) (
+        $this->request->getPost('service_eng_id') ?? 0
+    );
+
+    $dataId = (int) (
+        $this->request->getPost('data_id') ?? 0
+    );
+
+    $date = trim(
+        (string) $this->request->getPost('date')
+    );
+
+    $address = trim(
+        (string) $this->request->getPost('address')
+    );
+
+    $machine = trim(
+        (string) $this->request->getPost('machine')
+    );
+
+    $sn = trim(
+        (string) $this->request->getPost('sn')
+    );
+
+    $status = trim(
+        (string) $this->request->getPost('status')
+    );
+
+    /*
+     * ========================================================
+     * VALIDATION
+     * ========================================================
+     */
+
+    if ($pmsNumber === '') {
+
+        return $this->jsonError(
+            'PMS number is required.',
+            422
+        );
+    }
+
+    if ($serviceEngId <= 0) {
+
+        return $this->jsonError(
+            'Please select a service engineer.',
+            422
+        );
+    }
+
+    if ($dataId <= 0) {
+
+        return $this->jsonError(
+            'Please select an account.',
+            422
+        );
+    }
+
+    if ($date === '') {
+
+        return $this->jsonError(
+            'Please select a date.',
+            422
+        );
+    }
+
+    if ($machine === '') {
+
+        return $this->jsonError(
+            'Machine is required.',
+            422
+        );
+    }
+
+    if ($status === '') {
+
+        return $this->jsonError(
+            'Please select Technical Done.',
+            422
+        );
+    }
+
+    /*
+     * ========================================================
+     * GET ACCOUNT
+     * ========================================================
+     */
+
+    if (!$db->tableExists('tb_data')) {
+
+        return $this->jsonError(
+            'Account table does not exist.',
+            500
+        );
+    }
+
+    $account = $db
+        ->table('tb_data')
+        ->where('id', $dataId)
+        ->get()
+        ->getRowArray();
+
+    if (!$account) {
+
+        return $this->jsonError(
+            'Selected account was not found.',
+            404
+        );
+    }
+
+    /*
+     * ========================================================
+     * CLINIC
+     * ========================================================
+     */
+
+    $clinic = trim(
+        (string) ($account['Clinic_name'] ?? '')
+    );
+
+    if ($clinic === '') {
+
+        return $this->jsonError(
+            'Selected account has no clinic name.',
+            422
+        );
+    }
+
+    /*
+     * ========================================================
+     * ADDRESS
+     * ========================================================
+     *
+     * Address from tb_data has priority.
+     * ========================================================
+     */
+
+    $accountAddress = trim(
+        (string) ($account['Address'] ?? '')
+    );
+
+    if ($accountAddress !== '') {
+
+        $address = $accountAddress;
+    }
+
+    /*
+     * ========================================================
+     * GET SERVICE ENGINEER
+     * ========================================================
+     */
+
+    if (!$db->tableExists('tb_user')) {
+
+        return $this->jsonError(
+            'User table does not exist.',
+            500
+        );
+    }
+
+    $engineer = $db
+        ->table('tb_user')
+        ->where('id', $serviceEngId)
+        ->get()
+        ->getRowArray();
+
+    if (!$engineer) {
+
+        return $this->jsonError(
+            'Selected service engineer was not found.',
+            404
+        );
+    }
+
+    $serviceTech = trim(
+        ($engineer['fname'] ?? '') .
+        ' ' .
+        ($engineer['lname'] ?? '')
+    );
+
+    if ($serviceTech === '') {
+
+        return $this->jsonError(
+            'Selected service engineer has no name.',
+            422
+        );
+    }
+
+    /*
+     * ========================================================
+     * PREPARE UPDATE DATA
+     * ========================================================
+     *
+     * DO NOT include:
+     *
+     *     mfs
+     *     fsr
+     *     receipt
+     *
+     * Existing document links remain untouched.
+     * ========================================================
+     */
+
+    $updateData = [
+
+        'pms_number' =>
+            $pmsNumber,
+
+        'service_tech' =>
+            $serviceTech,
+
+        'clinic' =>
+            $clinic,
+
+        'address' =>
+            $address,
+
+        'date' =>
+            $date,
+
+        'machine' =>
+            $machine,
+
+        'sn' =>
+            $sn,
+
+        'status' =>
+            $status
+    ];
+
+    /*
+     * ========================================================
+     * SAVE data_id IF COLUMN EXISTS
+     * ========================================================
+     */
+
+    $pmsColumns = $db->getFieldNames('tb_pms');
+
+    if (
+        in_array(
+            'data_id',
+            $pmsColumns,
+            true
+        )
+    ) {
+
+        $updateData['data_id'] = $dataId;
+    }
+
+    /*
+     * ========================================================
+     * UPDATE DATABASE
+     * ========================================================
+     */
+
+    $builder = $db
+        ->table('tb_pms')
+        ->where('id', $id);
+
+    $updated = $builder->update($updateData);
+
+    /*
+     * ========================================================
+     * CHECK DATABASE RESULT
+     * ========================================================
+     */
+
+    if (!$updated) {
+
+        $error = $db->error();
+
+        $message = 'Failed to update PMS record.';
+
+        if (!empty($error['message'])) {
+
+            $message .=
+                ' — ' .
+                $error['message'];
+        }
+
+        return $this->jsonError(
+            $message,
+            500
+        );
+    }
+
+    /*
+     * ========================================================
+     * JSON RESPONSE
+     * ========================================================
+     */
+
+    if ($wantsJson) {
+
+        return $this->jsonSuccess(
+            'PMS record updated successfully.',
+            [
+                'id' => $id
+            ]
+        );
+    }
+
+    /*
+     * ========================================================
+     * NORMAL FORM SUBMISSION
+     * ========================================================
+     */
+
+    return redirect()
+        ->to(site_url('pms'))
+        ->with(
+            'success',
+            'PMS record updated successfully.'
+        );
+}
+
+
+/**
+ * ============================================================
+ * DELETE PMS
+ * ============================================================
+ *
+ * Deletes ONLY the selected PMS record.
+ *
+ * IMPORTANT:
+ *
+ * The following are NOT deleted:
+ *
+ *     tb_mfs
+ *     tb_fsr
+ *     tb_receipt
+ *
+ * This prevents accidental deletion of documents/history.
+ *
+ * ============================================================
+ */
+public function delete($id)
+{
+    $wantsJson = $this->wantsJson();
+
+    /*
+     * ========================================================
+     * LOGIN CHECK
+     * ========================================================
+     */
+
+    if (!session()->get('logged_in')) {
+
+        if ($wantsJson) {
+
+            return $this->jsonError(
+                'Your session has expired. Please login again.',
+                401
+            );
+        }
+
+        return redirect()
+            ->to(site_url('login'))
+            ->with(
+                'error',
+                'Please login first.'
+            );
+    }
+
+    $db = db_connect();
+
+    $id = (int) $id;
+
+    /*
+     * ========================================================
+     * VALIDATE ID
+     * ========================================================
+     */
+
+    if ($id <= 0) {
+
+        return $this->jsonError(
+            'Invalid PMS ID.',
+            422
+        );
+    }
+
+    /*
+     * ========================================================
+     * CHECK TABLE
+     * ========================================================
+     */
+
+    if (!$db->tableExists('tb_pms')) {
+
+        return $this->jsonError(
+            'PMS table does not exist.',
+            500
+        );
+    }
+
+    /*
+     * ========================================================
+     * CHECK RECORD
+     * ========================================================
+     */
+
+    $pms = $db
+        ->table('tb_pms')
+        ->where('id', $id)
+        ->get()
+        ->getRowArray();
+
+    if (!$pms) {
+
+        return $this->jsonError(
+            'PMS record not found.',
+            404
+        );
+    }
+
+    /*
+     * ========================================================
+     * DELETE ONLY PMS RECORD
+     * ========================================================
+     */
+
+    $deleted = $db
+        ->table('tb_pms')
+        ->where('id', $id)
+        ->delete();
+
+    /*
+     * ========================================================
+     * CHECK DELETE RESULT
+     * ========================================================
+     */
+
+    if (!$deleted) {
+
+        $error = $db->error();
+
+        $message = 'Failed to delete PMS record.';
+
+        if (!empty($error['message'])) {
+
+            $message .=
+                ' — ' .
+                $error['message'];
+        }
+
+        return $this->jsonError(
+            $message,
+            500
+        );
+    }
+
+    /*
+     * ========================================================
+     * SUCCESS
+     * ========================================================
+     */
+
+    if ($wantsJson) {
+
+        return $this->jsonSuccess(
+            'PMS record deleted successfully.',
+            [
+                'id' => $id
+            ]
+        );
+    }
+
+    return redirect()
+        ->to(site_url('pms'))
+        ->with(
+            'success',
+            'PMS record deleted successfully.'
+        );
+}
+
+
+// ==============================================================
+// IMPORT EXCEL
+// ==============================================================
+
+public function importExcel(): RedirectResponse
+{
+    // ----------------------------------------------------------
+    // LOGIN CHECK
+    // ----------------------------------------------------------
+    if (!session()->get('logged_in')) {
+        return redirect()
+            ->to(site_url('login'))
+            ->with(
+                'error',
+                'Please login first.'
+            );
+    }
+
+    // ----------------------------------------------------------
+    // GET UPLOADED FILE
+    // ----------------------------------------------------------
+    $file = $this->request->getFile('excel_file');
+
+    if ($file === null || !$file->isValid()) {
+        return redirect()
+            ->to(site_url('pms'))
+            ->with(
+                'error',
+                'Please choose an Excel file to import.'
+            );
+    }
+
+    // ----------------------------------------------------------
+    // CHECK UPLOAD ERROR
+    // ----------------------------------------------------------
+    if ($file->getError() !== UPLOAD_ERR_OK) {
+        return redirect()
+            ->to(site_url('pms'))
+            ->with(
+                'error',
+                'Excel upload failed. Upload error code: ' .
+                $file->getError()
+            );
+    }
+
+    // ----------------------------------------------------------
+    // ALLOWED EXTENSIONS
+    // ----------------------------------------------------------
+    $allowedExtensions = [
+        'xlsx',
+        'csv'
+    ];
+
+    $extension = strtolower(
+        $file->getExtension()
+    );
+
+    if (!in_array(
+        $extension,
+        $allowedExtensions,
+        true
+    )) {
+        return redirect()
+            ->to(site_url('pms'))
+            ->with(
+                'error',
+                'Only .xlsx and .csv files are allowed.'
+            );
+    }
+
+    // ----------------------------------------------------------
+    // CHECK FILE SIZE
+    // ----------------------------------------------------------
+    if ($file->getSize() <= 0) {
+        return redirect()
+            ->to(site_url('pms'))
+            ->with(
+                'error',
+                'The uploaded Excel file is empty.'
+            );
+    }
+
+    // ----------------------------------------------------------
+    // CREATE TEMP DIRECTORY
+    // ----------------------------------------------------------
+    $targetDir = WRITEPATH . 'upload';
+
+    if (!is_dir($targetDir)) {
+        if (!mkdir($targetDir, 0777, true)) {
+            return redirect()
+                ->to(site_url('pms'))
+                ->with(
+                    'error',
+                    'Unable to create temporary upload directory.'
+                );
+        }
+    }
+
+    // ----------------------------------------------------------
+    // CREATE UNIQUE FILE NAME
+    // ----------------------------------------------------------
+    try {
+        $randomName = bin2hex(
+            random_bytes(8)
+        );
+    } catch (\Throwable $e) {
+        $randomName = uniqid('', true);
+    }
+
+    $fileName =
+        'pms_import_' .
+        date('Ymd_His') .
+        '_' .
+        $randomName .
+        '.' .
+        $extension;
+
+    $targetPath =
+        $targetDir .
+        DIRECTORY_SEPARATOR .
+        $fileName;
+
+    // ----------------------------------------------------------
+    // MOVE UPLOADED FILE
+    // ----------------------------------------------------------
+    try {
+        $file->move(
+            $targetDir,
+            $fileName
+        );
+    } catch (\Throwable $e) {
+        return redirect()
+            ->to(site_url('pms'))
+            ->with(
+                'error',
+                'Unable to save uploaded Excel file: ' .
+                $e->getMessage()
+            );
+    }
+
+    // ----------------------------------------------------------
+    // VERIFY FILE EXISTS
+    // ----------------------------------------------------------
+    if (!is_file($targetPath)) {
+        return redirect()
+            ->to(site_url('pms'))
+            ->with(
+                'error',
+                'Uploaded Excel file could not be found after upload.'
+            );
+    }
+
+    // ----------------------------------------------------------
+    // PARSE EXCEL
+    // ----------------------------------------------------------
+    try {
+        $rows = $this->parseExcelRows(
+            $targetPath
+        );
+    } catch (\Throwable $e) {
+
+        if (is_file($targetPath)) {
+            @unlink($targetPath);
+        }
+
+        return redirect()
+            ->to(site_url('pms'))
+            ->with(
+                'error',
+                'Excel import failed: ' .
+                $e->getMessage()
+            );
+    }
+
+    // ----------------------------------------------------------
+    // CHECK IF ROWS WERE FOUND
+    // ----------------------------------------------------------
+    if (empty($rows)) {
+
+        if (is_file($targetPath)) {
+            @unlink($targetPath);
+        }
+
+        return redirect()
+            ->to(site_url('pms'))
+            ->with(
+                'error',
+                'No data rows were found in the Excel file.'
+            );
+    }
+
+    // ----------------------------------------------------------
+    // CONNECT DATABASE
+    // ----------------------------------------------------------
+    $database = db_connect();
+
+    // ----------------------------------------------------------
+    // CHECK TB_PMS
+    // ----------------------------------------------------------
+    if (!$database->tableExists('tb_pms')) {
+
+        if (is_file($targetPath)) {
+            @unlink($targetPath);
+        }
+
+        return redirect()
+            ->to(site_url('pms'))
+            ->with(
+                'error',
+                'The tb_pms table does not exist.'
+            );
+    }
+
+    // ----------------------------------------------------------
+    // GET ACTUAL TB_PMS COLUMNS
+    // ----------------------------------------------------------
+    $availableColumns = [];
+
+    $columns = $database
+        ->query(
+            'SHOW COLUMNS FROM tb_pms'
+        )
+        ->getResultArray();
+
+    foreach ($columns as $column) {
+
+        if (isset($column['Field'])) {
+            $availableColumns[] =
+                $column['Field'];
+        }
+    }
+
+    // ----------------------------------------------------------
+    // IMPORT COUNTERS
+    // ----------------------------------------------------------
+    $inserted = 0;
+    $skipped  = 0;
+    $failed   = 0;
+
+    // ----------------------------------------------------------
+    // PROCESS EXCEL ROWS
+    //
+    // EXCEL FORMAT:
+    //
+    // A = PMS Number
+    // B = Service Technician
+    // C = Clinic
+    // D = Address
+    // E = Date
+    // F = Machine
+    // G = Serial Number
+    // H = Status / Technical Done
+    // I = Remarks
+    // ----------------------------------------------------------
+
+    foreach ($rows as $row) {
+
+        // ------------------------------------------------------
+        // READ VALUES
+        // ------------------------------------------------------
+
+        $pmsNumber = trim(
+            (string) (
+                $row['A']['value'] ?? ''
+            )
+        );
+
+        $serviceTech = trim(
+            (string) (
+                $row['B']['value'] ?? ''
+            )
+        );
+
+        $clinic = trim(
+            (string) (
+                $row['C']['value'] ?? ''
+            )
+        );
+
+        $address = trim(
+            (string) (
+                $row['D']['value'] ?? ''
+            )
+        );
+
+        $date = $this->normalizeExcelDate(
+            (string) (
+                $row['E']['value'] ?? ''
+            )
+        );
+
+        $machine = trim(
+            (string) (
+                $row['F']['value'] ?? ''
+            )
+        );
+
+        $serialNumber = trim(
+            (string) (
+                $row['G']['value'] ?? ''
+            )
+        );
+
+        $status = trim(
+            (string) (
+                $row['H']['value'] ?? ''
+            )
+        );
+
+        $remarks = trim(
+            (string) (
+                $row['I']['value'] ?? ''
+            )
+        );
+
+        // ------------------------------------------------------
+        // SKIP EMPTY ROW
+        // ------------------------------------------------------
+
+        $candidate = [
+            $pmsNumber,
+            $serviceTech,
+            $clinic,
+            $address,
+            $date,
+            $machine,
+            $serialNumber,
+            $status,
+            $remarks
+        ];
+
+        if (!$this->hasMeaningfulImportValue($candidate)) {
+            $skipped++;
+            continue;
+        }
+
+        // ------------------------------------------------------
+        // PMS NUMBER
+        //
+        // Convert numeric PMS numbers to 6 digits.
+        //
+        // Example:
+        // 1      -> 000001
+        // 25     -> 000025
+        // 123456 -> 123456
+        // ------------------------------------------------------
+
+        if (
+            $pmsNumber !== '' &&
+            preg_match('/^\d+$/', $pmsNumber)
+        ) {
+            $pmsNumber = str_pad(
+                $pmsNumber,
+                6,
+                '0',
+                STR_PAD_LEFT
+            );
+        }
+
+        // ------------------------------------------------------
+        // BUILD RECORD
+        // ------------------------------------------------------
+
+        $record = [
+            'pms_number' => $pmsNumber,
+            'service_tech' => $serviceTech,
+            'clinic' => $clinic,
+            'address' => $address,
+            'date' => $date,
+            'machine' => $machine,
+            'sn' => $serialNumber,
+            'status' => $status,
+            'remarks' => $remarks
+        ];
+
+        // ------------------------------------------------------
+        // ONLY INSERT EXISTING DATABASE COLUMNS
+        // ------------------------------------------------------
+
+        $insert = [];
+
+        foreach ($record as $column => $value) {
+
+            if (in_array(
+                $column,
+                $availableColumns,
+                true
+            )) {
+                $insert[$column] = $value;
+            }
+        }
+
+        // ------------------------------------------------------
+        // NO VALID COLUMNS
+        // ------------------------------------------------------
+
+        if (empty($insert)) {
+            $failed++;
+            continue;
+        }
+
+        // ------------------------------------------------------
+        // DUPLICATE CHECK
+        //
+        // First check PMS number.
+        // ------------------------------------------------------
+
+        $existing = null;
+
+        if (
+            $pmsNumber !== '' &&
+            in_array(
+                'pms_number',
+                $availableColumns,
+                true
+            )
+        ) {
+
+            $existing = $database
+                ->table('tb_pms')
+                ->where(
+                    'pms_number',
+                    $pmsNumber
+                )
+                ->get()
+                ->getRowArray();
+
+        } else {
+
+            // --------------------------------------------------
+            // FALLBACK DUPLICATE CHECK
+            // --------------------------------------------------
+
+            $duplicateBuilder =
+                $database->table('tb_pms');
+
+            $duplicateFields = [
+                'clinic' => $clinic,
+                'address' => $address,
+                'date' => $date,
+                'machine' => $machine,
+                'sn' => $serialNumber
+            ];
+
+            foreach (
+                $duplicateFields as $column => $value
+            ) {
+
+                if (
+                    in_array(
+                        $column,
+                        $availableColumns,
+                        true
+                    )
+                ) {
+                    $duplicateBuilder->where(
+                        $column,
+                        $value
+                    );
+                }
+            }
+
+            $existing = $duplicateBuilder
+                ->get()
+                ->getRowArray();
+        }
+
+        // ------------------------------------------------------
+        // SKIP DUPLICATE
+        // ------------------------------------------------------
+
+        if ($existing) {
+            $skipped++;
+            continue;
+        }
+
+        // ------------------------------------------------------
+        // INSERT
+        // ------------------------------------------------------
+
+        try {
+
+            $insertedResult =
+                $database
+                    ->table('tb_pms')
+                    ->insert($insert);
+
+            if ($insertedResult) {
+                $inserted++;
+            } else {
+                $failed++;
+            }
+
+        } catch (\Throwable $e) {
+
+            $failed++;
+        }
+    }
+
+    // ----------------------------------------------------------
+    // DELETE TEMP FILE
+    // ----------------------------------------------------------
+
+    if (is_file($targetPath)) {
+        @unlink($targetPath);
+    }
+
+    // ----------------------------------------------------------
+    // RESULT
+    // ----------------------------------------------------------
+
+    $message =
+        'PMS import completed. ' .
+        'Imported: ' . $inserted .
+        ', Skipped: ' . $skipped .
+        ', Failed: ' . $failed .
+        '.';
+
+    // ----------------------------------------------------------
+    // SUCCESS
+    // ----------------------------------------------------------
+
+    if ($inserted > 0) {
+
+        return redirect()
+            ->to(site_url('pms'))
+            ->with(
+                'success',
+                $message
+            );
+    }
+
+    // ----------------------------------------------------------
+    // NOTHING IMPORTED
+    // ----------------------------------------------------------
+
+    return redirect()
+        ->to(site_url('pms'))
+        ->with(
+            'error',
+            $message
+        );
+}
+
+
+// ==============================================================
+// PARSE EXCEL / CSV
+//
+// Supports:
+//   - XLSX
+//   - CSV
+//
+// XLSX is read directly using:
+//   - ZipArchive
+//   - DOMDocument
+//   - DOMXPath
+//
+// No PhpSpreadsheet required.
+// No SimpleXMLElement::xpath() is used.
+// ==============================================================
+
+private function parseExcelRows(
+    string $path
+): array {
+
+    $extension = strtolower(
+        pathinfo(
+            $path,
+            PATHINFO_EXTENSION
+        )
+    );
+
+    // ==========================================================
+    // CSV
+    // ==========================================================
+
+    if ($extension === 'csv') {
+
+        $rows = [];
+
+        $handle = fopen(
+            $path,
+            'rb'
+        );
+
+        if ($handle === false) {
+            throw new \RuntimeException(
+                'Unable to read CSV file.'
+            );
+        }
+
+        while (
+            ($data = fgetcsv($handle)) !== false
+        ) {
+            $rows[] = $data;
+        }
+
+        fclose($handle);
+
+        // ------------------------------------------------------
+        // REMOVE HEADER
+        // ------------------------------------------------------
+
+        if (!empty($rows)) {
+            array_shift($rows);
+        }
+
+        // ------------------------------------------------------
+        // MAP CSV COLUMNS
+        // ------------------------------------------------------
+
+        $columnLetters = [
+            'A',
+            'B',
+            'C',
+            'D',
+            'E',
+            'F',
+            'G',
+            'H',
+            'I',
+            'J',
+            'K',
+            'L',
+            'M',
+            'N',
+            'O',
+            'P',
+            'Q',
+            'R',
+            'S',
+            'T'
+        ];
+
+        $mappedRows = [];
+
+        foreach ($rows as $row) {
+
+            $mapped = [];
+
+            foreach (
+                $columnLetters as $index => $letter
+            ) {
+
+                if (
+                    !array_key_exists(
+                        $index,
+                        $row
+                    )
+                ) {
+                    continue;
+                }
+
+                $mapped[$letter] = [
+                    'value' => trim(
+                        (string) $row[$index]
+                    )
+                ];
+            }
+
+            if (!empty($mapped)) {
+                $mappedRows[] = $mapped;
+            }
+        }
+
+        return $mappedRows;
+    }
+
+    // ==========================================================
+    // XLSX
+    // ==========================================================
+
+    if ($extension !== 'xlsx') {
+
+        throw new \RuntimeException(
+            'Only .xlsx and .csv files are supported.'
+        );
+    }
+
+    // ==========================================================
+    // CHECK ZIPARCHIVE
+    // ==========================================================
+
+    if (!class_exists('ZipArchive')) {
+
+        throw new \RuntimeException(
+            'PHP ZipArchive is not enabled. ' .
+            'Please enable the ZIP extension in php.ini.'
+        );
+    }
+
+    // ==========================================================
+    // OPEN XLSX
+    // ==========================================================
+
+    $zip = new \ZipArchive();
+
+    $opened = $zip->open($path);
+
+    if ($opened !== true) {
+
+        throw new \RuntimeException(
+            'Unable to open the Excel XLSX file.'
+        );
+    }
+
+    // ==========================================================
+    // XML NAMESPACES
+    // ==========================================================
+
+    $mainNamespace =
+        'http://schemas.openxmlformats.org/spreadsheetml/2006/main';
+
+    $relationshipNamespace =
+        'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
+
+    $packageRelationshipNamespace =
+        'http://schemas.openxmlformats.org/package/2006/relationships';
+
+    // ==========================================================
+    // READ SHARED STRINGS
+    // ==========================================================
+
+    $sharedStrings = [];
+
+    $sharedXml = $zip->getFromName(
+        'xl/sharedStrings.xml'
+    );
+
+    if ($sharedXml !== false) {
+
+        $sharedDocument = new \DOMDocument();
+
+        $sharedDocument->preserveWhiteSpace = false;
+
+        if (
+            !@$sharedDocument->loadXML(
+                $sharedXml
+            )
+        ) {
+            $zip->close();
+
+            throw new \RuntimeException(
+                'Unable to read Excel shared strings.'
+            );
+        }
+
+        $sharedXPath = new \DOMXPath(
+            $sharedDocument
+        );
+
+        // IMPORTANT:
+        // Register namespace before using it.
+        $sharedXPath->registerNamespace(
+            'x',
+            $mainNamespace
+        );
+
+        $sharedItems = $sharedXPath->query(
+            '//x:si'
+        );
+
+        if ($sharedItems !== false) {
+
+            foreach ($sharedItems as $si) {
+
+                $text = '';
+
+                $textNodes = $sharedXPath->query(
+                    './/x:t',
+                    $si
+                );
+
+                if ($textNodes !== false) {
+
+                    foreach ($textNodes as $textNode) {
+
+                        $text .=
+                            $textNode->nodeValue;
+                    }
+                }
+
+                $sharedStrings[] = $text;
+            }
+        }
+    }
+
+    // ==========================================================
+    // READ WORKBOOK.XML
+    // ==========================================================
+
+    $workbookContent =
+        $zip->getFromName(
+            'xl/workbook.xml'
+        );
+
+    if ($workbookContent === false) {
+
+        $zip->close();
+
+        throw new \RuntimeException(
+            'The Excel workbook.xml file could not be found.'
+        );
+    }
+
+    $workbookDocument = new \DOMDocument();
+
+    $workbookDocument->preserveWhiteSpace = false;
+
+    if (
+        !@$workbookDocument->loadXML(
+            $workbookContent
+        )
+    ) {
+
+        $zip->close();
+
+        throw new \RuntimeException(
+            'The Excel workbook could not be read.'
+        );
+    }
+
+    $workbookXPath = new \DOMXPath(
+        $workbookDocument
+    );
+
+    // IMPORTANT:
+    // Register namespaces.
+    $workbookXPath->registerNamespace(
+        'x',
+        $mainNamespace
+    );
+
+    $workbookXPath->registerNamespace(
+        'r',
+        $relationshipNamespace
+    );
+
+    // ==========================================================
+    // FIND FIRST SHEET
+    // ==========================================================
+
+    $sheetNodes = $workbookXPath->query(
+        '//x:sheets/x:sheet'
+    );
+
+    $relationshipId = '';
+
+    if (
+        $sheetNodes !== false &&
+        $sheetNodes->length > 0
+    ) {
+
+        $firstSheet =
+            $sheetNodes->item(0);
+
+        $relationshipId =
+            $firstSheet->getAttributeNS(
+                $relationshipNamespace,
+                'id'
+            );
+    }
+
+    // ==========================================================
+    // FIND SHEET PATH
+    // ==========================================================
+
+    $sheetPath = null;
+
+    if ($relationshipId !== '') {
+
+        $relsContent =
+            $zip->getFromName(
+                'xl/_rels/workbook.xml.rels'
+            );
+
+        if ($relsContent !== false) {
+
+            $relsDocument =
+                new \DOMDocument();
+
+            $relsDocument->preserveWhiteSpace = false;
+
+            if (
+                @$relsDocument->loadXML(
+                    $relsContent
+                )
+            ) {
+
+                $relsXPath =
+                    new \DOMXPath(
+                        $relsDocument
+                    );
+
+                $relsXPath->registerNamespace(
+                    'pr',
+                    $packageRelationshipNamespace
+                );
+
+                $relationshipNodes =
+                    $relsXPath->query(
+                        '//pr:Relationship'
+                    );
+
+                if (
+                    $relationshipNodes !== false
+                ) {
+
+                    foreach (
+                        $relationshipNodes as $relationship
+                    ) {
+
+                        $id =
+                            $relationship->getAttribute(
+                                'Id'
+                            );
+
+                        if (
+                            $id !==
+                            $relationshipId
+                        ) {
+                            continue;
+                        }
+
+                        $target =
+                            $relationship->getAttribute(
+                                'Target'
+                            );
+
+                        $target =
+                            ltrim(
+                                $target,
+                                '/'
+                            );
+
+                        if (
+                            strpos(
+                                $target,
+                                'xl/'
+                            ) === 0
+                        ) {
+
+                            $sheetPath =
+                                $target;
+
+                        } else {
+
+                            $sheetPath =
+                                'xl/' .
+                                $target;
+                        }
+
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    // ==========================================================
+    // FALLBACK SHEET1
+    // ==========================================================
+
+    if ($sheetPath === null) {
+
+        $fallbackSheets = [
+            'xl/worksheets/sheet1.xml',
+            'xl/worksheets/sheet.xml'
+        ];
+
+        foreach (
+            $fallbackSheets as $candidate
+        ) {
+
+            if (
+                $zip->locateName(
+                    $candidate
+                ) !== false
+            ) {
+
+                $sheetPath =
+                    $candidate;
+
+                break;
+            }
+        }
+    }
+
+    // ==========================================================
+    // FALLBACK: SEARCH ALL SHEETS
+    // ==========================================================
+
+    if ($sheetPath === null) {
+
+        for (
+            $i = 0;
+            $i < $zip->numFiles;
+            $i++
+        ) {
+
+            $entry =
+                $zip->getNameIndex(
+                    $i
+                );
+
+            if (
+                preg_match(
+                    '#^xl/worksheets/sheet\d+\.xml$#',
+                    $entry
+                ) === 1
+            ) {
+
+                $sheetPath =
+                    $entry;
+
+                break;
+            }
+        }
+    }
+
+    // ==========================================================
+    // VERIFY WORKSHEET
+    // ==========================================================
+
+    if (
+        $sheetPath === null ||
+        $zip->locateName($sheetPath) === false
+    ) {
+
+        $zip->close();
+
+        throw new \RuntimeException(
+            'Unable to locate the worksheet inside the Excel file.'
+        );
+    }
+
+    // ==========================================================
+    // READ WORKSHEET
+    // ==========================================================
+
+    $sheetContent =
+        $zip->getFromName(
+            $sheetPath
+        );
+
+    $zip->close();
+
+    if ($sheetContent === false) {
+
+        throw new \RuntimeException(
+            'Unable to read worksheet data.'
+        );
+    }
+
+    // ==========================================================
+    // LOAD WORKSHEET WITH DOM
+    // ==========================================================
+
+    $sheetDocument =
+        new \DOMDocument();
+
+    $sheetDocument->preserveWhiteSpace = false;
+
+    if (
+        !@$sheetDocument->loadXML(
+            $sheetContent
+        )
+    ) {
+
+        throw new \RuntimeException(
+            'Unable to parse worksheet XML.'
+        );
+    }
+
+    // ==========================================================
+    // DOM XPATH
+    // ==========================================================
+
+    $sheetXPath =
+        new \DOMXPath(
+            $sheetDocument
+        );
+
+    // IMPORTANT:
+    // This prevents:
+    //
+    // SimpleXMLElement::xpath():
+    // Undefined namespace prefix
+    //
+    $sheetXPath->registerNamespace(
+        'x',
+        $mainNamespace
+    );
+
+    // ==========================================================
+    // GET ROWS
+    // ==========================================================
+
+    $rowNodes =
+        $sheetXPath->query(
+            '//x:sheetData/x:row'
+        );
+
+    if (
+        $rowNodes === false ||
+        $rowNodes->length === 0
+    ) {
+
+        throw new \RuntimeException(
+            'The Excel worksheet does not contain any rows.'
+        );
+    }
+
+    // ==========================================================
+    // PARSE ROWS
+    // ==========================================================
+
+    $rows = [];
+
+    $physicalRowNumber = 0;
+
+    foreach (
+        $rowNodes as $rowNode
+    ) {
+
+        $physicalRowNumber++;
+
+        // ------------------------------------------------------
+        // SKIP HEADER ROW
+        // ------------------------------------------------------
+
+        if ($physicalRowNumber === 1) {
+            continue;
+        }
+
+        $parsedRow = [];
+
+        // ------------------------------------------------------
+        // GET CELLS
+        // ------------------------------------------------------
+
+        $cellNodes =
+            $sheetXPath->query(
+                './x:c',
+                $rowNode
+            );
+
+        if (
+            $cellNodes === false
+        ) {
+            continue;
+        }
+
+        foreach (
+            $cellNodes as $cellNode
+        ) {
+
+            // --------------------------------------------------
+            // CELL REFERENCE
+            // --------------------------------------------------
+
+            $cellReference =
+                $cellNode->getAttribute('r');
+
+            if (
+                $cellReference === ''
+            ) {
+                continue;
+            }
+
+            // Example:
+            //
+            // A2
+            // B2
+            // C2
+            //
+            // Convert:
+            //
+            // A
+            // B
+            // C
+
+            $column =
+                preg_replace(
+                    '/\d+$/',
+                    '',
+                    $cellReference
+                );
+
+            if (
+                $column === null ||
+                $column === ''
+            ) {
+                continue;
+            }
+
+            $column =
+                strtoupper(
+                    $column
+                );
+
+            // --------------------------------------------------
+            // CELL TYPE
+            // --------------------------------------------------
+
+            $cellType =
+                $cellNode->getAttribute('t');
+
+            $value = '';
+
+            // --------------------------------------------------
+            // GET <v>
+            // --------------------------------------------------
+
+            $valueNodes =
+                $sheetXPath->query(
+                    './x:v',
+                    $cellNode
+                );
+
+            $rawValue = '';
+
+            if (
+                $valueNodes !== false &&
+                $valueNodes->length > 0
+            ) {
+
+                $rawValue =
+                    trim(
+                        $valueNodes
+                            ->item(0)
+                            ->nodeValue
+                    );
+            }
+
+            // --------------------------------------------------
+            // SHARED STRING
+            // --------------------------------------------------
+
+            if ($cellType === 's') {
+
+                $index =
+                    (int) $rawValue;
+
+                $value =
+                    $sharedStrings[$index]
+                    ?? '';
+
+            // --------------------------------------------------
+            // INLINE STRING
+            // --------------------------------------------------
+
+            } elseif (
+                $cellType === 'inlineStr'
+            ) {
+
+                $textNodes =
+                    $sheetXPath->query(
+                        './/x:t',
+                        $cellNode
+                    );
+
+                if (
+                    $textNodes !== false
+                ) {
+
+                    foreach (
+                        $textNodes as $textNode
+                    ) {
+
+                        $value .=
+                            $textNode->nodeValue;
+                    }
+                }
+
+            // --------------------------------------------------
+            // BOOLEAN
+            // --------------------------------------------------
+
+            } elseif (
+                $cellType === 'b'
+            ) {
+
+                $value =
+                    $rawValue === '1'
+                        ? 'TRUE'
+                        : 'FALSE';
+
+            // --------------------------------------------------
+            // FORMULA / NUMBER / DATE / NORMAL TEXT
+            // --------------------------------------------------
+
+            } else {
+
+                $value =
+                    $rawValue;
+            }
+
+            // --------------------------------------------------
+            // STORE CELL
+            // --------------------------------------------------
+
+            $parsedRow[$column] = [
+                'value' => trim(
+                    (string) $value
+                )
+            ];
+        }
+
+        // ------------------------------------------------------
+        // STORE ROW
+        // ------------------------------------------------------
+
+        if (!empty($parsedRow)) {
+            $rows[] =
+                $parsedRow;
+        }
+    }
+
+    return $rows;
+}
+
+
+// ==============================================================
+// NORMALIZE EXCEL DATE
+// ==============================================================
+
+private function normalizeExcelDate(
+    string $value
+): string {
+
+    $value = trim($value);
+
+    if ($value === '') {
+        return '';
+    }
+
+    // ----------------------------------------------------------
+    // ALREADY YYYY-MM-DD
+    // ----------------------------------------------------------
+
+    $date =
+        \DateTime::createFromFormat(
+            'Y-m-d',
+            $value
+        );
+
+    if (
+        $date !== false &&
+        $date->format('Y-m-d') === $value
+    ) {
+
+        return $value;
+    }
+
+    // ----------------------------------------------------------
+    // COMMON DATE FORMATS
+    // ----------------------------------------------------------
+
+    $formats = [
+        'm/d/Y',
+        'd/m/Y',
+        'm-d-Y',
+        'd-m-Y',
+        'Y/m/d',
+        'Y.m.d',
+        'm/d/y',
+        'd/m/y',
+        'm.d.Y',
+        'd.m.Y'
+    ];
+
+    foreach (
+        $formats as $format
+    ) {
+
+        $date =
+            \DateTime::createFromFormat(
+                $format,
+                $value
+            );
+
+        if (
+            $date !== false &&
+            $date->format($format) === $value
+        ) {
+
+            return $date->format(
+                'Y-m-d'
+            );
+        }
+    }
+
+    // ----------------------------------------------------------
+    // EXCEL SERIAL DATE
+    // ----------------------------------------------------------
+
+    if (
+        preg_match(
+            '/^\d+(?:\.\d+)?$/',
+            $value
+        )
+    ) {
+
+        $serial =
+            (float) $value;
+
+        /*
+         * Excel Windows date system.
+         *
+         * 1 = 1900-01-01
+         *
+         * 1899-12-30 is used because of
+         * Excel's historical leap-year bug.
+         */
+
+        if (
+            $serial > 0 &&
+            $serial < 100000
+        ) {
+
+            $baseDate =
+                new \DateTime(
+                    '1899-12-30'
+                );
+
+            $days =
+                (int) floor(
+                    $serial
+                );
+
+            $baseDate->modify(
+                '+' .
+                $days .
+                ' days'
+            );
+
+            return $baseDate->format(
+                'Y-m-d'
+            );
+        }
+    }
+
+    // ----------------------------------------------------------
+    // TRY PHP DATE PARSER
+    // ----------------------------------------------------------
+
+    try {
+
+        $timestamp =
+            strtotime($value);
+
+        if (
+            $timestamp !== false
+        ) {
+
+            return date(
+                'Y-m-d',
+                $timestamp
+            );
+        }
+
+    } catch (\Throwable $e) {
+
+        // Continue to fallback.
+    }
+
+    // ----------------------------------------------------------
+    // FALLBACK
+    // ----------------------------------------------------------
+
+    return $value;
+}
+
+
+// ==============================================================
+// CHECK MEANINGFUL IMPORT VALUE
+// ==============================================================
+
+private function hasMeaningfulImportValue(
+    array $record
+): bool {
+
+    $emptyValues = [
+        '',
+        '0',
+        '0000-00-00',
+        '0000-00-00 00:00:00',
+        '0000-00',
+        'null',
+        'none',
+        'n/a',
+        '-'
+    ];
+
+    foreach (
+        $record as $value
+    ) {
+
+        $trimmed =
+            trim(
+                (string) $value
+            );
+
+        if ($trimmed === '') {
+            continue;
+        }
+
+        $lower =
+            strtolower(
+                $trimmed
+            );
+
+        if (
+            in_array(
+                $lower,
+                $emptyValues,
+                true
+            )
+        ) {
+            continue;
+        }
+
+        // ------------------------------------------------------
+        // ZERO-LIKE DATE
+        // ------------------------------------------------------
+
+        if (
+            preg_match(
+                '/^0{2,4}[-\/ ]0{2}[-\/ ]0{2}.*$/',
+                $trimmed
+            ) === 1
+        ) {
+            continue;
+        }
+
+        return true;
+    }
+
+    return false;
+}
+}
+

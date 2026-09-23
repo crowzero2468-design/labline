@@ -657,4 +657,418 @@ class Mfs extends BaseController
 
         exit;
     }
+
+    /**
+ * ==========================================
+ * GET MFS RECORD FOR EDIT
+ * ==========================================
+ */
+public function edit($id)
+{
+    if (!session()->get('logged_in')) {
+        return $this->response
+            ->setStatusCode(401)
+            ->setJSON([
+                'success' => false,
+                'message' => 'Please login first.'
+            ]);
+    }
+
+    $database = db_connect();
+
+    if (!$database->tableExists('tb_mfs')) {
+        return $this->response
+            ->setStatusCode(404)
+            ->setJSON([
+                'success' => false,
+                'message' => 'tb_mfs table does not exist.'
+            ]);
+    }
+
+    $id = (int) $id;
+
+    if ($id <= 0) {
+        return $this->response
+            ->setStatusCode(400)
+            ->setJSON([
+                'success' => false,
+                'message' => 'Invalid MFS record ID.'
+            ]);
+    }
+
+    $mfs = $database
+        ->table('tb_mfs')
+        ->where('id', $id)
+        ->get()
+        ->getRowArray();
+
+    if (!$mfs) {
+        return $this->response
+            ->setStatusCode(404)
+            ->setJSON([
+                'success' => false,
+                'message' => 'MFS record not found.'
+            ]);
+    }
+
+    return $this->response->setJSON([
+        'success' => true,
+        'data' => $mfs
+    ]);
+}
+
+/**
+ * ==========================================
+ * UPDATE MFS
+ * ==========================================
+ */
+public function update($id)
+{
+    if (!session()->get('logged_in')) {
+        return $this->response
+            ->setStatusCode(401)
+            ->setJSON([
+                'success' => false,
+                'message' => 'Please login first.'
+            ]);
+    }
+
+    $database = db_connect();
+
+    if (!$database->tableExists('tb_mfs')) {
+        return $this->response
+            ->setStatusCode(404)
+            ->setJSON([
+                'success' => false,
+                'message' => 'tb_mfs table does not exist.'
+            ]);
+    }
+
+    $id = (int) $id;
+
+    if ($id <= 0) {
+        return $this->response
+            ->setStatusCode(400)
+            ->setJSON([
+                'success' => false,
+                'message' => 'Invalid MFS record ID.'
+            ]);
+    }
+
+    // --------------------------------------------------
+    // CHECK RECORD
+    // --------------------------------------------------
+
+    $existing = $database
+        ->table('tb_mfs')
+        ->where('id', $id)
+        ->get()
+        ->getRowArray();
+
+    if (!$existing) {
+        return $this->response
+            ->setStatusCode(404)
+            ->setJSON([
+                'success' => false,
+                'message' => 'MFS record not found.'
+            ]);
+    }
+
+    // --------------------------------------------------
+    // GET FORM VALUES
+    // --------------------------------------------------
+
+    $mfsNumber = trim(
+        (string) $this->request->getPost('mfs_number')
+    );
+
+    $employee = trim(
+        (string) $this->request->getPost('employee')
+    );
+
+    $accounts = trim(
+        (string) $this->request->getPost('accounts')
+    );
+
+    $address = trim(
+        (string) $this->request->getPost('address')
+    );
+
+    $dateFillup = trim(
+        (string) $this->request->getPost('date_fillup')
+    );
+
+    $unit = trim(
+        (string) $this->request->getPost('unit')
+    );
+
+    $machine = trim(
+        (string) $this->request->getPost('machine')
+    );
+
+    $serialNumber = trim(
+        (string) $this->request->getPost('serial_number')
+    );
+
+    $consumableUnit = trim(
+        (string) $this->request->getPost('consumable_unit')
+    );
+
+    $consumables = trim(
+        (string) $this->request->getPost('consumables')
+    );
+
+    $lotNumber = trim(
+        (string) $this->request->getPost('lot_number')
+    );
+
+    $reason = trim(
+        (string) $this->request->getPost('reason')
+    );
+
+    $dateStatus = trim(
+        (string) $this->request->getPost('date_status')
+    );
+
+    $personnel = trim(
+        (string) $this->request->getPost('personnel')
+    );
+
+    $acknowledged = (int) (
+        $this->request->getPost('acknowledged') ?: 0
+    );
+
+    $returned = (int) (
+        $this->request->getPost('returned') ?: 0
+    );
+
+    $remarks = trim(
+        (string) $this->request->getPost('remarks')
+    );
+
+
+    // --------------------------------------------------
+    // VALIDATION
+    // --------------------------------------------------
+
+    if (
+        $mfsNumber === '' ||
+        $employee === '' ||
+        $accounts === '' ||
+        $machine === ''
+    ) {
+        return $this->response
+            ->setStatusCode(422)
+            ->setJSON([
+                'success' => false,
+                'message' =>
+                    'Please fill in MFS Number, Employee, Account and Machine.'
+            ]);
+    }
+
+
+    // --------------------------------------------------
+    // ZERO PAD MFS NUMBER
+    // --------------------------------------------------
+
+    if (preg_match('/^\d+$/', $mfsNumber)) {
+
+        $mfsNumber = str_pad(
+            $mfsNumber,
+            6,
+            '0',
+            STR_PAD_LEFT
+        );
+
+    }
+
+
+    // --------------------------------------------------
+    // UPDATE DATA
+    // --------------------------------------------------
+
+    $update = [
+
+        'mfs_number' =>
+            $mfsNumber,
+
+        'employee' =>
+            $employee,
+
+        'accounts' =>
+            $accounts,
+
+        'address' =>
+            $address,
+
+        'date_fillup' =>
+            $dateFillup === ''
+                ? ($existing['date_fillup'] ?? date('Y-m-d'))
+                : $dateFillup,
+
+        'unit' =>
+            $unit,
+
+        'machine' =>
+            $machine,
+
+        'serial_number' =>
+            $serialNumber,
+
+        'consumable_unit' =>
+            $consumableUnit,
+
+        'consumables' =>
+            $consumables,
+
+        'lot_number' =>
+            $lotNumber,
+
+        'reason' =>
+            $reason,
+
+        'date_status' =>
+            $dateStatus === ''
+                ? null
+                : $dateStatus,
+
+        'personnel' =>
+            $personnel,
+
+        'acknowledged' =>
+            $acknowledged,
+
+        'returned' =>
+            $returned,
+
+        'remarks' =>
+            $remarks,
+
+    ];
+
+
+    // --------------------------------------------------
+    // UPDATE DATABASE
+    // --------------------------------------------------
+
+    $result = $database
+        ->table('tb_mfs')
+        ->where('id', $id)
+        ->update($update);
+
+
+    if (!$result) {
+
+        $error = $database->error();
+
+        return $this->response
+            ->setStatusCode(500)
+            ->setJSON([
+                'success' => false,
+                'message' =>
+                    'Failed to update MFS record.'
+                    . (
+                        !empty($error['message'])
+                            ? ' ' . $error['message']
+                            : ''
+                    )
+            ]);
+    }
+
+
+    return $this->response->setJSON([
+        'success' => true,
+        'message' => 'MFS record updated successfully.'
+    ]);
+}
+
+/**
+ * ==========================================
+ * DELETE MFS
+ * ==========================================
+ */
+public function delete($id)
+{
+    if (!session()->get('logged_in')) {
+        return $this->response
+            ->setStatusCode(401)
+            ->setJSON([
+                'success' => false,
+                'message' => 'Please login first.'
+            ]);
+    }
+
+    $database = db_connect();
+
+    if (!$database->tableExists('tb_mfs')) {
+        return $this->response
+            ->setStatusCode(404)
+            ->setJSON([
+                'success' => false,
+                'message' => 'tb_mfs table does not exist.'
+            ]);
+    }
+
+    $id = (int) $id;
+
+    if ($id <= 0) {
+        return $this->response
+            ->setStatusCode(400)
+            ->setJSON([
+                'success' => false,
+                'message' => 'Invalid MFS record ID.'
+            ]);
+    }
+
+
+    // --------------------------------------------------
+    // CHECK RECORD
+    // --------------------------------------------------
+
+    $existing = $database
+        ->table('tb_mfs')
+        ->where('id', $id)
+        ->get()
+        ->getRowArray();
+
+
+    if (!$existing) {
+
+        return $this->response
+            ->setStatusCode(404)
+            ->setJSON([
+                'success' => false,
+                'message' => 'MFS record not found.'
+            ]);
+
+    }
+
+
+    // --------------------------------------------------
+    // DELETE
+    // --------------------------------------------------
+
+    $result = $database
+        ->table('tb_mfs')
+        ->where('id', $id)
+        ->delete();
+
+
+    if (!$result) {
+
+        return $this->response
+            ->setStatusCode(500)
+            ->setJSON([
+                'success' => false,
+                'message' => 'Failed to delete MFS record.'
+            ]);
+
+    }
+
+
+    return $this->response->setJSON([
+        'success' => true,
+        'message' => 'MFS record deleted successfully.'
+    ]);
+}
 }

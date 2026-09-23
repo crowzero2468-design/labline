@@ -6,6 +6,10 @@ use CodeIgniter\HTTP\RedirectResponse;
 
 class Dashboard extends BaseController
 {
+    // ==============================================================
+    // DASHBOARD
+    // ==============================================================
+
     public function index(): string|RedirectResponse
     {
         if (!session()->get('logged_in')) {
@@ -28,7 +32,10 @@ class Dashboard extends BaseController
                 ->delete();
 
             return redirect()->to(site_url('dashboard'))
-                ->with('success', 'Record deleted successfully.');
+                ->with(
+                    'success',
+                    'Record deleted successfully.'
+                );
         }
 
         // ==========================================================
@@ -48,11 +55,19 @@ class Dashboard extends BaseController
         }
 
         // ==========================================================
-        // SEARCH / PAGINATION
+        // SEARCH / DATE FILTER / PAGINATION
         // ==========================================================
 
         $search = trim(
             (string) ($this->request->getGet('search') ?? '')
+        );
+
+        $startDate = trim(
+            (string) ($this->request->getGet('start_date') ?? '')
+        );
+
+        $endDate = trim(
+            (string) ($this->request->getGet('end_date') ?? '')
         );
 
         $page = max(
@@ -63,58 +78,181 @@ class Dashboard extends BaseController
         $perPage = 10;
 
         // ==========================================================
+        // BASE FILTERED QUERY
+        //
+        // IMPORTANT:
+        // Search + Date Filter are applied here FIRST.
+        //
+        // The same filter is then used for:
+        // - Total Province
+        // - Total Clinic
+        // - Machine Counts
+        // - Table Records
+        // ==========================================================
+
+        $filterBuilder = $database->table('tb_data');
+
+        // Only active records
+        $filterBuilder->where('status', 'A');
+
+        // ==========================================================
+        // SEARCH FILTER
+        // ==========================================================
+
+        if ($search !== '') {
+
+            $filterBuilder->groupStart()
+
+                ->like('Clinic_name', $search)
+                ->orLike('Address', $search)
+                ->orLike('Province', $search)
+                ->orLike('Machine', $search)
+                ->orLike('Model', $search)
+                ->orLike('SN', $search)
+                ->orLike('DR_Number', $search)
+
+                ->groupEnd();
+        }
+
+        // ==========================================================
+        // DATE FILTER
+        //
+        // Installed_date
+        // ==========================================================
+
+        if ($startDate !== '' && $endDate !== '') {
+
+            $filterBuilder
+                ->where('Installed_date >=', $startDate)
+                ->where('Installed_date <=', $endDate);
+
+        } elseif ($startDate !== '') {
+
+            $filterBuilder
+                ->where('Installed_date >=', $startDate);
+
+        } elseif ($endDate !== '') {
+
+            $filterBuilder
+                ->where('Installed_date <=', $endDate);
+        }
+
+        // ==========================================================
         // TOTAL PROVINCES
+        //
+        // THIS NOW USES THE ACTIVE SEARCH + DATE FILTER
         // ==========================================================
 
         $totalData = 0;
 
         if ($database->tableExists('tb_data')) {
 
-            $result = $database->query(
-                "SELECT COUNT(DISTINCT LOWER(TRIM(Province))) AS total
-                 FROM tb_data
-                 WHERE Province IS NOT NULL
-                 AND TRIM(Province) != ''"
-            )->getRow();
+            $provinceBuilder = clone $filterBuilder;
 
-            $totalData = (int) ($result->total ?? 0);
+            $provinceBuilder
+                ->select(
+                    'COUNT(DISTINCT LOWER(TRIM(Province))) AS total',
+                    false
+                )
+                ->where('Province IS NOT NULL')
+                ->where("TRIM(Province) !=", '');
+
+            $provinceResult = $provinceBuilder
+                ->get()
+                ->getRow();
+
+            $totalData = (int) (
+                $provinceResult->total ?? 0
+            );
         }
 
         // ==========================================================
         // TOTAL CLINICS
+        //
+        // THIS NOW USES THE ACTIVE SEARCH + DATE FILTER
         // ==========================================================
 
         $totalMachine = 0;
 
         if ($database->tableExists('tb_data')) {
 
-            $result = $database->query(
-                "SELECT COUNT(DISTINCT LOWER(TRIM(Clinic_name))) AS total
-                 FROM tb_data
-                 WHERE Clinic_name IS NOT NULL
-                 AND TRIM(Clinic_name) != ''"
-            )->getRow();
+            $clinicBuilder = clone $filterBuilder;
 
-            $totalMachine = (int) ($result->total ?? 0);
+            $clinicBuilder
+                ->select(
+                    'COUNT(DISTINCT LOWER(TRIM(Clinic_name))) AS total',
+                    false
+                )
+                ->where('Clinic_name IS NOT NULL')
+                ->where("TRIM(Clinic_name) !=", '');
+
+            $clinicResult = $clinicBuilder
+                ->get()
+                ->getRow();
+
+            $totalMachine = (int) (
+                $clinicResult->total ?? 0
+            );
         }
 
         // ==========================================================
         // MACHINE COUNTS
+        //
+        // THIS NOW USES THE ACTIVE SEARCH + DATE FILTER
         // ==========================================================
 
         $machineCounts = [];
 
         if ($database->tableExists('tb_data')) {
 
-            $machineCounts = $database->query(
-                "SELECT Machine, COUNT(*) AS total
-                 FROM tb_data
-                 WHERE Machine IS NOT NULL
-                 AND Machine != ''
-                 GROUP BY Machine
-                 ORDER BY total DESC"
-            )->getResultArray();
+            $machineBuilder = clone $filterBuilder;
+
+            $machineCounts = $machineBuilder
+                ->select(
+                    'Machine, COUNT(*) AS total',
+                    false
+                )
+                ->where('Machine IS NOT NULL')
+                ->where("TRIM(Machine) !=", '')
+                ->groupBy('Machine')
+                ->orderBy('total', 'DESC')
+                ->get()
+                ->getResultArray();
         }
+
+        // ==========================================================
+        // TOTAL FILTERED ROWS
+        // ==========================================================
+
+        $countBuilder = clone $filterBuilder;
+
+        $totalRows = $countBuilder->countAllResults();
+
+        $totalPages = max(
+            1,
+            (int) ceil($totalRows / $perPage)
+        );
+
+        $page = min(
+            $page,
+            $totalPages
+        );
+
+        // ==========================================================
+        // GET FILTERED TABLE RECORDS
+        // ==========================================================
+
+        $tableBuilder = clone $filterBuilder;
+
+        $records = $tableBuilder
+            ->orderBy('Clinic_name', 'ASC')
+            ->orderBy('id', 'DESC')
+            ->limit(
+                $perPage,
+                ($page - 1) * $perPage
+            )
+            ->get()
+            ->getResultArray();
 
         // ==========================================================
         // CLINIC MAP
@@ -124,23 +262,9 @@ class Dashboard extends BaseController
         // - Account dropdown
         // - Automatic address filling
         //
-        // Structure:
-        //
-        // $clinicMap[
-        //     'Clinic Name'
-        // ] = [
-        //     'id'       => record ID,
-        //     'address'  => address,
-        //     'province' => province,
-        //     'machines' => [
-        //         [
-        //             'id'      => ...,
-        //             'machine' => ...,
-        //             'model'   => ...,
-        //             'sn'      => ...
-        //         ]
-        //     ]
-        // ];
+        // IMPORTANT:
+        // This remains based on ALL active accounts,
+        // not the current date filter.
         // ==========================================================
 
         $clinicMap = [];
@@ -170,7 +294,7 @@ class Dashboard extends BaseController
                 }
 
                 // --------------------------------------------------
-                // Create clinic entry only once
+                // CREATE CLINIC ENTRY ONLY ONCE
                 // --------------------------------------------------
 
                 if (!isset($clinicMap[$clinicName])) {
@@ -184,7 +308,7 @@ class Dashboard extends BaseController
                 }
 
                 // --------------------------------------------------
-                // Add machine information
+                // ADD MACHINE INFORMATION
                 // --------------------------------------------------
 
                 $machine = trim(
@@ -204,69 +328,58 @@ class Dashboard extends BaseController
         }
 
         // ==========================================================
-        // TABLE RECORDS
-        // ==========================================================
-
-        $tableBuilder = $database->table('tb_data');
-
-        if ($search !== '') {
-
-            $tableBuilder->groupStart()
-                ->like('Clinic_name', $search)
-                ->orLike('Address', $search)
-                ->orLike('Province', $search)
-                ->orLike('Machine', $search)
-                ->orLike('Model', $search)
-                ->orLike('SN', $search)
-                ->orLike('DR_Number', $search)
-                ->groupEnd();
-        }
-
-        $totalRows = $tableBuilder->countAllResults(false);
-
-        $totalPages = max(
-            1,
-            (int) ceil($totalRows / $perPage)
-        );
-
-        $page = min($page, $totalPages);
-
-        $records = $tableBuilder
-            ->orderBy('Clinic_name', 'ASC')
-            ->orderBy('id', 'DESC')
-            // ->where('status', 'A')
-            ->limit(
-                $perPage,
-                ($page - 1) * $perPage
-            )
-            ->get()
-            ->getResultArray();
-
-        // ==========================================================
         // DASHBOARD VIEW
         // ==========================================================
 
         return view('dashboard/index', [
-            'user'           => session()->get('user'),
+
+            'user' => session()->get('user'),
+
+            // ======================================================
+            // FILTERED DASHBOARD TOTALS
+            // ======================================================
 
             'total_data'     => $totalData,
             'total_machine'  => $totalMachine,
             'machine_counts' => $machineCounts,
 
-            'records'        => $records,
-            'search'         => $search,
-            'page'           => $page,
-            'per_page'       => $perPage,
-            'total_pages'    => $totalPages,
-            'total_rows'     => $totalRows,
+            // ======================================================
+            // FILTERED TABLE
+            // ======================================================
 
-            'editing_row'    => $editingRow,
+            'records' => $records,
 
-            // IMPORTANT:
-            // Used by Cancel Account modal
-            'clinicMap'      => $clinicMap,
+            // ======================================================
+            // FILTER VALUES
+            // ======================================================
+
+            'search'     => $search,
+            'start_date' => $startDate,
+            'end_date'   => $endDate,
+
+            // ======================================================
+            // PAGINATION
+            // ======================================================
+
+            'page'        => $page,
+            'per_page'    => $perPage,
+            'total_pages' => $totalPages,
+            'total_rows'  => $totalRows,
+
+            // ======================================================
+            // EDIT
+            // ======================================================
+
+            'editing_row' => $editingRow,
+
+            // ======================================================
+            // CLINIC MAP
+            // ======================================================
+
+            'clinicMap' => $clinicMap,
         ]);
     }
+
 
     // ==============================================================
     // MAP
@@ -275,6 +388,7 @@ class Dashboard extends BaseController
     public function map(): string|RedirectResponse
     {
         if (!session()->get('logged_in')) {
+
             return redirect()->to(site_url('login'))
                 ->with('error', 'Please login first.');
         }
@@ -286,7 +400,9 @@ class Dashboard extends BaseController
         if ($database->tableExists('tb_data')) {
 
             $provinceTotals = $database->query(
-                "SELECT Province, COUNT(*) AS total
+                "SELECT
+                    Province,
+                    COUNT(*) AS total
                  FROM tb_data
                  WHERE Province IS NOT NULL
                  AND TRIM(Province) != ''
@@ -296,10 +412,13 @@ class Dashboard extends BaseController
         }
 
         return view('dashboard/map', [
-            'user'            => session()->get('user'),
+
+            'user' => session()->get('user'),
+
             'province_totals' => $provinceTotals,
         ]);
     }
+
 
     // ==============================================================
     // SAVE RECORD
@@ -308,6 +427,7 @@ class Dashboard extends BaseController
     public function saveRecord(): RedirectResponse
     {
         if (!session()->get('logged_in')) {
+
             return redirect()->to(site_url('login'))
                 ->with('error', 'Please login first.');
         }
@@ -315,23 +435,24 @@ class Dashboard extends BaseController
         $database = db_connect();
 
         $data = [
-            'Clinic_name'    => trim(
+
+            'Clinic_name' => trim(
                 (string) $this->request->getPost('Clinic_name')
             ),
 
-            'Address'        => trim(
+            'Address' => trim(
                 (string) $this->request->getPost('Address')
             ),
 
-            'Province'       => trim(
+            'Province' => trim(
                 (string) $this->request->getPost('Province')
             ),
 
-            'Machine'        => trim(
+            'Machine' => trim(
                 (string) $this->request->getPost('Machine')
             ),
 
-            'Model'          => trim(
+            'Model' => trim(
                 (string) $this->request->getPost('Model')
             ),
 
@@ -341,17 +462,17 @@ class Dashboard extends BaseController
                 )
             ),
 
-            'SN'             => trim(
+            'SN' => trim(
                 (string) $this->request->getPost('SN')
             ),
 
-            'DR_Number'      => $this->normalizeDrNumber(
+            'DR_Number' => $this->normalizeDrNumber(
                 trim(
                     (string) $this->request->getPost('DR_Number')
                 )
             ),
 
-            'status'         => 'A',
+            'status' => 'A',
         ];
 
         if (!$this->hasMeaningfulImportValue($data)) {
@@ -372,6 +493,7 @@ class Dashboard extends BaseController
             );
     }
 
+
     // ==============================================================
     // UPDATE RECORD
     // ==============================================================
@@ -379,6 +501,7 @@ class Dashboard extends BaseController
     public function updateRecord(): RedirectResponse
     {
         if (!session()->get('logged_in')) {
+
             return redirect()->to(site_url('login'))
                 ->with('error', 'Please login first.');
         }
@@ -397,23 +520,24 @@ class Dashboard extends BaseController
         $database = db_connect();
 
         $data = [
-            'Clinic_name'    => trim(
+
+            'Clinic_name' => trim(
                 (string) $this->request->getPost('Clinic_name')
             ),
 
-            'Address'        => trim(
+            'Address' => trim(
                 (string) $this->request->getPost('Address')
             ),
 
-            'Province'       => trim(
+            'Province' => trim(
                 (string) $this->request->getPost('Province')
             ),
 
-            'Machine'        => trim(
+            'Machine' => trim(
                 (string) $this->request->getPost('Machine')
             ),
 
-            'Model'          => trim(
+            'Model' => trim(
                 (string) $this->request->getPost('Model')
             ),
 
@@ -423,11 +547,11 @@ class Dashboard extends BaseController
                 )
             ),
 
-            'SN'             => trim(
+            'SN' => trim(
                 (string) $this->request->getPost('SN')
             ),
 
-            'DR_Number'      => $this->normalizeDrNumber(
+            'DR_Number' => $this->normalizeDrNumber(
                 trim(
                     (string) $this->request->getPost('DR_Number')
                 )
@@ -454,259 +578,247 @@ class Dashboard extends BaseController
             );
     }
 
-public function attachContract(): RedirectResponse
-{
-    if (!session()->get('logged_in')) {
-        return redirect()->to(site_url('login'))
-            ->with('error', 'Please login first.');
-    }
 
-    $database = db_connect();
+    // ==============================================================
+    // ATTACH CONTRACT
+    // ==============================================================
 
-    // ----------------------------------------------------------
-    // GET TB_DATA RECORD ID
-    // ----------------------------------------------------------
+    public function attachContract(): RedirectResponse
+    {
+        if (!session()->get('logged_in')) {
 
-    $id = (int) $this->request->getPost('id');
+            return redirect()->to(site_url('login'))
+                ->with('error', 'Please login first.');
+        }
 
-    if ($id <= 0) {
-        return redirect()->to(site_url('dashboard'))
-            ->with('error', 'Invalid record selected.');
-    }
+        $database = db_connect();
 
-    // ----------------------------------------------------------
-    // CHECK TB_DATA RECORD
-    // ----------------------------------------------------------
+        $id = (int) $this->request->getPost('id');
 
-    $record = $database->table('tb_data')
-        ->select('id, contract_id')
-        ->where('id', $id)
-        ->get()
-        ->getRowArray();
+        if ($id <= 0) {
 
-    if (!$record) {
-        return redirect()->to(site_url('dashboard'))
-            ->with('error', 'Record not found.');
-    }
+            return redirect()->to(site_url('dashboard'))
+                ->with('error', 'Invalid record selected.');
+        }
 
-    // ----------------------------------------------------------
-    // GET UPLOADED FILE
-    // ----------------------------------------------------------
+        $record = $database->table('tb_data')
+            ->select('id, contract_id')
+            ->where('id', $id)
+            ->get()
+            ->getRowArray();
 
-    $file = $this->request->getFile('contract_file');
+        if (!$record) {
 
-    if ($file === null || !$file->isValid()) {
-        return redirect()->to(site_url('dashboard'))
-            ->with('error', 'Please select a valid contract file.');
-    }
+            return redirect()->to(site_url('dashboard'))
+                ->with('error', 'Record not found.');
+        }
 
-    // ----------------------------------------------------------
-    // VALIDATE FILE EXTENSION
-    // ----------------------------------------------------------
+        $file = $this->request->getFile('contract_file');
 
-    $allowedExtensions = [
-        'pdf',
-        'jpg',
-        'jpeg',
-        'png'
-    ];
+        if ($file === null || !$file->isValid()) {
 
-    $extension = strtolower($file->getExtension());
-
-    if (!in_array($extension, $allowedExtensions, true)) {
-        return redirect()->to(site_url('dashboard'))
-            ->with(
-                'error',
-                'Only PDF, JPG, JPEG, and PNG files are allowed.'
-            );
-    }
-
-    // ----------------------------------------------------------
-    // VALIDATE MIME TYPE
-    // ----------------------------------------------------------
-
-    $allowedMimeTypes = [
-        'application/pdf',
-        'image/jpeg',
-        'image/png'
-    ];
-
-    if (!in_array($file->getMimeType(), $allowedMimeTypes, true)) {
-        return redirect()->to(site_url('dashboard'))
-            ->with('error', 'Invalid contract file type.');
-    }
-
-    // ----------------------------------------------------------
-    // CONTRACT DIRECTORY
-    // public/upload/contract/
-    // ----------------------------------------------------------
-
-    $targetDir = FCPATH . 'upload' . DIRECTORY_SEPARATOR . 'contract';
-
-    if (!is_dir($targetDir)) {
-        if (!mkdir($targetDir, 0775, true)) {
             return redirect()->to(site_url('dashboard'))
                 ->with(
                     'error',
-                    'Unable to create contract upload directory.'
+                    'Please select a valid contract file.'
+                );
+        }
+
+        $allowedExtensions = [
+            'pdf',
+            'jpg',
+            'jpeg',
+            'png',
+        ];
+
+        $extension = strtolower(
+            $file->getExtension()
+        );
+
+        if (!in_array($extension, $allowedExtensions, true)) {
+
+            return redirect()->to(site_url('dashboard'))
+                ->with(
+                    'error',
+                    'Only PDF, JPG, JPEG, and PNG files are allowed.'
+                );
+        }
+
+        $allowedMimeTypes = [
+            'application/pdf',
+            'image/jpeg',
+            'image/png',
+        ];
+
+        if (!in_array($file->getMimeType(), $allowedMimeTypes, true)) {
+
+            return redirect()->to(site_url('dashboard'))
+                ->with(
+                    'error',
+                    'Invalid contract file type.'
+                );
+        }
+
+        $targetDir =
+            FCPATH .
+            'upload' .
+            DIRECTORY_SEPARATOR .
+            'contract';
+
+        if (!is_dir($targetDir)) {
+
+            if (!mkdir($targetDir, 0775, true)) {
+
+                return redirect()->to(site_url('dashboard'))
+                    ->with(
+                        'error',
+                        'Unable to create contract upload directory.'
+                    );
+            }
+        }
+
+        $database->transBegin();
+
+        $fullPath = null;
+        $contractId = 0;
+
+        try {
+
+            // ------------------------------------------------------
+            // CREATE CONTRACT RECORD
+            // ------------------------------------------------------
+
+            $database->table('tb_contract')->insert([
+                'location' => '',
+            ]);
+
+            $contractId = (int) $database->insertID();
+
+            if ($contractId <= 0) {
+
+                throw new \RuntimeException(
+                    'Unable to create contract record.'
+                );
+            }
+
+            // ------------------------------------------------------
+            // FILE NAME
+            // ------------------------------------------------------
+
+            $fileName =
+                'contract_' .
+                $contractId .
+                '.' .
+                $extension;
+
+            $relativeLocation =
+                'upload/contract/' .
+                $fileName;
+
+            $fullPath =
+                $targetDir .
+                DIRECTORY_SEPARATOR .
+                $fileName;
+
+            // ------------------------------------------------------
+            // SAVE FILE
+            // ------------------------------------------------------
+
+            if (!$file->move(
+                $targetDir,
+                $fileName,
+                true
+            )) {
+
+                throw new \RuntimeException(
+                    'Unable to save the contract file.'
+                );
+            }
+
+            if (!is_file($fullPath)) {
+
+                throw new \RuntimeException(
+                    'Contract file was not saved.'
+                );
+            }
+
+            // ------------------------------------------------------
+            // UPDATE CONTRACT LOCATION
+            // ------------------------------------------------------
+
+            $updatedContract =
+                $database->table('tb_contract')
+                    ->where('id', $contractId)
+                    ->update([
+                        'location' => $relativeLocation,
+                    ]);
+
+            if (!$updatedContract) {
+
+                throw new \RuntimeException(
+                    'Unable to update contract location.'
+                );
+            }
+
+            // ------------------------------------------------------
+            // UPDATE TB_DATA CONTRACT ID
+            // ------------------------------------------------------
+
+            $updatedData =
+                $database->table('tb_data')
+                    ->where('id', $id)
+                    ->update([
+                        'contract_id' => $contractId,
+                    ]);
+
+            if (!$updatedData) {
+
+                throw new \RuntimeException(
+                    'Unable to update tb_data contract_id.'
+                );
+            }
+
+            // ------------------------------------------------------
+            // CHECK TRANSACTION
+            // ------------------------------------------------------
+
+            if (!$database->transStatus()) {
+
+                throw new \RuntimeException(
+                    'Database transaction failed.'
+                );
+            }
+
+            $database->transCommit();
+
+            return redirect()
+                ->to(site_url('dashboard'))
+                ->with(
+                    'success',
+                    'Contract attached successfully.'
+                );
+
+        } catch (\Throwable $e) {
+
+            $database->transRollback();
+
+            if (
+                $fullPath !== null &&
+                is_file($fullPath)
+            ) {
+                @unlink($fullPath);
+            }
+
+            return redirect()
+                ->to(site_url('dashboard'))
+                ->with(
+                    'error',
+                    'Unable to save the contract: ' .
+                    $e->getMessage()
                 );
         }
     }
 
-    // ----------------------------------------------------------
-    // START DATABASE TRANSACTION
-    // ----------------------------------------------------------
-
-    $database->transBegin();
-
-    $fullPath = null;
-    $contractId = 0;
-
-    try {
-
-        // ------------------------------------------------------
-        // CREATE NEW CONTRACT RECORD
-        //
-        // IMPORTANT:
-        // tb_contract.id is generated automatically.
-        //
-        // We do NOT require tb_data.contract_id beforehand.
-        // ------------------------------------------------------
-
-        $database->table('tb_contract')->insert([
-            'location' => ''
-        ]);
-
-        $contractId = (int) $database->insertID();
-
-        if ($contractId <= 0) {
-            throw new \RuntimeException(
-                'Unable to create contract record.'
-            );
-        }
-
-        // ------------------------------------------------------
-        // CREATE FILE NAME USING TB_CONTRACT.ID
-        //
-        // Example:
-        // contract_15.pdf
-        // contract_16.jpg
-        // ------------------------------------------------------
-
-        $fileName =
-            'contract_' .
-            $contractId .
-            '.' .
-            $extension;
-
-        $relativeLocation =
-            'upload/contract/' .
-            $fileName;
-
-        $fullPath =
-            $targetDir .
-            DIRECTORY_SEPARATOR .
-            $fileName;
-
-        // ------------------------------------------------------
-        // SAVE FILE
-        // ------------------------------------------------------
-
-        if (!$file->move($targetDir, $fileName, true)) {
-            throw new \RuntimeException(
-                'Unable to save the contract file.'
-            );
-        }
-
-        if (!is_file($fullPath)) {
-            throw new \RuntimeException(
-                'Contract file was not saved.'
-            );
-        }
-
-        // ------------------------------------------------------
-        // UPDATE TB_CONTRACT LOCATION
-        // ------------------------------------------------------
-
-        $updatedContract = $database->table('tb_contract')
-            ->where('id', $contractId)
-            ->update([
-                'location' => $relativeLocation
-            ]);
-
-        if (!$updatedContract) {
-            throw new \RuntimeException(
-                'Unable to update contract location.'
-            );
-        }
-
-        // ------------------------------------------------------
-        // UPDATE TB_DATA CONTRACT_ID
-        // ------------------------------------------------------
-
-        $updatedData = $database->table('tb_data')
-            ->where('id', $id)
-            ->update([
-                'contract_id' => $contractId
-            ]);
-
-        if (!$updatedData) {
-            throw new \RuntimeException(
-                'Unable to update tb_data contract_id.'
-            );
-        }
-
-        // ------------------------------------------------------
-        // COMPLETE TRANSACTION
-        // ------------------------------------------------------
-
-        if (!$database->transStatus()) {
-            throw new \RuntimeException(
-                'Database transaction failed.'
-            );
-        }
-
-        $database->transCommit();
-
-        // ------------------------------------------------------
-        // SUCCESS
-        // ------------------------------------------------------
-
-        return redirect()
-            ->to(site_url('dashboard'))
-            ->with(
-                'success',
-                'Contract attached successfully.'
-            );
-
-    } catch (\Throwable $e) {
-
-        // ------------------------------------------------------
-        // ROLLBACK DATABASE
-        // ------------------------------------------------------
-
-        $database->transRollback();
-
-        // ------------------------------------------------------
-        // REMOVE FILE IF IT WAS ALREADY SAVED
-        // ------------------------------------------------------
-
-        if (
-            $fullPath !== null &&
-            is_file($fullPath)
-        ) {
-            @unlink($fullPath);
-        }
-
-        return redirect()
-            ->to(site_url('dashboard'))
-            ->with(
-                'error',
-                'Unable to save the contract: ' .
-                $e->getMessage()
-            );
-    }
-}
 
     // ==============================================================
     // IMPORT EXCEL
@@ -715,6 +827,7 @@ public function attachContract(): RedirectResponse
     public function importExcel(): RedirectResponse
     {
         if (!session()->get('logged_in')) {
+
             return redirect()->to(site_url('login'))
                 ->with('error', 'Please login first.');
         }
@@ -815,17 +928,19 @@ public function attachContract(): RedirectResponse
                     (string) ($row['L']['value'] ?? '')
                 ),
 
-                'Installed_date' => $this->normalizeExcelDate(
-                    (string) ($row['C']['value'] ?? '')
-                ),
+                'Installed_date' =>
+                    $this->normalizeExcelDate(
+                        (string) ($row['C']['value'] ?? '')
+                    ),
 
                 'SN' => trim(
                     (string) ($row['N']['value'] ?? '')
                 ),
 
-                'DR_Number' => $this->normalizeDrNumber(
-                    (string) ($row['D']['value'] ?? '')
-                ),
+                'DR_Number' =>
+                    $this->normalizeDrNumber(
+                        (string) ($row['D']['value'] ?? '')
+                    ),
 
                 'status' => 'A',
             ];
@@ -835,38 +950,47 @@ public function attachContract(): RedirectResponse
             }
 
             $existing = $database->table('tb_data')
+
                 ->where(
                     'Clinic_name',
                     $record['Clinic_name']
                 )
+
                 ->where(
                     'Address',
                     $record['Address']
                 )
+
                 ->where(
                     'Province',
                     $record['Province']
                 )
+
                 ->where(
                     'Machine',
                     $record['Machine']
                 )
+
                 ->where(
                     'Model',
                     $record['Model']
                 )
+
                 ->where(
                     'Installed_date',
                     $record['Installed_date']
                 )
+
                 ->where(
                     'SN',
                     $record['SN']
                 )
+
                 ->where(
                     'DR_Number',
                     $record['DR_Number']
                 )
+
                 ->get()
                 ->getRowArray();
 
@@ -883,9 +1007,12 @@ public function attachContract(): RedirectResponse
         return redirect()->to(site_url('dashboard'))
             ->with(
                 'success',
-                'Imported ' . $inserted . ' record(s) successfully.'
+                'Imported ' .
+                $inserted .
+                ' record(s) successfully.'
             );
     }
+
 
     // ==============================================================
     // PMS
@@ -894,6 +1021,7 @@ public function attachContract(): RedirectResponse
     public function pms(): string|RedirectResponse
     {
         if (!session()->get('logged_in')) {
+
             return redirect()->to(site_url('login'))
                 ->with('error', 'Please login first.');
         }
@@ -956,22 +1084,33 @@ public function attachContract(): RedirectResponse
                     u.fname,
                     u.lname,
                     d.Clinic_name
+
                  FROM tb_pms p
+
                  LEFT JOIN tb_user u
                     ON u.id = p.service_eng_id
+
                  LEFT JOIN tb_data d
                     ON d.id = p.data_id
-                 ORDER BY p.date DESC, p.id DESC"
+
+                 ORDER BY
+                    p.date DESC,
+                    p.id DESC"
             )->getResultArray();
         }
 
         return view('dashboard/pms', [
-            'user'         => session()->get('user'),
-            'users'        => $users,
-            'accounts'     => $accounts,
-            'pms_records'  => $pmsRecords,
+
+            'user' => session()->get('user'),
+
+            'users' => $users,
+
+            'accounts' => $accounts,
+
+            'pms_records' => $pmsRecords,
         ]);
     }
+
 
     // ==============================================================
     // SAVE PMS
@@ -980,6 +1119,7 @@ public function attachContract(): RedirectResponse
     public function savePms(): RedirectResponse
     {
         if (!session()->get('logged_in')) {
+
             return redirect()->to(site_url('login'))
                 ->with('error', 'Please login first.');
         }
@@ -1108,7 +1248,9 @@ public function attachContract(): RedirectResponse
                 );
 
                 if ($serviceName === '') {
-                    $serviceName = $u['uname'] ?? '';
+
+                    $serviceName =
+                        $u['uname'] ?? '';
                 }
             }
         }
@@ -1158,30 +1300,42 @@ public function attachContract(): RedirectResponse
 
         $candidate = [
 
-            'pms_number' => $pmsNumber,
+            'pms_number' =>
+                $pmsNumber,
 
-            'service_tech' => $serviceName,
+            'service_tech' =>
+                $serviceName,
 
-            'clinic' => $clinicName,
+            'clinic' =>
+                $clinicName,
 
-            'address' => $address,
+            'address' =>
+                $address,
 
-            'date' => $date === ''
-                ? null
-                : $date,
+            'date' =>
+                $date === ''
+                    ? null
+                    : $date,
 
-            'machine' => $machineName,
+            'machine' =>
+                $machineName,
 
-            'status' => $technicalDone,
+            'status' =>
+                $technicalDone,
 
             // Backward-compatible columns
-            'service_eng_id' => $serviceEng,
 
-            'data_id' => $dataId,
+            'service_eng_id' =>
+                $serviceEng,
 
-            'machine_type' => $machineType,
+            'data_id' =>
+                $dataId,
 
-            'technical_done' => $technicalDone,
+            'machine_type' =>
+                $machineType,
+
+            'technical_done' =>
+                $technicalDone,
         ];
 
         // ----------------------------------------------------------
@@ -1197,7 +1351,9 @@ public function attachContract(): RedirectResponse
             ->getResultArray();
 
         foreach ($cols as $c) {
-            $available[] = $c['Field'];
+
+            $available[] =
+                $c['Field'];
         }
 
         // ----------------------------------------------------------
@@ -1214,7 +1370,8 @@ public function attachContract(): RedirectResponse
                 true
             )) {
 
-                $insert[$key] = $value;
+                $insert[$key] =
+                    $value;
             }
         }
 
@@ -1237,6 +1394,7 @@ public function attachContract(): RedirectResponse
             'PMS record added.'
         );
     }
+
 
     // ==============================================================
     // PARSE EXCEL / CSV
@@ -1279,6 +1437,7 @@ public function attachContract(): RedirectResponse
             fclose($handle);
 
             // Remove header
+
             if (!empty($rows)) {
                 array_shift($rows);
             }
@@ -1321,12 +1480,14 @@ public function attachContract(): RedirectResponse
                     }
 
                     $mapped[$letter] = [
-                        'value' => $row[$index],
+                        'value' =>
+                            $row[$index],
                     ];
                 }
 
                 if ($mapped !== []) {
-                    $mappedRows[] = $mapped;
+                    $mappedRows[] =
+                        $mapped;
                 }
             }
 
@@ -1379,20 +1540,26 @@ public function attachContract(): RedirectResponse
 
             if ($sharedStringXml !== false) {
 
+                $sharedStringXml->registerXPathNamespace(
+                    'a',
+                    'http://schemas.openxmlformats.org/spreadsheetml/2006/main'
+                );
+
                 foreach (
-                    $sharedStringXml->si as $si
+                    $sharedStringXml->xpath('//a:si') as $si
                 ) {
 
                     $text = '';
 
                     foreach (
-                        $si->t as $t
+                        $si->xpath('.//a:t') as $t
                     ) {
 
                         $text .= (string) $t;
                     }
 
-                    $sharedStrings[] = $text;
+                    $sharedStrings[] =
+                        $text;
                 }
             }
         }
@@ -1450,7 +1617,9 @@ public function attachContract(): RedirectResponse
                 ) !== false
             ) {
 
-                $sheetPath = $candidate;
+                $sheetPath =
+                    $candidate;
+
                 break;
             }
         }
@@ -1473,7 +1642,9 @@ public function attachContract(): RedirectResponse
                     ) === 1
                 ) {
 
-                    $sheetPath = $entry;
+                    $sheetPath =
+                        $entry;
+
                     break;
                 }
             }
@@ -1491,9 +1662,10 @@ public function attachContract(): RedirectResponse
 
             if (empty($sheet)) {
 
-                $sheet = $workbookXml->xpath(
-                    '//main:sheet[1]'
-                );
+                $sheet =
+                    $workbookXml->xpath(
+                        '//main:sheet[1]'
+                    );
             }
 
             if (!empty($sheet)) {
@@ -1593,6 +1765,7 @@ public function attachContract(): RedirectResponse
             $rowIndex++;
 
             // Skip header
+
             if ($rowIndex === 1) {
                 continue;
             }
@@ -1605,7 +1778,7 @@ public function attachContract(): RedirectResponse
                     (string) $cell['r'];
 
                 $column = preg_replace(
-                    '/\d+/',
+                    '/\d+$/',
                     '',
                     $cellReference
                 );
@@ -1645,17 +1818,21 @@ public function attachContract(): RedirectResponse
                 $parsedRow[
                     strtoupper($column)
                 ] = [
-                    'value' => $value,
+                    'value' =>
+                        $value,
                 ];
             }
 
             if ($parsedRow !== []) {
-                $rows[] = $parsedRow;
+
+                $rows[] =
+                    $parsedRow;
             }
         }
 
         return $rows;
     }
+
 
     // ==============================================================
     // NORMALIZE EXCEL DATE
@@ -1670,6 +1847,50 @@ public function attachContract(): RedirectResponse
         if ($value === '') {
             return '';
         }
+
+        // Already YYYY-MM-DD
+
+        $date = \DateTime::createFromFormat(
+            'Y-m-d',
+            $value
+        );
+
+        if (
+            $date !== false &&
+            $date->format('Y-m-d') === $value
+        ) {
+
+            return $value;
+        }
+
+        // Common date formats
+
+        $formats = [
+            'm/d/Y',
+            'd/m/Y',
+            'm-d-Y',
+            'd-m-Y',
+            'Y/m/d',
+            'Y.m.d',
+        ];
+
+        foreach ($formats as $format) {
+
+            $date = \DateTime::createFromFormat(
+                $format,
+                $value
+            );
+
+            if (
+                $date !== false &&
+                $date->format($format) === $value
+            ) {
+
+                return $date->format('Y-m-d');
+            }
+        }
+
+        // Excel serial number
 
         if (
             preg_match(
@@ -1700,6 +1921,7 @@ public function attachContract(): RedirectResponse
 
         return $value;
     }
+
 
     // ==============================================================
     // NORMALIZE DR NUMBER
@@ -1745,6 +1967,7 @@ public function attachContract(): RedirectResponse
         return 'DR' . $upperValue;
     }
 
+
     // ==============================================================
     // CHECK MEANINGFUL VALUES
     // ==============================================================
@@ -1754,14 +1977,23 @@ public function attachContract(): RedirectResponse
     ): bool {
 
         $emptyValues = [
+
             '',
+
             '0',
+
             '0000-00-00',
+
             '0000-00-00 00:00:00',
+
             '0000-00',
+
             'null',
+
             'none',
+
             'n/a',
+
             '-',
         ];
 
