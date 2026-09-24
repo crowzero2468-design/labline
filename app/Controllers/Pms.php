@@ -4006,11 +4006,10 @@ public function importExcel(): RedirectResponse
     // B = Service Technician
     // C = Clinic
     // D = Address
-    // E = Date
-    // F = Machine
-    // G = Serial Number
-    // H = Status / Technical Done
-    // I = Remarks
+    // H = Date
+    // E = Machine
+    // F = Serial Number
+    // G = Status / Technical Done
     // ----------------------------------------------------------
 
     foreach ($rows as $row) {
@@ -4067,11 +4066,11 @@ public function importExcel(): RedirectResponse
             )
         );
 
-        $remarks = trim(
-            (string) (
-                $row['I']['value'] ?? ''
-            )
-        );
+        // $remarks = trim(
+        //     (string) (
+        //         $row['I']['value'] ?? ''
+        //     )
+        // );
 
         // ------------------------------------------------------
         // SKIP EMPTY ROW
@@ -4085,8 +4084,7 @@ public function importExcel(): RedirectResponse
             $date,
             $machine,
             $serialNumber,
-            $status,
-            $remarks
+            $status
         ];
 
         if (!$this->hasMeaningfulImportValue($candidate)) {
@@ -4130,7 +4128,7 @@ public function importExcel(): RedirectResponse
             'machine' => $machine,
             'sn' => $serialNumber,
             'status' => $status,
-            'remarks' => $remarks
+
         ];
 
         // ------------------------------------------------------

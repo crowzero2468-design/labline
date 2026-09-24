@@ -1,15 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <testsuites>
-  <testsuite name="CLI Arguments" tests="4" assertions="9" errors="0" failures="0" skipped="0" time="0.038087">
-    <testsuite name="HealthTest" file="F:\xampp\htdocs\lablinesys\tests\unit\HealthTest.php" tests="2" assertions="3" errors="0" failures="0" skipped="0" time="0.027931">
-      <testcase name="testIsDefinedAppPath" file="F:\xampp\htdocs\lablinesys\tests\unit\HealthTest.php" line="12" class="HealthTest" classname="HealthTest" assertions="1" time="0.018192"/>
-      <testcase name="testBaseUrlHasBeenSet" file="F:\xampp\htdocs\lablinesys\tests\unit\HealthTest.php" line="17" class="HealthTest" classname="HealthTest" assertions="2" time="0.009739"/>
-    </testsuite>
-    <testsuite name="LoginPageTest" file="F:\xampp\htdocs\lablinesys\tests\unit\LoginPageTest.php" tests="1" assertions="3" errors="0" failures="0" skipped="0" time="0.009279">
-      <testcase name="testHomeLoginViewRendersLoginForm" file="F:\xampp\htdocs\lablinesys\tests\unit\LoginPageTest.php" line="8" class="LoginPageTest" classname="LoginPageTest" assertions="3" time="0.009279"/>
-    </testsuite>
-    <testsuite name="UserSignupTest" file="F:\xampp\htdocs\lablinesys\tests\unit\UserSignupTest.php" tests="1" assertions="3" errors="0" failures="0" skipped="0" time="0.000878">
-      <testcase name="testUserModelUsesTbUserTable" file="F:\xampp\htdocs\lablinesys\tests\unit\UserSignupTest.php" line="7" class="UserSignupTest" classname="UserSignupTest" assertions="3" time="0.000878"/>
-    </testsuite>
+  <testsuite name="ExcelImportTest" file="C:\System\lablinesys\tests\unit\ExcelImportTest.php" tests="1" assertions="4" errors="0" failures="0" skipped="0" time="0.321700">
+    <testcase name="testDashboardParseExcelRowsHandlesXlsxDefaultNamespace" file="C:\System\lablinesys\tests\unit\ExcelImportTest.php" line="7" class="ExcelImportTest" classname="ExcelImportTest" assertions="4" time="0.321700"/>
   </testsuite>
 </testsuites>

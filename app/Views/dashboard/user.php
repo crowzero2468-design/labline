@@ -171,7 +171,7 @@
         ordering: true,
         pageLength: 10,
         lengthMenu: [10, 25, 50, 100],
-        order: [[2, 'asc']],
+        order: [[0, 'asc']],
         columnDefs: [
           { targets: 0, orderable: false }
         ]

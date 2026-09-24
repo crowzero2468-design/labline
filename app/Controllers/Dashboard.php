@@ -1522,6 +1522,19 @@ class Dashboard extends BaseController
         }
 
         // ----------------------------------------------------------
+        // XML NAMESPACES
+        // ----------------------------------------------------------
+
+        $mainNamespace =
+            'http://schemas.openxmlformats.org/spreadsheetml/2006/main';
+
+        $relationshipNamespace =
+            'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
+
+        $packageRelationshipNamespace =
+            'http://schemas.openxmlformats.org/package/2006/relationships';
+
+        // ----------------------------------------------------------
         // SHARED STRINGS
         // ----------------------------------------------------------
 
@@ -1533,33 +1546,52 @@ class Dashboard extends BaseController
 
         if ($sharedXml !== false) {
 
-            $sharedStringXml =
-                simplexml_load_string(
+            $sharedDocument = new \DOMDocument();
+            $sharedDocument->preserveWhiteSpace = false;
+
+            if (
+                !@$sharedDocument->loadXML(
                     $sharedXml
+                )
+            ) {
+                $zip->close();
+
+                throw new \RuntimeException(
+                    'Unable to read Excel shared strings.'
                 );
+            }
 
-            if ($sharedStringXml !== false) {
+            $sharedXPath = new \DOMXPath(
+                $sharedDocument
+            );
 
-                $sharedStringXml->registerXPathNamespace(
-                    'a',
-                    'http://schemas.openxmlformats.org/spreadsheetml/2006/main'
-                );
+            $sharedXPath->registerNamespace(
+                'x',
+                $mainNamespace
+            );
 
-                foreach (
-                    $sharedStringXml->xpath('//a:si') as $si
-                ) {
+            $sharedItems = $sharedXPath->query(
+                '//x:si'
+            );
+
+            if ($sharedItems !== false) {
+
+                foreach ($sharedItems as $si) {
 
                     $text = '';
+                    $textNodes = $sharedXPath->query(
+                        './/x:t',
+                        $si
+                    );
 
-                    foreach (
-                        $si->xpath('.//a:t') as $t
-                    ) {
+                    if ($textNodes !== false) {
 
-                        $text .= (string) $t;
+                        foreach ($textNodes as $textNode) {
+                            $text .= $textNode->nodeValue;
+                        }
                     }
 
-                    $sharedStrings[] =
-                        $text;
+                    $sharedStrings[] = $text;
                 }
             }
         }
@@ -1573,12 +1605,7 @@ class Dashboard extends BaseController
                 'xl/workbook.xml'
             );
 
-        $workbookXml =
-            simplexml_load_string(
-                $workbookContent
-            );
-
-        if ($workbookXml === false) {
+        if ($workbookContent === false) {
 
             $zip->close();
 
@@ -1587,14 +1614,34 @@ class Dashboard extends BaseController
             );
         }
 
-        $ns = $workbookXml
-            ->getNamespaces(true);
+        $workbookDocument = new \DOMDocument();
+        $workbookDocument->preserveWhiteSpace = false;
 
-        $workbookXml
-            ->registerXPathNamespace(
-                'main',
-                $ns['']
+        if (
+            !@$workbookDocument->loadXML(
+                $workbookContent
+            )
+        ) {
+            $zip->close();
+
+            throw new \RuntimeException(
+                'The workbook could not be read.'
             );
+        }
+
+        $workbookXPath = new \DOMXPath(
+            $workbookDocument
+        );
+
+        $workbookXPath->registerNamespace(
+            'x',
+            $mainNamespace
+        );
+
+        $workbookXPath->registerNamespace(
+            'r',
+            $relationshipNamespace
+        );
 
         // ----------------------------------------------------------
         // FIND SHEET
@@ -1602,115 +1649,68 @@ class Dashboard extends BaseController
 
         $sheetPath = null;
 
-        $preferredSheets = [
-            'xl/worksheets/sheet1.xml',
-            'xl/worksheets/sheet.xml',
-        ];
+        $sheetNodes = $workbookXPath->query(
+            '//x:sheets/x:sheet'
+        );
 
-        foreach (
-            $preferredSheets as $candidate
+        $relationshipId = '';
+
+        if (
+            $sheetNodes !== false &&
+            $sheetNodes->length > 0
         ) {
-
-            if (
-                $zip->locateName(
-                    $candidate
-                ) !== false
-            ) {
-
-                $sheetPath =
-                    $candidate;
-
-                break;
-            }
+            $firstSheet = $sheetNodes->item(0);
+            $relationshipId = $firstSheet->getAttributeNS(
+                $relationshipNamespace,
+                'id'
+            );
         }
 
-        if ($sheetPath === null) {
+        if ($relationshipId !== '') {
 
-            for (
-                $i = 0;
-                $i < $zip->numFiles;
-                $i++
-            ) {
+            $relsContent =
+                $zip->getFromName(
+                    'xl/_rels/workbook.xml.rels'
+                );
 
-                $entry =
-                    $zip->getNameIndex($i);
+            if ($relsContent !== false) {
+
+                $relsDocument = new \DOMDocument();
+                $relsDocument->preserveWhiteSpace = false;
 
                 if (
-                    preg_match(
-                        '#^xl/worksheets/sheet\d+\.xml$#',
-                        $entry
-                    ) === 1
-                ) {
-
-                    $sheetPath =
-                        $entry;
-
-                    break;
-                }
-            }
-        }
-
-        // ----------------------------------------------------------
-        // WORKBOOK RELATIONSHIP FALLBACK
-        // ----------------------------------------------------------
-
-        if ($sheetPath === null) {
-
-            $sheet = $workbookXml->xpath(
-                '//main:sheet[@name="Sheet1"]'
-            );
-
-            if (empty($sheet)) {
-
-                $sheet =
-                    $workbookXml->xpath(
-                        '//main:sheet[1]'
-                    );
-            }
-
-            if (!empty($sheet)) {
-
-                $relationshipsNamespace =
-                    'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
-
-                $sheetId =
-                    (string) $sheet[0]
-                        ->attributes(
-                            $relationshipsNamespace,
-                            true
-                        )->id;
-
-                $relsContent =
-                    $zip->getFromName(
-                        'xl/_rels/workbook.xml.rels'
-                    );
-
-                $relsXml =
-                    simplexml_load_string(
+                    @$relsDocument->loadXML(
                         $relsContent
+                    )
+                ) {
+                    $relsXPath = new \DOMXPath(
+                        $relsDocument
                     );
 
-                if ($relsXml !== false) {
+                    $relsXPath->registerNamespace(
+                        'pr',
+                        $packageRelationshipNamespace
+                    );
 
-                    foreach (
-                        $relsXml->Relationship
-                        as $relationship
-                    ) {
+                    $relationshipNodes = $relsXPath->query(
+                        '//pr:Relationship'
+                    );
 
-                        if (
-                            (string) $relationship['Id']
-                            === $sheetId
-                        ) {
+                    if ($relationshipNodes !== false) {
 
-                            $sheetTarget =
-                                (string) $relationship['Target'];
+                        foreach ($relationshipNodes as $relationship) {
 
-                            $sheetPath =
-                                'xl/' .
-                                ltrim(
-                                    $sheetTarget,
-                                    '/'
-                                );
+                            $id = $relationship->getAttribute('Id');
+
+                            if ($id !== $relationshipId) {
+                                continue;
+                            }
+
+                            $target = $relationship->getAttribute('Target');
+                            $target = ltrim($target, '/');
+                            $sheetPath = strpos($target, 'xl/') === 0
+                                ? $target
+                                : 'xl/' . $target;
 
                             break;
                         }
@@ -1719,11 +1719,44 @@ class Dashboard extends BaseController
             }
         }
 
+        if ($sheetPath === null) {
+            $preferredSheets = [
+                'xl/worksheets/sheet1.xml',
+                'xl/worksheets/sheet.xml',
+            ];
+
+            foreach ($preferredSheets as $candidate) {
+                if ($zip->locateName($candidate) !== false) {
+                    $sheetPath = $candidate;
+                    break;
+                }
+            }
+        }
+
+        if ($sheetPath === null) {
+            for (
+                $i = 0;
+                $i < $zip->numFiles;
+                $i++
+            ) {
+                $entry = $zip->getNameIndex($i);
+
+                if (
+                    preg_match(
+                        '#^xl/worksheets/sheet\d+\.xml$#',
+                        $entry
+                    ) === 1
+                ) {
+                    $sheetPath = $entry;
+                    break;
+                }
+            }
+        }
+
         if (
             $sheetPath === null ||
             $zip->locateName($sheetPath) === false
         ) {
-
             $zip->close();
 
             throw new \RuntimeException(
@@ -1740,93 +1773,120 @@ class Dashboard extends BaseController
                 $sheetPath
             );
 
-        $sheetXml =
-            simplexml_load_string(
-                $sheetContent
-            );
-
         $zip->close();
 
-        if ($sheetXml === false) {
-
+        if ($sheetContent === false) {
             throw new \RuntimeException(
-                'The Excel sheet data could not be loaded.'
+                'Unable to read worksheet data.'
             );
         }
 
-        $rows = [];
+        $sheetDocument = new \DOMDocument();
+        $sheetDocument->preserveWhiteSpace = false;
 
+        if (
+            !@$sheetDocument->loadXML(
+                $sheetContent
+            )
+        ) {
+            throw new \RuntimeException(
+                'Unable to parse worksheet XML.'
+            );
+        }
+
+        $sheetXPath = new \DOMXPath(
+            $sheetDocument
+        );
+
+        $sheetXPath->registerNamespace(
+            'x',
+            $mainNamespace
+        );
+
+        $rows = [];
         $rowIndex = 0;
 
-        foreach (
-            $sheetXml->sheetData->row as $row
-        ) {
+        $rowNodes = $sheetXPath->query(
+            '//x:sheetData/x:row'
+        );
 
-            $rowIndex++;
+        if ($rowNodes !== false) {
 
-            // Skip header
+            foreach ($rowNodes as $rowNode) {
+                $rowIndex++;
 
-            if ($rowIndex === 1) {
-                continue;
-            }
-
-            $parsedRow = [];
-
-            foreach ($row->c as $cell) {
-
-                $cellReference =
-                    (string) $cell['r'];
-
-                $column = preg_replace(
-                    '/\d+$/',
-                    '',
-                    $cellReference
-                );
-
-                if ($column === '') {
+                if ($rowIndex === 1) {
                     continue;
                 }
 
-                $cellType =
-                    (string) $cell['t'];
+                $parsedRow = [];
+                $cellNodes = $sheetXPath->query(
+                    './x:c',
+                    $rowNode
+                );
 
-                $value = '';
-
-                if ($cellType === 's') {
-
-                    $index = (int) (
-                        (string) $cell->v
-                    );
-
-                    $value =
-                        $sharedStrings[$index]
-                        ?? '';
-
-                } elseif (
-                    $cellType === 'inlineStr'
-                ) {
-
-                    $value =
-                        (string) $cell->is->t;
-
-                } else {
-
-                    $value =
-                        (string) $cell->v;
+                if ($cellNodes === false) {
+                    continue;
                 }
 
-                $parsedRow[
-                    strtoupper($column)
-                ] = [
-                    'value' =>
-                        $value,
-                ];
-            }
+                foreach ($cellNodes as $cellNode) {
+                    $cellReference = $cellNode->getAttribute('r');
+                    $column = preg_replace(
+                        '/\d+$/',
+                        '',
+                        $cellReference
+                    );
 
-            if ($parsedRow !== []) {
+                    if ($column === '') {
+                        continue;
+                    }
 
-                $rows[] =
-                    $parsedRow;
+                    $cellType = $cellNode->getAttribute('t');
+                    $value = '';
+
+                    if ($cellType === 's') {
+                        $valueNode = $sheetXPath->query(
+                            './x:v',
+                            $cellNode
+                        )->item(0);
+
+                        $index = (int) (
+                            $valueNode
+                                ? $valueNode->nodeValue
+                                : 0
+                        );
+
+                        $value = $sharedStrings[$index] ?? '';
+                    } elseif ($cellType === 'inlineStr') {
+                        $inlineText = $sheetXPath->query(
+                            './x:is/x:t',
+                            $cellNode
+                        );
+
+                        if ($inlineText !== false) {
+                            foreach ($inlineText as $textNode) {
+                                $value .= $textNode->nodeValue;
+                            }
+                        }
+                    } else {
+                        $valueNode = $sheetXPath->query(
+                            './x:v',
+                            $cellNode
+                        )->item(0);
+
+                        $value = $valueNode
+                            ? $valueNode->nodeValue
+                            : '';
+                    }
+
+                    $parsedRow[strtoupper($column)] = [
+                        'value' => $value,
+                    ];
+                }
+
+                if ($parsedRow !== []) {
+                    $rows[] = $parsedRow;
+                }
             }
         }
 
