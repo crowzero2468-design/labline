@@ -443,7 +443,7 @@ class SupportController extends BaseController
         header('Expires: 0');
 
         $output = fopen('php://output', 'w');
-        fputcsv($output, ['ID', 'Ticket Number', 'Clinic Name', 'Province', 'Address', 'Machine', 'Machine Status', 'Service Status', 'Service Engr', 'Concern', 'Reported Date', 'Status', 'Created At']);
+        fputcsv($output, ['ID', 'Ticket Number', 'Clinic Name', 'Province', 'Address', 'Machine', 'Machine Status', 'Service Engr', 'Concern', 'Reported Date', 'Status', 'Created At']);
 
         foreach ($rows as $row) {
             fputcsv($output, [
@@ -454,7 +454,6 @@ class SupportController extends BaseController
                 $row['address'] ?? '',
                 $row['machine'] ?? '',
                 $row['machine_status'] ?? '',
-                $row['service_status'] ?? '',
                 $row['service_engr'] ?? ($row['technician'] ?? ''),
                 $row['concern'] ?? '',
                 $row['support_date'] ?? '',
