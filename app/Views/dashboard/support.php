@@ -197,9 +197,9 @@
                   <th>Machine</th>
                   <th>Technician</th>
                   <th>Concern</th>
-                  <th>Remarks</th>
-                  <th>Status</th>
-                  <th>Action</th>
+                  <th>Action Taken</th>
+                  <th>Machine Status</th>
+                  <th>Service Status</th>
                 </tr>
               </thead>
               <tbody>
@@ -462,7 +462,7 @@
               <label class="form-label">Machine Status</label>
               <select class="form-select" name="machine_status">
                 <option value="">Select machine status</option>
-                <option value="Operational">Operational</option>
+                <option value="Operational with Faults">Operational with Faults</option>
                 <option value="Not Operational">Not Operational</option>
                 <option value="Fully Functional">Fully Functional</option>
               </select>

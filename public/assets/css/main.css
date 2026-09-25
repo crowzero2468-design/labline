@@ -167,6 +167,7 @@ a:hover {
     margin-bottom: 2.5rem;
     padding-left: 0.5rem;
     text-decoration: none;
+    position: relative;
     transition: color 0.25s ease;
 }
 
@@ -183,6 +184,20 @@ a:hover {
 .sidebar-brand:hover i {
     transform: scale(1.1) rotate(90deg);
     color: var(--brand-lime-hover);
+}
+
+.sidebar-brand-logo {
+    display: block;
+    height: 50px;
+    width: auto;
+    max-width: 100%;
+    object-fit: contain;
+    filter: drop-shadow(0 0 6px rgba(0, 0, 0, 0.35));
+    animation: logo-breathe-shadow 2.8s ease-in-out infinite;
+}
+
+.sidebar-brand-toggle {
+    flex: 0 0 42px;
 }
 
 .sidebar-menu-section {
@@ -365,6 +380,20 @@ body.sidebar-minimized .sidebar-brand {
     padding-left: 0;
     justify-content: center;
     width: 100%;
+    overflow: hidden;
+}
+
+body.sidebar-minimized .sidebar-brand-logo {
+    width: 100%;
+    height: auto;
+    max-height: 50px;
+}
+
+body.sidebar-minimized .sidebar-brand-toggle {
+    position: absolute;
+    right: -27px;
+    top: 4px;
+    z-index: 2;
 }
 
 body.sidebar-minimized .sidebar-menu-link {
@@ -385,6 +414,53 @@ body.sidebar-minimized .sidebar-profile {
     justify-content: center;
     border: none;
     background-color: transparent;
+}
+
+@media (min-width: 1200px) {
+    body.sidebar-minimized .sidebar-wrapper:hover {
+        width: var(--sidebar-width-expanded, 280px);
+        padding: 2rem 1.5rem;
+        align-items: stretch;
+        box-shadow: 12px 0 24px rgba(11, 19, 15, 0.12);
+    }
+
+    body.sidebar-minimized .sidebar-wrapper:hover .sidebar-brand {
+        justify-content: flex-start;
+        width: auto;
+    }
+
+    body.sidebar-minimized .sidebar-wrapper:hover .sidebar-brand-toggle {
+        position: static;
+    }
+
+    body.sidebar-minimized .sidebar-wrapper:hover .sidebar-brand-logo {
+        width: auto;
+        height: 50px;
+    }
+
+    body.sidebar-minimized .sidebar-wrapper:hover .sidebar-menu-title,
+    body.sidebar-minimized .sidebar-wrapper:hover .sidebar-menu-link span,
+    body.sidebar-minimized .sidebar-wrapper:hover .sidebar-menu-badge,
+    body.sidebar-minimized .sidebar-wrapper:hover .dropdown-caret,
+    body.sidebar-minimized .sidebar-wrapper:hover .sidebar-profile-info {
+        display: revert !important;
+    }
+
+    body.sidebar-minimized .sidebar-wrapper:hover .sidebar-submenu.show {
+        display: block !important;
+    }
+
+    body.sidebar-minimized .sidebar-wrapper:hover .sidebar-menu-link {
+        justify-content: flex-start;
+        padding: 0.75rem 0.85rem;
+    }
+
+    body.sidebar-minimized .sidebar-wrapper:hover .sidebar-profile {
+        padding: 0.85rem;
+        justify-content: flex-start;
+        border: 1px solid var(--border-dark-green);
+        background-color: rgba(255, 255, 255, 0.03);
+    }
 }
 
 /* ---------------------------------------------------------------------
@@ -794,17 +870,17 @@ body.sidebar-minimized .sidebar-profile {
 .btn-desktop-toggle {
     width: 42px;
     height: 42px;
-    border-radius: var(--radius-lg);
+    border-radius: 50%;
     background-color: #FFFFFF;
-    border: 1px solid var(--border-light);
+    border: 0;
     color: var(--text-main);
     cursor: pointer;
-    box-shadow: var(--shadow-sm);
+    box-shadow: 0 4px 12px rgba(11, 19, 15, 0.12);
     transition: all 0.25s ease;
 }
 
 .btn-desktop-toggle:hover {
-    background-color: var(--border-light);
+    background-color: #F1F5F9;
     color: var(--brand-forest-medium);
 }
 
