@@ -49,6 +49,14 @@ class CreateTbSupport extends Migration
                 'null' => true,
                 'default' => 'CURRENT_TIMESTAMP',
             ],
+            'accepted_at' => [
+                'type' => 'DATETIME',
+                'null' => true,
+            ],
+            'status_updated_at' => [
+                'type' => 'DATETIME',
+                'null' => true,
+            ],
         ]);
 
         $this->forge->addKey('id', true);

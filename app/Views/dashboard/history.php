@@ -1,5 +1,14 @@
 
   <?= view('dashboard/layout/head') ?>
+  <style>
+    .history-row, .clinic-summary-row { cursor: pointer; }
+    .timeline-item { display: flex; gap: 12px; position: relative; padding-bottom: 22px; }
+    .timeline-item:last-child { padding-bottom: 0; }
+    .timeline-item:not(:last-child)::before { content: ''; position: absolute; left: 5px; top: 12px; bottom: 0; width: 2px; background: #e5e7eb; }
+    .timeline-dot { flex: 0 0 12px; height: 12px; margin-top: 4px; border-radius: 50%; position: relative; z-index: 1; }
+    .timeline-item strong, .timeline-item small { display: block; }
+    .timeline-item small { color: #6b7280; margin-top: 3px; }
+  </style>
 <body>
 
   <?php if (session()->getFlashdata('error')): ?>
@@ -45,7 +54,7 @@
         </div>
         <div class="card-body p-0">
           <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
+            <table id="clinicSummaryTable" class="table table-hover align-middle mb-0">
               <thead style="background: #f3f4f6;">
                 <tr>
                   <th>Clinic</th>
@@ -55,7 +64,7 @@
               <tbody>
                 <?php if (!empty($clinic_counts)): ?>
                   <?php foreach ($clinic_counts as $item): ?>
-                    <tr>
+                    <tr class="clinic-summary-row" role="button" data-clinic="<?= esc($item['clinic_name'] ?? '-') ?>">
                       <td><?= esc($item['clinic_name'] ?? '-') ?></td>
                       <td><?= esc($item['total'] ?? 0) ?></td>
                     </tr>
@@ -71,7 +80,9 @@
         </div>
       </div>
 
-      <div class="card">
+      <div class="row g-4 align-items-start">
+        <div class="col-12 col-xl-8">
+          <div class="card">
         <div class="card-header d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
           <div>
             <h2 class="card-title mb-0">All Support Tickets</h2>
@@ -156,12 +167,21 @@
                         ];
                     ?>
 
-                    <tr>
+                    <tr class="history-row" role="button"
+                      data-ticket="<?= esc($ticket['ticket_number'] ?? '-') ?>"
+                      data-clinic="<?= esc($ticket['clinic_name'] ?? '-') ?>"
+                      data-inputed="<?= esc($ticket['created_at'] ?? '') ?>"
+                      data-accepted="<?= esc($ticket['accepted_at'] ?? '') ?>"
+                      data-updated="<?= esc($ticket['status_updated_at'] ?? '') ?>"
+                      data-returned="<?= esc($ticket['update_date'] ?? '') ?>"
+                      data-concern="<?= esc($ticket['concern'] ?? '-') ?>"
+                      data-status="<?= esc($statusInfo['label']) ?>">
 
                       <td>
                         <?= esc($ticket['ticket_number'] ?? '-') ?>
+                      </td>
+
                       <td>
-                        
                         <?= esc($ticket['support_date'] ?? '-') ?>
                       </td>
 
@@ -228,6 +248,56 @@
             </table>
           </div>
         </div>
+          </div>
+        </div>
+
+        <div class="col-12 col-xl-4">
+          <div class="card history-timeline-card" id="historyTimeline">
+            <div class="card-header">
+              <h2 class="card-title mb-1">Ticket Timeline</h2>
+              <p class="text-muted small mb-0" id="timelineTicket">Select a history record</p>
+              <p class="small mb-0" id="timelineClinic"></p>
+            </div>
+            <div class="card-body">
+              <div class="timeline-empty text-center text-muted py-4" id="timelineEmpty">
+                <i class="bi bi-clock-history fs-2 d-block mb-2"></i>
+                Click a history record to view its timeline.
+              </div>
+              <div class="timeline d-none" id="timelineEvents">
+                <div class="timeline-item">
+                  <span class="timeline-dot bg-secondary"></span>
+                  <div><strong>Ticket inputed</strong><small id="timelineInputed">Not recorded</small></div>
+                </div>
+                <div class="timeline-item">
+                  <span class="timeline-dot bg-primary"></span>
+                  <div><strong>Ticket accepted</strong><small id="timelineAccepted">Not recorded</small></div>
+                </div>
+                <div class="timeline-item">
+                  <span class="timeline-dot bg-success"></span>
+                  <div><strong>Status updated</strong><small id="timelineUpdated">Not recorded</small></div>
+                </div>
+                <div class="timeline-item d-none" id="timelineReturnItem">
+                  <span class="timeline-dot bg-warning"></span>
+                  <div><strong>Pullout returned</strong><small id="timelineReturned">Not recorded</small></div>
+                </div>
+              </div>
+              <div class="d-none" id="clinicHistory">
+                <div class="table-responsive">
+                  <table class="table table-sm align-middle mb-0">
+                    <thead>
+                      <tr>
+                        <th>Time Called</th>
+                        <th>History</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody id="clinicHistoryBody"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </main>
 
@@ -238,7 +308,55 @@
   <script>
       $(document).ready(function () {
 
-      $('#historyTable').DataTable({
+        function formatTimelineDate(value) {
+          if (!value) {
+            return 'Not recorded';
+          }
+
+          return value.replace('T', ' ').replace(' ', ' at ');
+        }
+
+        function setTimelineValue(selector, value) {
+          $(selector).text(formatTimelineDate(value));
+        }
+
+        function showTicketTimeline(row) {
+          const returned = row.data('returned');
+
+          $('#historyTimeline .card-title').text('Ticket Timeline');
+          $('#timelineEmpty').addClass('d-none');
+          $('#timelineEvents').removeClass('d-none');
+          $('#clinicHistory').addClass('d-none');
+          $('#timelineTicket').text((row.data('ticket') || '-') + ' - ' + (row.data('status') || ''));
+          $('#timelineClinic').text('Clinic: ' + (row.data('clinic') || '-'));
+          setTimelineValue('#timelineInputed', row.data('inputed'));
+          setTimelineValue('#timelineAccepted', row.data('accepted'));
+          setTimelineValue('#timelineUpdated', row.data('updated'));
+          setTimelineValue('#timelineReturned', returned);
+          $('#timelineReturnItem').toggleClass('d-none', !returned);
+        }
+
+        function showClinicHistory(clinic) {
+          const matchingRows = $('.history-row').filter(function () {
+            return ($(this).data('clinic') || '-') === clinic;
+          });
+          const historyRows = matchingRows.map(function () {
+            const row = $(this);
+            return '<tr><td>' + formatTimelineDate(row.data('inputed')) + '</td><td>' +
+              $('<div>').text(row.data('concern') || '-').html() + '</td><td>' +
+              $('<span>').text(row.data('status') || '-').html() + '</td></tr>';
+          }).get().join('');
+
+          $('#historyTimeline .card-title').text('Clinic History');
+          $('#timelineTicket').text(clinic);
+          $('#timelineClinic').text('');
+          $('#timelineEmpty').addClass('d-none');
+          $('#timelineEvents').addClass('d-none');
+          $('#clinicHistory').removeClass('d-none');
+          $('#clinicHistoryBody').html(historyRows || '<tr><td colspan="3" class="text-muted">No history found.</td></tr>');
+        }
+
+        const historyTable = $('#historyTable').DataTable({
 
           paging: true,
 
@@ -259,6 +377,38 @@
 
           autoWidth: false
 
+      });
+
+      $('#clinicSummaryTable').DataTable({
+        paging: true,
+        searching: true,
+        ordering: true,
+        pageLength: 10,
+        lengthMenu: [
+          [10, 25, 50, 100],
+          [10, 25, 50, 100]
+        ],
+        order: [[1, 'desc']],
+        autoWidth: false
+      });
+
+      $('#historyTable tbody').on('click', 'tr.history-row', function () {
+        const row = $(this);
+
+        $('.history-row').removeClass('table-primary');
+        row.addClass('table-primary');
+        $('.clinic-summary-row').removeClass('table-primary');
+        showTicketTimeline(row);
+      });
+
+      $('#clinicSummaryTable tbody').on('click', 'tr.clinic-summary-row', function () {
+        const row = $(this);
+        const clinic = row.data('clinic') || '-';
+
+        $('.clinic-summary-row').removeClass('table-primary');
+        row.addClass('table-primary');
+        $('.history-row').removeClass('table-primary');
+        showClinicHistory(clinic);
       });
 
   });

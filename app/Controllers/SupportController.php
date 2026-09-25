@@ -263,7 +263,8 @@ class SupportController extends BaseController
 
         $data = [
             'returnstat' => 'return',
-            'update_date' => date('Y-m-d H:i:s')
+            'update_date' => date('Y-m-d H:i:s'),
+            'status_updated_at' => date('Y-m-d H:i:s')
         ];
 
         db_connect()
@@ -306,8 +307,13 @@ class SupportController extends BaseController
     */
 
     $data = [
-        'status' => $status
+        'status' => $status,
+        'status_updated_at' => date('Y-m-d H:i:s')
     ];
+
+    if ($status === 'ongoing') {
+        $data['accepted_at'] = date('Y-m-d H:i:s');
+    }
 
     if ($remarks !== '') {
         $data['remarks'] = $remarks;
@@ -524,6 +530,21 @@ class SupportController extends BaseController
         $remarksFieldResult = $database->query("SHOW COLUMNS FROM tb_support LIKE 'remarks'");
         if ($remarksFieldResult->getNumRows() === 0) {
             $database->query("ALTER TABLE tb_support ADD COLUMN remarks TEXT NULL AFTER concern");
+        }
+
+        $acceptedAtFieldResult = $database->query("SHOW COLUMNS FROM tb_support LIKE 'accepted_at'");
+        if ($acceptedAtFieldResult->getNumRows() === 0) {
+            $database->query("ALTER TABLE tb_support ADD COLUMN accepted_at DATETIME NULL AFTER created_at");
+        }
+
+        $statusUpdatedAtFieldResult = $database->query("SHOW COLUMNS FROM tb_support LIKE 'status_updated_at'");
+        if ($statusUpdatedAtFieldResult->getNumRows() === 0) {
+            $database->query("ALTER TABLE tb_support ADD COLUMN status_updated_at DATETIME NULL AFTER accepted_at");
+        }
+
+        $returnDateFieldResult = $database->query("SHOW COLUMNS FROM tb_support LIKE 'update_date'");
+        if ($returnDateFieldResult->getNumRows() > 0) {
+            $database->query("ALTER TABLE tb_support MODIFY COLUMN update_date DATETIME NULL");
         }
     }
 }

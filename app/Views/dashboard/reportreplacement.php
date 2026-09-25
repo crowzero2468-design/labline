@@ -266,6 +266,21 @@
 
                             <div class="col-12 col-md-2">
 
+                                <label for="status_filter" class="form-label">Status</label>
+
+                                <select name="status" id="status_filter" class="form-select">
+                                    <option value="">All Statuses</option>
+                                    <?php foreach (['Report by Clinic', 'Report to Manufacture', 'Order', 'Delivered'] as $statusOption): ?>
+                                        <option value="<?= esc($statusOption) ?>" <?= ($status ?? '') === $statusOption ? 'selected' : '' ?>>
+                                            <?= esc($statusOption) ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+
+                            </div>
+
+                            <div class="col-12 col-md-2">
+
                                 <button
                                     type="submit"
                                     class="btn btn-primary w-100"
@@ -367,6 +382,9 @@
                                     <th>Replaceable</th>
                                     <th>Reason</th>
                                     <th>Replaced</th>
+                                    <th>Status</th>
+                                    <th>Approved by Management</th>
+                                    <th>Approved by Manufacture</th>
                                     <th class="text-center">
                                         Action
                                     </th>
@@ -508,6 +526,28 @@
 
                                             </td>
 
+                                            <td>
+                                                <?php
+                                                $recordStatus = $record['status'] ?? 'Report by Clinic';
+                                                $statusClass = $recordStatus === 'Delivered' ? 'success' : ($recordStatus === 'Order' ? 'primary' : ($recordStatus === 'Report to Manufacture' ? 'warning text-dark' : 'secondary'));
+                                                ?>
+                                                <span class="badge bg-<?= esc($statusClass) ?>">
+                                                    <?= esc($recordStatus) ?>
+                                                </span>
+                                            </td>
+
+                                            <td>
+                                                <span class="badge bg-<?= !empty($record['approve_management']) ? 'success' : 'secondary' ?>">
+                                                    <?= !empty($record['approve_management']) ? 'Yes' : 'No' ?>
+                                                </span>
+                                            </td>
+
+                                            <td>
+                                                <span class="badge bg-<?= !empty($record['approve_manufacture']) ? 'success' : 'secondary' ?>">
+                                                    <?= !empty($record['approve_manufacture']) ? 'Yes' : 'No' ?>
+                                                </span>
+                                            </td>
+
 
                                             <!-- ACTION -->
 
@@ -531,6 +571,9 @@
                                                     data-replaceable="<?= esc($record['replaceable'] ?? '') ?>"
                                                     data-reason="<?= esc($record['reason'] ?? '') ?>"
                                                     data-replaced="<?= esc($record['replaced'] ?? '') ?>"
+                                                    data-status="<?= esc($record['status'] ?? 'Report by Clinic') ?>"
+                                                    data-approve-management="<?= esc($record['approve_management'] ?? 0) ?>"
+                                                    data-approve-manufacture="<?= esc($record['approve_manufacture'] ?? 0) ?>"
                                                 >
                                                     <i class="bi bi-pencil"></i>
                                                 </button>
@@ -1028,6 +1071,33 @@
 
                                 </div>
 
+                                <!-- STATUS -->
+
+                                <div class="col-12 col-md-6">
+                                    <label for="status" class="form-label">Status</label>
+                                    <select name="status" id="status" class="form-select" required>
+                                        <?php foreach (['Report by Clinic', 'Report to Manufacture', 'Order', 'Delivered'] as $statusOption): ?>
+                                            <option value="<?= esc($statusOption) ?>" <?= $statusOption === 'Report by Clinic' ? 'selected' : '' ?>>
+                                                <?= esc($statusOption) ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label d-block">Approvals</label>
+                                    <input type="hidden" name="approve_management" value="0">
+                                    <div class="form-check mb-2">
+                                        <input type="checkbox" name="approve_management" value="1" id="approve_management" class="form-check-input">
+                                        <label for="approve_management" class="form-check-label">Approved by Management</label>
+                                    </div>
+                                    <input type="hidden" name="approve_manufacture" value="0">
+                                    <div class="form-check">
+                                        <input type="checkbox" name="approve_manufacture" value="1" id="approve_manufacture" class="form-check-input">
+                                        <label for="approve_manufacture" class="form-check-label">Approved by Manufacture</label>
+                                    </div>
+                                </div>
+
                             </div>
 
                         </div>
@@ -1382,6 +1452,31 @@
 
                                     </select>
 
+                                </div>
+
+                                <!-- STATUS -->
+
+                                <div class="col-12 col-md-6">
+                                    <label for="edit_status" class="form-label">Status</label>
+                                    <select name="status" id="edit_status" class="form-select" required>
+                                        <?php foreach (['Report by Clinic', 'Report to Manufacture', 'Order', 'Delivered'] as $statusOption): ?>
+                                            <option value="<?= esc($statusOption) ?>"><?= esc($statusOption) ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label d-block">Approvals</label>
+                                    <input type="hidden" name="approve_management" value="0">
+                                    <div class="form-check mb-2">
+                                        <input type="checkbox" name="approve_management" value="1" id="edit_approve_management" class="form-check-input">
+                                        <label for="edit_approve_management" class="form-check-label">Approved by Management</label>
+                                    </div>
+                                    <input type="hidden" name="approve_manufacture" value="0">
+                                    <div class="form-check">
+                                        <input type="checkbox" name="approve_manufacture" value="1" id="edit_approve_manufacture" class="form-check-input">
+                                        <label for="edit_approve_manufacture" class="form-check-label">Approved by Manufacture</label>
+                                    </div>
                                 </div>
 
                             </div>
@@ -1821,7 +1916,16 @@ document.addEventListener('DOMContentLoaded', function () {
                         button.getAttribute('data-reason') || '',
 
                     replaced:
-                        button.getAttribute('data-replaced') || ''
+                        button.getAttribute('data-replaced') || '',
+
+                    status:
+                        button.getAttribute('data-status') || 'Report by Clinic',
+
+                    approveManagement:
+                        button.getAttribute('data-approve-management') || '0',
+
+                    approveManufacture:
+                        button.getAttribute('data-approve-manufacture') || '0'
 
                 };
 
@@ -1854,7 +1958,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
                     edit_reason: values.reason,
 
-                    edit_replaced: values.replaced
+                    edit_replaced: values.replaced,
+
+                    edit_status: values.status
 
                 };
 
@@ -1872,6 +1978,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
                     }
                 );
+
+                document.getElementById('edit_approve_management').checked = values.approveManagement === '1';
+                document.getElementById('edit_approve_manufacture').checked = values.approveManufacture === '1';
 
             }
         );
