@@ -120,8 +120,6 @@ class RotorController extends BaseController
         $replaceable = $this->request->getPost('replaceable');
         $reason      = trim($this->request->getPost('reason'));
         $status      = trim((string) $this->request->getPost('status'));
-        $approveManagement = (int) $this->request->getPost('approve_management');
-        $approveManufacture = (int) $this->request->getPost('approve_manufacture');
 
         /*
         |--------------------------------------------------------------------------
@@ -160,8 +158,6 @@ class RotorController extends BaseController
             'replaceable'  => $replaceable,
             'reason'       => $reason,
             'status'       => $status,
-            'approve_management' => $approveManagement === 1 ? 1 : 0,
-            'approve_manufacture' => $approveManufacture === 1 ? 1 : 0,
         ];
 
         /*
@@ -241,8 +237,6 @@ class RotorController extends BaseController
             'replaceable'  => $this->request->getPost('replaceable'),
             'reason'       => trim($this->request->getPost('reason')),
             'status'       => trim((string) $this->request->getPost('status')),
-            'approve_management' => (int) $this->request->getPost('approve_management') === 1 ? 1 : 0,
-            'approve_manufacture' => (int) $this->request->getPost('approve_manufacture') === 1 ? 1 : 0,
         ];
 
         /*
