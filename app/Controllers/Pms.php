@@ -2701,6 +2701,95 @@ public function save_fsr()
 
     /**
      * ============================================================
+     * UPLOAD RECEIPT FOR EXISTING PMS
+     * ============================================================
+     */
+    public function uploadReceipt($id)
+    {
+        if (!session()->get('logged_in')) {
+            return redirect()
+                ->to(site_url('login'))
+                ->with('error', 'Please login first.');
+        }
+
+        $db = db_connect();
+        $pmsId = (int) $id;
+        $pms = $db->table('tb_pms')->where('id', $pmsId)->get()->getRowArray();
+
+        if (!$pms) {
+            return redirect()->back()->with('error', 'PMS record not found.');
+        }
+
+        if (!empty($pms['receipt'])) {
+            return redirect()->back()->with('error', 'This PMS record already has a receipt.');
+        }
+
+        $file = $this->request->getFile('receipt');
+        $allowedMimeTypes = [
+            'image/jpeg',
+            'image/png',
+            'image/webp',
+            'application/pdf'
+        ];
+
+        if (!$file || $file->getError() === UPLOAD_ERR_NO_FILE || !$file->isValid()) {
+            return redirect()->back()->with('error', 'Please select a valid receipt file.');
+        }
+
+        if ($file->getSize() > 5 * 1024 * 1024) {
+            return redirect()->back()->with('error', 'Receipt file must not exceed 5MB.');
+        }
+
+        if (!in_array($file->getMimeType(), $allowedMimeTypes, true)) {
+            return redirect()->back()->with('error', 'Invalid receipt file type. Allowed: JPG, JPEG, PNG, WEBP and PDF.');
+        }
+
+        $uploadPath = FCPATH . 'uploads/receipts';
+
+        if (!is_dir($uploadPath)) {
+            mkdir($uploadPath, 0777, true);
+        }
+
+        $newName = $file->getRandomName();
+
+        if (!$file->move($uploadPath, $newName)) {
+            return redirect()->back()->with('error', 'Unable to upload receipt.');
+        }
+
+        if (!$db->tableExists('tb_receipt')) {
+            $db->query("CREATE TABLE IF NOT EXISTS tb_receipt (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                file_location VARCHAR(500) NOT NULL,
+                date_upload TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+        }
+
+        $relativePath = 'uploads/receipts/' . $newName;
+        $inserted = $db->table('tb_receipt')->insert([
+            'file_location' => $relativePath
+        ]);
+
+        if (!$inserted) {
+            @unlink($uploadPath . DIRECTORY_SEPARATOR . $newName);
+            return redirect()->back()->with('error', 'Unable to save receipt information.');
+        }
+
+        $receiptId = (int) $db->insertID();
+        $updated = $db->table('tb_pms')->where('id', $pmsId)->update([
+            'receipt' => $receiptId
+        ]);
+
+        if (!$updated) {
+            @unlink($uploadPath . DIRECTORY_SEPARATOR . $newName);
+            $db->table('tb_receipt')->where('id', $receiptId)->delete();
+            return redirect()->back()->with('error', 'Receipt uploaded but could not be connected to PMS.');
+        }
+
+        return redirect()->back()->with('success', 'Receipt uploaded and connected to PMS.');
+    }
+
+    /**
+     * ============================================================
      * SERVE RECEIPT IMAGE
      * ============================================================
      *
@@ -2813,7 +2902,9 @@ public function save_fsr()
 
             'image/png',
 
-            'image/webp'
+            'image/webp',
+
+            'application/pdf'
         ];
 
         if (
@@ -3089,6 +3180,32 @@ public function edit($id)
             ->getRowArray();
     }
 
+    $mfsOptions = [];
+
+    if ($db->tableExists('tb_mfs')) {
+        $mfsOptions = $db
+            ->table('tb_mfs')
+            ->select('id,mfs_number')
+            ->where('mfs_number IS NOT NULL', null, false)
+            ->where('mfs_number !=', '')
+            ->orderBy('mfs_number', 'ASC')
+            ->get()
+            ->getResultArray();
+    }
+
+    $fsrOptions = [];
+
+    if ($db->tableExists('tb_fsr')) {
+        $fsrOptions = $db
+            ->table('tb_fsr')
+            ->select('id,fsr_number')
+            ->where('fsr_number IS NOT NULL', null, false)
+            ->where('fsr_number !=', '')
+            ->orderBy('fsr_number', 'ASC')
+            ->get()
+            ->getResultArray();
+    }
+
     /*
      * ========================================================
      * GET RECEIPT
@@ -3164,6 +3281,12 @@ public function edit($id)
 
                 'fsr' =>
                     $fsr,
+
+                'mfs_options' =>
+                    $mfsOptions,
+
+                'fsr_options' =>
+                    $fsrOptions,
 
                 'receipt' =>
                     $receipt
@@ -3308,6 +3431,9 @@ public function update($id)
     $status = trim(
         (string) $this->request->getPost('status')
     );
+
+    $mfsId = (int) ($this->request->getPost('mfs_id') ?? 0);
+    $fsrId = (int) ($this->request->getPost('fsr_id') ?? 0);
 
     /*
      * ========================================================
@@ -3474,15 +3600,12 @@ public function update($id)
      * PREPARE UPDATE DATA
      * ========================================================
      *
-     * DO NOT include:
-     *
-     *     mfs
-     *     fsr
-     *     receipt
-     *
-     * Existing document links remain untouched.
+    * MFS, FSR, and receipt are included below when the edit form
+    * supplies replacement links or a replacement file.
      * ========================================================
      */
+
+    $pmsColumns = $db->getFieldNames('tb_pms');
 
     $updateData = [
 
@@ -3511,13 +3634,81 @@ public function update($id)
             $status
     ];
 
+    if (in_array('mfs', $pmsColumns, true)) {
+        if ($mfsId > 0 && (!$db->tableExists('tb_mfs') || !$db->table('tb_mfs')->where('id', $mfsId)->countAllResults())) {
+            return $this->jsonError('Selected MFS record was not found.', 404);
+        }
+
+        $updateData['mfs'] = $mfsId > 0 ? $mfsId : null;
+    }
+
+    if (in_array('fsr', $pmsColumns, true)) {
+        if ($fsrId > 0 && (!$db->tableExists('tb_fsr') || !$db->table('tb_fsr')->where('id', $fsrId)->countAllResults())) {
+            return $this->jsonError('Selected FSR record was not found.', 404);
+        }
+
+        $updateData['fsr'] = $fsrId > 0 ? $fsrId : null;
+    }
+
+    $replacementReceipt = $this->request->getFile('receipt');
+
+    if ($replacementReceipt && $replacementReceipt->getError() !== UPLOAD_ERR_NO_FILE) {
+        $allowedReceiptTypes = [
+            'image/jpeg',
+            'image/png',
+            'image/webp',
+            'application/pdf'
+        ];
+
+        if (!$replacementReceipt->isValid()) {
+            return $this->jsonError('Invalid receipt upload.', 422);
+        }
+
+        if ($replacementReceipt->getSize() > 5 * 1024 * 1024) {
+            return $this->jsonError('Receipt file must not exceed 5MB.', 422);
+        }
+
+        if (!in_array($replacementReceipt->getMimeType(), $allowedReceiptTypes, true)) {
+            return $this->jsonError('Invalid receipt file type. Allowed: JPG, JPEG, PNG, WEBP and PDF.', 422);
+        }
+
+        $receiptPath = FCPATH . 'uploads/receipts';
+
+        if (!is_dir($receiptPath)) {
+            mkdir($receiptPath, 0777, true);
+        }
+
+        $receiptName = $replacementReceipt->getRandomName();
+
+        if (!$replacementReceipt->move($receiptPath, $receiptName)) {
+            return $this->jsonError('Unable to upload replacement receipt.', 500);
+        }
+
+        if (!$db->tableExists('tb_receipt')) {
+            $db->query("CREATE TABLE IF NOT EXISTS tb_receipt (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                file_location VARCHAR(500) NOT NULL,
+                date_upload TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+        }
+
+        $receiptInserted = $db->table('tb_receipt')->insert([
+            'file_location' => 'uploads/receipts/' . $receiptName
+        ]);
+
+        if (!$receiptInserted) {
+            @unlink($receiptPath . DIRECTORY_SEPARATOR . $receiptName);
+            return $this->jsonError('Unable to save replacement receipt information.', 500);
+        }
+
+        $updateData['receipt'] = (int) $db->insertID();
+    }
+
     /*
      * ========================================================
      * SAVE data_id IF COLUMN EXISTS
      * ========================================================
      */
-
-    $pmsColumns = $db->getFieldNames('tb_pms');
 
     if (
         in_array(

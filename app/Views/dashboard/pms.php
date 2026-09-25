@@ -511,9 +511,15 @@ if (!empty($pms_records)) {
 
                 <?php else: ?>
 
-                    <span class="badge bg-secondary">
-                        No MSF
-                    </span>
+                    <button
+                        type="button"
+                        class="btn btn-sm btn-secondary connect-pms-document-btn"
+                        data-id="<?= (int)$main['id'] ?>"
+                        data-document="mfs"
+                        title="Connect an MFS record"
+                    >
+                        No MFS
+                    </button>
 
                 <?php endif; ?>
 
@@ -542,9 +548,15 @@ if (!empty($pms_records)) {
 
                 <?php else: ?>
 
-                    <span class="badge bg-secondary">
+                    <button
+                        type="button"
+                        class="btn btn-sm btn-secondary connect-pms-document-btn"
+                        data-id="<?= (int)$main['id'] ?>"
+                        data-document="fsr"
+                        title="Connect an FSR record"
+                    >
                         No FSR
-                    </span>
+                    </button>
 
                 <?php endif; ?>
 
@@ -572,9 +584,13 @@ if (!empty($pms_records)) {
 
                 <?php else: ?>
 
-                    <span class="badge bg-secondary">
-                        No Receipt
-                    </span>
+                    <form method="post" action="<?= site_url('pms/receipt/upload/' . (int)$main['id']) ?>" enctype="multipart/form-data" class="d-inline-flex align-items-center gap-1">
+                        <?= csrf_field() ?>
+                        <input type="file" name="receipt" accept=".jpg,.jpeg,.png,.webp,.pdf" class="form-control form-control-sm" style="max-width: 150px" required>
+                        <button type="submit" class="btn btn-sm btn-outline-primary" title="Upload receipt">
+                            <i class="bi bi-upload"></i>
+                        </button>
+                    </form>
 
                 <?php endif; ?>
 
@@ -767,9 +783,15 @@ if (!empty($pms_records)) {
 
                                             <?php else: ?>
 
-                                                <span class="badge bg-secondary">
-                                                    No MSF
-                                                </span>
+                                                <button
+                                                    type="button"
+                                                    class="btn btn-sm btn-secondary connect-pms-document-btn"
+                                                    data-id="<?= (int)$r['id'] ?>"
+                                                    data-document="mfs"
+                                                    title="Connect an MFS record"
+                                                >
+                                                    No MFS
+                                                </button>
 
                                             <?php endif; ?>
 
@@ -797,9 +819,15 @@ if (!empty($pms_records)) {
 
                                             <?php else: ?>
 
-                                                <span class="badge bg-secondary">
+                                                <button
+                                                    type="button"
+                                                    class="btn btn-sm btn-secondary connect-pms-document-btn"
+                                                    data-id="<?= (int)$r['id'] ?>"
+                                                    data-document="fsr"
+                                                    title="Connect an FSR record"
+                                                >
                                                     No FSR
-                                                </span>
+                                                </button>
 
                                             <?php endif; ?>
 
@@ -826,9 +854,13 @@ if (!empty($pms_records)) {
 
                                             <?php else: ?>
 
-                                                <span class="badge bg-secondary">
-                                                    No Receipt
-                                                </span>
+                                                <form method="post" action="<?= site_url('pms/receipt/upload/' . (int)$r['id']) ?>" enctype="multipart/form-data" class="d-inline-flex align-items-center gap-1">
+                                                    <?= csrf_field() ?>
+                                                    <input type="file" name="receipt" accept=".jpg,.jpeg,.png,.webp,.pdf" class="form-control form-control-sm" style="max-width: 150px" required>
+                                                    <button type="submit" class="btn btn-sm btn-outline-primary" title="Upload receipt">
+                                                        <i class="bi bi-upload"></i>
+                                                    </button>
+                                                </form>
 
                                             <?php endif; ?>
 
@@ -2459,16 +2491,12 @@ if (!empty($pms_records)) {
 
                         <div class="receipt-image-wrapper">
 
-                            <img
+                            <iframe
                                 src="<?= site_url('pms/receipt/' . (int)$r['receipt']) ?>"
-                                class="img-fluid rounded border"
-                                style="
-                                    max-height: 70vh;
-                                    object-fit: contain;
-                                "
-                                alt="PMS Receipt"
-                                loading="lazy"
-                            >
+                                class="w-100 rounded border"
+                                style="height: 70vh;"
+                                title="PMS Receipt"
+                            ></iframe>
 
                         </div>
 
@@ -2827,6 +2855,24 @@ if (!empty($pms_records)) {
 
                         <div class="col-12">
 
+                            <div class="row g-3 mb-3">
+
+                                <div class="col-md-6">
+                                    <label for="edit_mfs_id" class="form-label fw-semibold">MFS Number</label>
+                                    <select class="form-select" name="mfs_id" id="edit_mfs_id">
+                                        <option value="">No MFS</option>
+                                    </select>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label for="edit_fsr_id" class="form-label fw-semibold">FSR Number</label>
+                                    <select class="form-select" name="fsr_id" id="edit_fsr_id">
+                                        <option value="">No FSR</option>
+                                    </select>
+                                </div>
+
+                            </div>
+
                             <div
                                 class="alert alert-light border mb-0"
                                 id="editPmsDocuments"
@@ -2842,6 +2888,10 @@ if (!empty($pms_records)) {
                                 >
                                     Loading...
                                 </div>
+
+                                <label for="edit_receipt" class="form-label fw-semibold mt-3">Replace Receipt</label>
+                                <input type="file" class="form-control" name="receipt" id="edit_receipt" accept=".jpg,.jpeg,.png,.webp,.pdf">
+                                <div class="form-text">Leave empty to keep the current receipt.</div>
 
                             </div>
 

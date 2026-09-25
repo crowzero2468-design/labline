@@ -67,12 +67,16 @@ $routes->post('mfs/delete/(:num)', 'Mfs::delete/$1');
 
 $routes->get('fsr', 'Fsr::index');
 $routes->post('fsr/save', 'Fsr::save');
+$routes->get('fsr/edit/(:num)', 'Fsr::edit/$1');
+$routes->post('fsr/update/(:num)', 'Fsr::update/$1');
+$routes->post('fsr/delete/(:num)', 'Fsr::delete/$1');
 $routes->get('fsr/export', 'Fsr::export');
 
 $routes->get('dashboard/receipts', 'Receipt::index');
 $routes->post('dashboard/receipts/upload', 'Receipt::upload');
 $routes->post('dashboard/receipts/delete/(:num)', 'Receipt::delete/$1');
 $routes->get('pms/receipt/(:num)', 'Pms::receipt/$1');
+$routes->post('pms/receipt/upload/(:num)', 'Pms::uploadReceipt/$1');
 
 $routes->get('pms/view-mfs/(:num)', 'Pms::viewMfs/$1');
 $routes->get('pms/view-fsr/(:num)', 'Pms::viewFsr/$1');

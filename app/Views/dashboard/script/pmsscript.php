@@ -181,6 +181,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     let savedPmsRecords = [];
 
+    let editDocumentFocus = '';
+
 
     /* ==========================================================
        TECHNICAL DONE OPTIONS
@@ -3422,6 +3424,26 @@ document.addEventListener('DOMContentLoaded', function () {
 
     document.addEventListener('click', function (event) {
 
+        const button = event.target.closest('.connect-pms-document-btn');
+
+        if (!button) {
+            return;
+        }
+
+        const editButton = document.querySelector(
+            '.edit-pms-btn[data-id="' + button.getAttribute('data-id') + '"]'
+        );
+
+        if (!editButton) {
+            return;
+        }
+
+        editDocumentFocus = button.getAttribute('data-document') || '';
+        editButton.click();
+    });
+
+    document.addEventListener('click', function (event) {
+
         const button =
             event.target.closest(
                 '.edit-pms-btn'
@@ -3656,6 +3678,77 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 }
 
+            }
+
+            function populateDocumentSelect(selectId, options, selectedId, label) {
+                const select = document.getElementById(selectId);
+
+                if (!select) {
+                    return;
+                }
+
+                select.innerHTML = '';
+
+                const emptyOption = document.createElement('option');
+                emptyOption.value = '';
+                emptyOption.textContent = 'No ' + label;
+                select.appendChild(emptyOption);
+
+                (options || []).forEach(function (optionData) {
+                    const option = document.createElement('option');
+                    option.value = optionData.id || '';
+                    option.textContent = optionData.mfs_number || optionData.fsr_number || optionData.id;
+                    select.appendChild(option);
+                });
+
+                select.value = selectedId || '';
+
+                if (window.jQuery && window.jQuery.fn.select2) {
+                    const jquerySelect = window.jQuery('#' + selectId);
+
+                    if (jquerySelect.hasClass('select2-hidden-accessible')) {
+                        jquerySelect.trigger('change');
+                    }
+                    else {
+                        jquerySelect.select2({
+                            placeholder: 'Search ' + label + ' number',
+                            allowClear: true,
+                            width: '100%',
+                            dropdownParent: window.jQuery('#editPmsModal')
+                        });
+                    }
+                }
+            }
+
+            populateDocumentSelect(
+                'edit_mfs_id',
+                data.mfs_options,
+                data.mfs?.id || '',
+                'MFS'
+            );
+
+            populateDocumentSelect(
+                'edit_fsr_id',
+                data.fsr_options,
+                data.fsr?.id || '',
+                'FSR'
+            );
+
+            if (editDocumentFocus) {
+                const focusId = 'edit_' + editDocumentFocus + '_id';
+                const focusSelect = document.getElementById(focusId);
+
+                if (focusSelect) {
+                    setTimeout(function () {
+                        focusSelect.focus();
+
+                        if (window.jQuery && window.jQuery.fn.select2) {
+                            window.jQuery(focusSelect).select2('open');
+                        }
+                    }, 150);
+                }
+
+                editDocumentFocus = '';
             }
 
 

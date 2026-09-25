@@ -819,13 +819,21 @@
 
                         <div class="col-md-4">
                             <label class="form-label fw-semibold">
-                                Employee
+                                Service Engineer
                             </label>
 
-                            <input type="text"
-                                   class="form-control"
-                                   id="edit_employee"
-                                   name="employee">
+                            <select class="form-select"
+                                    id="edit_service_eng_id"
+                                    name="service_eng_id"
+                                    required>
+                                <option value="">-- Select Engineer --</option>
+                                <?php foreach (($users ?? []) as $u): ?>
+                                    <?php $fullName = trim(($u['fname'] ?? '') . ' ' . ($u['lname'] ?? '')); ?>
+                                    <option value="<?= (int) $u['id'] ?>">
+                                        <?= esc($fullName !== '' ? $fullName : ($u['uname'] ?? '')) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
                         </div>
 
 
@@ -846,10 +854,20 @@
                                 Account
                             </label>
 
-                            <input type="text"
-                                   class="form-control"
-                                   id="edit_accounts"
-                                   name="accounts">
+                            <select class="form-select"
+                                    id="edit_accounts"
+                                    name="accounts"
+                                    required>
+                                <option value="">-- Select Account --</option>
+                                <?php foreach ($clinicMap as $clinicName => $info): ?>
+                                    <?php $machinesJson = htmlspecialchars(json_encode($info['machines']), ENT_QUOTES, 'UTF-8'); ?>
+                                    <option value="<?= esc($clinicName) ?>"
+                                            data-address="<?= esc($info['address']) ?>"
+                                            data-machines="<?= $machinesJson ?>">
+                                        <?= esc($clinicName) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
                         </div>
 
 
@@ -882,10 +900,13 @@
                                 Machine
                             </label>
 
-                            <input type="text"
-                                   class="form-control"
-                                   id="edit_machine"
-                                   name="machine">
+                            <select class="form-select"
+                                    id="edit_machine"
+                                    name="machine"
+                                    required
+                                    disabled>
+                                <option value="">-- Select Machine --</option>
+                            </select>
                         </div>
 
 
