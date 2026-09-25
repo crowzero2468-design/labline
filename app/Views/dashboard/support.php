@@ -210,9 +210,10 @@
 
                           <?php
                           $statusLabels = [
-                              'waiting'      => ['label' => 'Waiting', 'class' => 'warning'],
-                              'ongoing'      => ['label' => 'Ongoing', 'class' => 'primary'],
-                              'done'         => ['label' => 'Done', 'class' => 'success'],
+                              'waiting'      => ['label' => 'Not Started', 'class' => 'warning'],
+                              'ongoing'      => ['label' => 'In Progress', 'class' => 'primary'],
+                              'done'         => ['label' => 'Completed', 'class' => 'success'],
+                              'on_hold'      => ['label' => 'On Hold', 'class' => 'secondary'],
                               'pullout'      => ['label' => 'Pullout', 'class' => 'danger'],
                               'unservicable' => ['label' => 'Unservicable', 'class' => 'dark'],
                               'canceled'     => ['label' => 'Canceled', 'class' => 'secondary'],
@@ -262,6 +263,25 @@
 
                                         </form>
 
+                                    <?php elseif ($status === 'on_hold'): ?>
+
+                                      <form method="post"
+                                          action="<?= site_url('dashboard/support/update-status') ?>">
+
+                                        <input type="hidden"
+                                            name="id"
+                                            value="<?= (int) ($ticket['id'] ?? 0) ?>">
+
+                                        <button type="submit"
+                                            name="status"
+                                            value="ongoing"
+                                            class="btn btn-sm btn-primary">
+                                          <i class="bi bi-play-fill me-1"></i>
+                                          Start
+                                        </button>
+
+                                      </form>
+
                                     <?php elseif ($status === 'ongoing'): ?>
 
                                         <form method="post"
@@ -282,7 +302,8 @@
                                                         style="min-width:125px;">
 
                                                     <option value="">Action</option>
-                                                    <option value="done">Done</option>
+                                                    <option value="done">Completed</option>
+                                                    <option value="on_hold">On Hold</option>
                                                     <option value="pullout">Pullout</option>
                                                     <option value="unservicable">Unservicable</option>
                                                     <option value="canceled">Canceled</option>
@@ -300,7 +321,7 @@
                                                       class="form-control form-control-sm support-remarks"
                                                       data-ticket-id="<?= (int) ($ticket['id'] ?? 0) ?>"
                                                       rows="2"
-                                                      placeholder="Remarks required for Done or Unservicable"
+                                                      placeholder="Remarks required for Completed or Unservicable"
                                                       style="min-width:220px;"></textarea>
 
                                         </form>
@@ -510,8 +531,8 @@ $(document).ready(function () {
           const required = ['done', 'unservicable'].includes(select.value);
           remarks.required = required;
           remarks.placeholder = required
-            ? 'Remarks required before marking as Done or Unservicable'
-            : 'Remarks required for Done or Unservicable';
+            ? 'Remarks required before marking as Completed or Unservicable'
+            : 'Remarks required for Completed or Unservicable';
         }
 
         updateRemarksRequirement();

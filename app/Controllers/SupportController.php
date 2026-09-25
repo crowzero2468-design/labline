@@ -37,8 +37,8 @@ class SupportController extends BaseController
 
                     ->groupStart()
 
-                        // Waiting and ongoing
-                        ->whereIn('status', ['waiting', 'ongoing'])
+                        // Not started, in progress, and on hold
+                        ->whereIn('status', ['waiting', 'ongoing', 'on_hold'])
 
                         // Pullout only if not yet returned
                         ->orGroupStart()
@@ -249,6 +249,7 @@ class SupportController extends BaseController
         'waiting',
         'ongoing',
         'done',
+        'on_hold',
         'pullout',
         'unservicable',
         'canceled'
@@ -305,7 +306,7 @@ class SupportController extends BaseController
         return redirect()->to(site_url('dashboard/support'))
             ->with(
                 'error',
-                'Please add remarks before marking this ticket as Done or Unservicable.'
+                'Please add remarks before marking this ticket as Completed or Unservicable.'
             );
     }
 
