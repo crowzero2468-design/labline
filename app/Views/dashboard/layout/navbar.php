@@ -2,10 +2,10 @@
     <header class="navbar-custom">
       <div class="navbar-left">
         <!-- Desktop sidebar toggle (visible on large screens only) -->
-        <!-- <button class="btn-desktop-toggle d-none d-xl-flex align-items-center justify-content-center me-3"
+        <button class="btn-desktop-toggle d-none d-xl-flex align-items-center justify-content-center me-3"
           id="desktop-sidebar-toggle" aria-label="Minimize Sidebar">
           <i class="bi bi-chevron-bar-left"></i>
-        </button> -->
+        </button>
         <!-- Mobile sidebar toggle -->
         <button class="sidebar-toggle-btn me-2" id="sidebar-toggle" aria-label="Toggle Navigation">
           <i class="bi bi-list"></i>

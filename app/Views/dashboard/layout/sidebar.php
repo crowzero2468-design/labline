@@ -8,8 +8,9 @@
 
   <div class="sidebar-wrapper" id="sidebar">
     <!-- Brand Logo / Identity -->
-    <a href="<?= site_url('dashboard') ?>" class="sidebar-brand" style="display: inline-block;">
-      <img src="<?= base_url('img/logo.php') ?>" alt="LABLINE INC." style="height: 50px; width: auto; display: block; filter: drop-shadow(0 0 6px rgba(0, 0, 0, 0.35)); animation: logo-breathe-shadow 2.8s ease-in-out infinite;">
+    <a href="<?= site_url('dashboard') ?>" class="sidebar-brand">
+      <img src="<?= base_url('img/logo.php') ?>" alt="LABLINE INC." class="sidebar-brand-logo">
+      
     </a>
 
     <style>

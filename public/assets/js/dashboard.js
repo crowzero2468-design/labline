@@ -18,6 +18,45 @@ document.addEventListener('DOMContentLoaded', function () {
     // -----------------------------------------------------------------
     const sidebar = document.querySelector('.sidebar-wrapper');
     const toggleBtn = document.querySelector('.sidebar-toggle-btn');
+    const desktopToggleBtn = document.querySelector('#desktop-sidebar-toggle');
+    const sidebarStateKey = 'labline-sidebar-minimized';
+
+    if (window.innerWidth >= 1200 && localStorage.getItem(sidebarStateKey) === 'true') {
+        document.body.classList.add('sidebar-minimized');
+    }
+
+    function updateSidebarToggleIcon() {
+        if (!desktopToggleBtn) {
+            return;
+        }
+
+        const icon = desktopToggleBtn.querySelector('i');
+        if (icon) {
+            icon.className = document.body.classList.contains('sidebar-minimized')
+                ? 'bi bi-list'
+                : 'bi bi-layout-sidebar-inset';
+        }
+
+        desktopToggleBtn.setAttribute(
+            'aria-label',
+            document.body.classList.contains('sidebar-minimized')
+                ? 'Open Sidebar'
+                : 'Close Sidebar'
+        );
+    }
+
+    updateSidebarToggleIcon();
+
+    // Keep collapsed sidebar icons identifiable without expanding the rail.
+    document.querySelectorAll('.sidebar-menu-link').forEach(function (link) {
+        const label = link.querySelector('span');
+        const text = label ? label.textContent.trim() : '';
+
+        if (text && !link.getAttribute('title')) {
+            link.setAttribute('title', text);
+            link.setAttribute('aria-label', text);
+        }
+    });
     
     // Create and append backdrop overlay for mobile sidebar
     let overlay = document.createElement('div');
@@ -351,20 +390,15 @@ document.addEventListener('DOMContentLoaded', function () {
     // -----------------------------------------------------------------
     // 6. Desktop Sidebar Minimize Interaction
     // -----------------------------------------------------------------
-    const desktopToggleBtn = document.querySelector('#desktop-sidebar-toggle');
     if (desktopToggleBtn) {
         desktopToggleBtn.addEventListener('click', function () {
             document.body.classList.toggle('sidebar-minimized');
+            localStorage.setItem(
+                sidebarStateKey,
+                document.body.classList.contains('sidebar-minimized') ? 'true' : 'false'
+            );
             
-            // Toggle icon direction
-            const icon = desktopToggleBtn.querySelector('i');
-            if (icon) {
-                if (document.body.classList.contains('sidebar-minimized')) {
-                    icon.className = 'bi bi-chevron-bar-right';
-                } else {
-                    icon.className = 'bi bi-chevron-bar-left';
-                }
-            }
+            updateSidebarToggleIcon();
             
             // Trigger a window resize event so that charts (ApexCharts) redraw correctly
             setTimeout(() => {

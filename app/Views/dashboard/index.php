@@ -3341,14 +3341,12 @@ if (typeof ApexCharts !== 'undefined') {
 
     if (pulloutTimeline.length) {
         new ApexCharts(document.querySelector('#pulloutTimelineChart'), {
-            chart: { type: 'area', height: 280, toolbar: { show: false } },
-            series: [{ name: 'Pullouts', data: chartValues(pulloutTimeline) }],
-            xaxis: { categories: chartCategories(pulloutTimeline) },
-            colors: ['#dc3545'],
-            stroke: { curve: 'smooth', width: 3 },
-            fill: { opacity: 0.22 },
-            dataLabels: { enabled: false },
-            grid: { borderColor: '#e9ecef' }
+            chart: { type: 'pie', height: 280, toolbar: { show: false } },
+            series: chartValues(pulloutTimeline),
+            labels: chartCategories(pulloutTimeline),
+            colors: ['#dc3545', '#fd7e14', '#ffc107', '#198754', '#0d6efd', '#6f42c1'],
+            legend: { position: 'bottom' },
+            dataLabels: { enabled: true }
         }).render();
     } else {
         renderEmptyChart('#pulloutTimelineChart', 'No pullout data available.');
