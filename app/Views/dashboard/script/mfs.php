@@ -1,6 +1,42 @@
 <script>
 $(document).ready(function () {
 
+    function formatMfsAccount(account) {
+        if (!account.id) {
+            return account.text;
+        }
+
+        const option = account.element;
+        const clinic = option?.dataset.clinic || account.text;
+        const address = option?.dataset.address || '';
+        const result = $('<span>');
+
+        result.append($('<span>').text(clinic));
+        result.append($('<span class="mfs-account-address">').text(address ? ' | ' + address : ''));
+
+        return result;
+    }
+
+    if ($.fn.select2) {
+        $('#mfs_accounts').select2({
+            allowClear: true,
+            width: '100%',
+            minimumResultsForSearch: 0,
+            dropdownParent: $('#addMfsModal'),
+            templateResult: formatMfsAccount,
+            templateSelection: formatMfsAccount
+        });
+
+        $('#edit_accounts').select2({
+            allowClear: true,
+            width: '100%',
+            minimumResultsForSearch: 0,
+            dropdownParent: $('#editMfsModal'),
+            templateResult: formatMfsAccount,
+            templateSelection: formatMfsAccount
+        });
+    }
+
     function populateEditMfsMachines(selectedMachine, selectedSerial) {
         const accountSelect = document.getElementById('edit_accounts');
         const machineSelect = document.getElementById('edit_machine');

@@ -12,6 +12,7 @@ class RotorController extends BaseController
     public function __construct()
     {
         $this->db = \Config\Database::connect();
+        $this->ensureStatusColumn();
     }
 
     /**
@@ -23,6 +24,7 @@ class RotorController extends BaseController
     {
         $startDate = $this->request->getGet('start_date');
         $endDate   = $this->request->getGet('end_date');
+        $status     = $this->request->getGet('status');
 
         /*
         |--------------------------------------------------------------------------
@@ -42,6 +44,10 @@ class RotorController extends BaseController
 
         if (!empty($endDate)) {
             $builder->where('date <=', $endDate);
+        }
+
+        if (in_array($status, $this->statusOptions(), true)) {
+            $builder->where('status', $status);
         }
 
         /*
@@ -87,6 +93,7 @@ class RotorController extends BaseController
             'accounts'  => $accounts,
             'startDate' => $startDate,
             'endDate'   => $endDate,
+            'status'    => $status,
         ]);
     }
 
@@ -113,6 +120,9 @@ class RotorController extends BaseController
         $replaceable = $this->request->getPost('replaceable');
         $reason      = trim($this->request->getPost('reason'));
         $replaced    = $this->request->getPost('replaced');
+        $status      = trim((string) $this->request->getPost('status'));
+        $approveManagement = (int) $this->request->getPost('approve_management');
+        $approveManufacture = (int) $this->request->getPost('approve_manufacture');
 
         /*
         |--------------------------------------------------------------------------
@@ -122,7 +132,8 @@ class RotorController extends BaseController
         if (
             empty($clinicName) ||
             empty($model) ||
-            empty($date)
+            empty($date) ||
+            !in_array($status, $this->statusOptions(), true)
         ) {
             return redirect()
                 ->back()
@@ -150,6 +161,9 @@ class RotorController extends BaseController
             'replaceable'  => $replaceable,
             'reason'       => $reason,
             'replaced'     => $replaced,
+            'status'       => $status,
+            'approve_management' => $approveManagement === 1 ? 1 : 0,
+            'approve_manufacture' => $approveManufacture === 1 ? 1 : 0,
         ];
 
         /*
@@ -229,6 +243,9 @@ class RotorController extends BaseController
             'replaceable'  => $this->request->getPost('replaceable'),
             'reason'       => trim($this->request->getPost('reason')),
             'replaced'     => $this->request->getPost('replaced'),
+            'status'       => trim((string) $this->request->getPost('status')),
+            'approve_management' => (int) $this->request->getPost('approve_management') === 1 ? 1 : 0,
+            'approve_manufacture' => (int) $this->request->getPost('approve_manufacture') === 1 ? 1 : 0,
         ];
 
         /*
@@ -239,7 +256,8 @@ class RotorController extends BaseController
         if (
             empty($data['clinic_name']) ||
             empty($data['model']) ||
-            empty($data['date'])
+            empty($data['date']) ||
+            !in_array($data['status'], $this->statusOptions(), true)
         ) {
             return redirect()
                 ->back()
@@ -397,5 +415,34 @@ class RotorController extends BaseController
             'startDate' => $startDate,
             'endDate'   => $endDate,
         ]);
+    }
+
+    private function statusOptions(): array
+    {
+        return [
+            'Report by Clinic',
+            'Report to Manufacture',
+            'Order',
+            'Delivered',
+        ];
+    }
+
+    private function ensureStatusColumn(): void
+    {
+        $result = $this->db->query("SHOW COLUMNS FROM {$this->table} LIKE 'status'");
+
+        if ($result->getNumRows() === 0) {
+            $this->db->query("ALTER TABLE {$this->table} ADD COLUMN status VARCHAR(50) NULL AFTER replaced");
+        }
+
+        $managementResult = $this->db->query("SHOW COLUMNS FROM {$this->table} LIKE 'approve_management'");
+        if ($managementResult->getNumRows() === 0) {
+            $this->db->query("ALTER TABLE {$this->table} ADD COLUMN approve_management TINYINT(1) NOT NULL DEFAULT 0 AFTER status");
+        }
+
+        $manufactureResult = $this->db->query("SHOW COLUMNS FROM {$this->table} LIKE 'approve_manufacture'");
+        if ($manufactureResult->getNumRows() === 0) {
+            $this->db->query("ALTER TABLE {$this->table} ADD COLUMN approve_manufacture TINYINT(1) NOT NULL DEFAULT 0 AFTER approve_management");
+        }
     }
 }

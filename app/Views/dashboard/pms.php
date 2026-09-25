@@ -1302,6 +1302,14 @@ if (!empty($pms_records)) {
     color: #fff !important;
 }
 
+.account-address {
+    color: #6c757d;
+}
+
+.select2-results__option--highlighted[aria-selected] .account-address {
+    color: #e9ecef;
+}
+
 </style>
                    <!-- ACCOUNT -->
 
@@ -1328,19 +1336,23 @@ if (!empty($pms_records)) {
                                 continue;
                             }
 
-                            if (!isset($clinicMap[$clinicName])) {
+                            $accountId =
+                                $a['id']
+                                ?? $a['ID']
+                                ?? $a['data_id']
+                                ?? '';
 
-                                $clinicMap[$clinicName] = [
+                            $address = $a['Address'] ?? '';
+                            $clinicKey = $clinicName . '|' . $address;
 
-                                    'id' =>
-                                        $a['id']
-                                        ?? $a['ID']
-                                        ?? $a['data_id']
-                                        ?? '',
+                            if (!isset($clinicMap[$clinicKey])) {
 
-                                    'address' =>
-                                        $a['Address']
-                                        ?? '',
+                                $clinicMap[$clinicKey] = [
+
+                                    'id' => $accountId,
+
+                                    'clinic' => $clinicName,
+                                    'address' => $address,
 
                                     'machines' => []
 
@@ -1354,7 +1366,7 @@ if (!empty($pms_records)) {
 
                             if ($machine !== '') {
 
-                                $clinicMap[$clinicName]['machines'][$machine] =
+                                $clinicMap[$clinicKey]['machines'][$machine] =
                                     $a['SN'] ?? '';
 
                             }
@@ -1376,7 +1388,7 @@ if (!empty($pms_records)) {
                                     -- Select Account --
                                 </option>
 
-                                <?php foreach ($clinicMap as $clinicName => $info): ?>
+                                <?php foreach ($clinicMap as $info): ?>
 
                                     <?php
 
@@ -1393,11 +1405,11 @@ if (!empty($pms_records)) {
 
                                     <option
                                         value="<?= esc($info['id']) ?>"
-                                        data-clinic="<?= esc($clinicName) ?>"
+                                        data-clinic="<?= esc($info['clinic']) ?>"
                                         data-address="<?= esc($info['address']) ?>"
                                         data-machines="<?= $machinesJson ?>"
                                     >
-                                        <?= esc($clinicName) ?>
+                                        <?= esc($info['clinic']) ?> | <?= esc($info['address']) ?>
                                     </option>
 
                                 <?php endforeach; ?>
@@ -2709,7 +2721,7 @@ if (!empty($pms_records)) {
                                         data-sn="<?= esc($account['SN'] ?? '') ?>"
                                     >
 
-                                        <?= esc($account['Clinic_name'] ?? '') ?>
+                                        <?= esc($account['Clinic_name'] ?? '') ?> | <?= esc($account['Address'] ?? '') ?>
 
                                     </option>
 

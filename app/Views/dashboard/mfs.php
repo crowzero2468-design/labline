@@ -1,5 +1,69 @@
 <?= view('dashboard/layout/head') ?>
 
+<style>
+    .mfs-account-select + .select2-container {
+        width: 100% !important;
+    }
+
+    .mfs-account-select + .select2-container .select2-selection--single {
+        height: 38px;
+        padding: 0.375rem 2.25rem 0.375rem 0.75rem;
+        border: 1px solid #dee2e6;
+        border-radius: 0.375rem;
+        background-color: #fff;
+        color: #212529;
+        font-size: 1rem;
+    }
+
+    .mfs-account-select + .select2-container .select2-selection__rendered {
+        line-height: 24px;
+        padding: 0;
+        color: #212529;
+    }
+
+    .mfs-account-select + .select2-container .select2-selection__arrow {
+        height: 36px;
+        right: 0.5rem;
+    }
+
+    .mfs-account-select + .select2-container--focus .select2-selection--single,
+    .mfs-account-select + .select2-container--open .select2-selection--single {
+        border-color: #86b7fe;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    }
+
+    .mfs-account-select + .select2-container .select2-dropdown {
+        border: 1px solid #dee2e6;
+        border-radius: 0.375rem;
+        overflow: hidden;
+    }
+
+    .mfs-account-select + .select2-container .select2-search__field {
+        border: 1px solid #ced4da;
+        border-radius: 0.375rem;
+        padding: 0.375rem 0.75rem;
+    }
+
+    .mfs-account-select + .select2-container .select2-results__option {
+        padding: 0.375rem 0.75rem;
+        color: #212529;
+        background-color: #fff;
+    }
+
+    .mfs-account-select + .select2-container .select2-results__option--highlighted[aria-selected] {
+        color: #fff;
+        background-color: #0d6efd;
+    }
+
+    .mfs-account-address {
+        color: #6c757d;
+    }
+
+    .select2-results__option--highlighted[aria-selected] .mfs-account-address {
+        color: #e9ecef;
+    }
+</style>
+
 <body>
 
 <?php if (session()->getFlashdata('error')): ?>
@@ -465,8 +529,12 @@
                 continue;
             }
 
-            if (!isset($clinicMap[$clinicName])) {
-                $clinicMap[$clinicName] = [
+            $address = trim($a['Address'] ?? '');
+            $clinicKey = $clinicName . '|' . $address;
+
+            if (!isset($clinicMap[$clinicKey])) {
+                $clinicMap[$clinicKey] = [
+                    'clinic'   => $clinicName,
                     'address'  => $a['Address'] ?? '',
                     'machines' => []
                 ];
@@ -476,19 +544,19 @@
             $serial  = trim($a['SN'] ?? '');
 
             if ($machine !== '') {
-                $clinicMap[$clinicName]['machines'][$machine] = $serial;
+                $clinicMap[$clinicKey]['machines'][$machine] = $serial;
             }
         }
     ?>
 
     <select name="accounts"
             id="mfs_accounts"
-            class="form-select"
+            class="form-select mfs-account-select"
             required>
 
         <option value="">-- Select Account --</option>
 
-        <?php foreach ($clinicMap as $clinicName => $info): ?>
+        <?php foreach ($clinicMap as $info): ?>
 
             <?php
                 $machinesJson = htmlspecialchars(
@@ -499,11 +567,12 @@
             ?>
 
             <option
-                value="<?= esc($clinicName) ?>"
+                value="<?= esc($info['clinic']) ?>"
+                data-clinic="<?= esc($info['clinic']) ?>"
                 data-address="<?= esc($info['address']) ?>"
                 data-machines="<?= $machinesJson ?>">
 
-                <?= esc($clinicName) ?>
+                <?= esc($info['clinic']) ?> | <?= esc($info['address']) ?>
 
             </option>
 
@@ -854,17 +923,18 @@
                                 Account
                             </label>
 
-                            <select class="form-select"
+                                <select class="form-select mfs-account-select"
                                     id="edit_accounts"
                                     name="accounts"
                                     required>
                                 <option value="">-- Select Account --</option>
-                                <?php foreach ($clinicMap as $clinicName => $info): ?>
+                                <?php foreach ($clinicMap as $info): ?>
                                     <?php $machinesJson = htmlspecialchars(json_encode($info['machines']), ENT_QUOTES, 'UTF-8'); ?>
-                                    <option value="<?= esc($clinicName) ?>"
+                                    <option value="<?= esc($info['clinic']) ?>"
+                                            data-clinic="<?= esc($info['clinic']) ?>"
                                             data-address="<?= esc($info['address']) ?>"
                                             data-machines="<?= $machinesJson ?>">
-                                        <?= esc($clinicName) ?>
+                                        <?= esc($info['clinic']) ?> | <?= esc($info['address']) ?>
                                     </option>
                                 <?php endforeach; ?>
                             </select>

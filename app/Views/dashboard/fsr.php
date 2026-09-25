@@ -1,5 +1,69 @@
 <?= view('dashboard/layout/head') ?>
 
+<style>
+    .fsr-account-address {
+        color: #6c757d;
+    }
+
+    .fsr-account-select + .select2-container {
+        width: 100% !important;
+    }
+
+    .fsr-account-select + .select2-container .select2-selection--single {
+        height: 38px;
+        padding: 0.375rem 2.25rem 0.375rem 0.75rem;
+        border: 1px solid #dee2e6;
+        border-radius: 0.375rem;
+        background-color: #fff;
+        color: #212529;
+        font-size: 1rem;
+    }
+
+    .fsr-account-select + .select2-container .select2-selection__rendered {
+        line-height: 24px;
+        padding: 0;
+        color: #212529;
+    }
+
+    .fsr-account-select + .select2-container .select2-selection__arrow {
+        height: 36px;
+        right: 0.5rem;
+    }
+
+    .fsr-account-select + .select2-container--focus .select2-selection--single,
+    .fsr-account-select + .select2-container--open .select2-selection--single {
+        border-color: #86b7fe;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    }
+
+    .fsr-account-select + .select2-container .select2-dropdown {
+        border: 1px solid #dee2e6;
+        border-radius: 0.375rem;
+        overflow: hidden;
+    }
+
+    .fsr-account-select + .select2-container .select2-search__field {
+        border: 1px solid #ced4da;
+        border-radius: 0.375rem;
+        padding: 0.375rem 0.75rem;
+    }
+
+    .fsr-account-select + .select2-container .select2-results__option {
+        padding: 0.375rem 0.75rem;
+        color: #212529;
+        background-color: #fff;
+    }
+
+    .fsr-account-select + .select2-container .select2-results__option--highlighted[aria-selected] {
+        color: #fff;
+        background-color: #0d6efd;
+    }
+
+    .select2-results__option--highlighted[aria-selected] .fsr-account-address {
+        color: #e9ecef;
+    }
+</style>
+
 <body>
 
 <?php if (session()->getFlashdata('error')): ?>
@@ -85,10 +149,14 @@ foreach (($accounts ?? []) as $a) {
         continue;
     }
 
-    if (!isset($clinicMap[$clinicName])) {
+    $address = trim((string) ($a['Address'] ?? ''));
+    $clinicKey = $clinicName . '|' . $address;
 
-        $clinicMap[$clinicName] = [
-            'address' => $a['Address'] ?? '',
+    if (!isset($clinicMap[$clinicKey])) {
+
+        $clinicMap[$clinicKey] = [
+            'clinic' => $clinicName,
+            'address' => $address,
             'machines' => []
         ];
     }
@@ -99,7 +167,7 @@ foreach (($accounts ?? []) as $a) {
 
     if ($machine !== '') {
 
-        $clinicMap[$clinicName]['machines'][$machine] =
+        $clinicMap[$clinicKey]['machines'][$machine] =
             $a['SN'] ?? '';
     }
 }
@@ -419,14 +487,15 @@ foreach (($accounts ?? []) as $a) {
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Account</label>
-                            <select class="form-select" id="edit_fsr_account" name="account" required>
+                            <select class="form-select fsr-account-select" id="edit_fsr_account" name="account" required>
                                 <option value="">-- Select Account --</option>
-                                <?php foreach ($clinicMap as $clinicName => $info): ?>
+                                <?php foreach ($clinicMap as $info): ?>
                                     <?php $machinesJson = htmlspecialchars(json_encode($info['machines']), ENT_QUOTES, 'UTF-8'); ?>
-                                    <option value="<?= esc($clinicName) ?>"
+                                    <option value="<?= esc($info['clinic']) ?>"
+                                            data-clinic="<?= esc($info['clinic']) ?>"
                                             data-address="<?= esc($info['address']) ?>"
                                             data-machines="<?= $machinesJson ?>">
-                                        <?= esc($clinicName) ?>
+                                        <?= esc($info['clinic']) ?> | <?= esc($info['address']) ?>
                                     </option>
                                 <?php endforeach; ?>
                             </select>
@@ -551,7 +620,7 @@ foreach (($accounts ?? []) as $a) {
 
                             <select name="service_eng_id"
                                     id="fsr_service_eng_id"
-                                    class="form-select"
+                                    class="form-select fsr-account-select"
                                     required>
 
                                 <option value="">
@@ -607,7 +676,7 @@ foreach (($accounts ?? []) as $a) {
                                     -- Select Account --
                                 </option>
 
-                                <?php foreach ($clinicMap as $clinicName => $info): ?>
+                                <?php foreach ($clinicMap as $info): ?>
 
                                     <?php
 
@@ -621,13 +690,14 @@ foreach (($accounts ?? []) as $a) {
 
                                     ?>
 
-                                    <option value="<?= esc($clinicName) ?>"
+                                        <option value="<?= esc($info['clinic']) ?>"
+                                            data-clinic="<?= esc($info['clinic']) ?>"
                                             data-address="<?= esc(
                                                 $info['address']
                                             ) ?>"
                                             data-machines="<?= $machinesJson ?>">
 
-                                        <?= esc($clinicName) ?>
+                                        <?= esc($info['clinic']) ?> | <?= esc($info['address']) ?>
 
                                     </option>
 
@@ -841,6 +911,42 @@ foreach (($accounts ?? []) as $a) {
 
 <script>
     $(document).ready(function () {
+
+        function formatFsrAccount(account) {
+            if (!account.id) {
+                return account.text;
+            }
+
+            const option = account.element;
+            const clinic = option?.dataset.clinic || account.text;
+            const address = option?.dataset.address || '';
+            const result = $('<span>');
+
+            result.append($('<span>').text(clinic));
+            result.append($('<span class="fsr-account-address">').text(address ? ' | ' + address : ''));
+
+            return result;
+        }
+
+        if ($.fn.select2) {
+            $('#fsr_account').select2({
+                allowClear: true,
+                width: '100%',
+                minimumResultsForSearch: 0,
+                dropdownParent: $('#addFsrModal'),
+                templateResult: formatFsrAccount,
+                templateSelection: formatFsrAccount
+            });
+
+            $('#edit_fsr_account').select2({
+                allowClear: true,
+                width: '100%',
+                minimumResultsForSearch: 0,
+                dropdownParent: $('#editFsrModal'),
+                templateResult: formatFsrAccount,
+                templateSelection: formatFsrAccount
+            });
+        }
 
     $('#fsrTable').DataTable({
         pageLength: 10,

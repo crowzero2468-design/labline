@@ -17,7 +17,37 @@ document.addEventListener('DOMContentLoaded', function () {
             allowClear: true,
             width: '100%',
             minimumResultsForSearch: 0,
-            dropdownParent: $('#addPmsModal')
+            dropdownParent: $('#addPmsModal'),
+            templateResult: function (account) {
+                if (!account.id) {
+                    return account.text;
+                }
+
+                const option = account.element;
+                const clinic = option?.dataset.clinic || account.text;
+                const address = option?.dataset.address || '';
+                const result = $('<span>');
+
+                result.append($('<span>').text(clinic));
+                result.append($('<span class="account-address">').text(address ? ' | ' + address : ''));
+
+                return result;
+            },
+            templateSelection: function (account) {
+                if (!account.id) {
+                    return account.text;
+                }
+
+                const option = account.element;
+                const clinic = option?.dataset.clinic || account.text;
+                const address = option?.dataset.address || '';
+                const selection = $('<span>');
+
+                selection.append($('<span>').text(clinic));
+                selection.append($('<span class="account-address">').text(address ? ' | ' + address : ''));
+
+                return selection;
+            }
         });
 
     }

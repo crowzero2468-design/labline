@@ -593,7 +593,10 @@ CREATE TABLE `tb_rotor` (
   `date` date DEFAULT NULL,
   `replaceable` varchar(50) DEFAULT NULL,
   `reason` text DEFAULT NULL,
-  `replaced` varchar(50) DEFAULT NULL
+  `replaced` varchar(50) DEFAULT NULL,
+  `status` varchar(50) DEFAULT 'Report by Clinic',
+  `approve_management` tinyint(1) NOT NULL DEFAULT 0,
+  `approve_manufacture` tinyint(1) NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -622,7 +625,7 @@ CREATE TABLE `tb_support` (
   `returnstat` varchar(255) DEFAULT NULL,
   `support_date` date DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `update_date` date DEFAULT NULL
+  `update_date` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
