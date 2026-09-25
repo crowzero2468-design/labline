@@ -204,17 +204,29 @@ class Dashboard extends BaseController
         $machineCounts = [];
 
         if ($database->tableExists('tb_data')) {
-
             $machineBuilder = clone $filterBuilder;
-
             $machineCounts = $machineBuilder
                 ->select(
-                    'Machine, COUNT(*) AS total',
+                    "CASE
+                        WHEN Machine IN ('Hematology', 'Hematology Analyzer') THEN 'Hematology Analyzer'
+                        WHEN Machine IN ('Chemistry', 'Chemistry Analyzer') THEN 'Chemistry Analyzer'
+                        WHEN Machine IN ('Urine', 'Urine Analyzer') THEN 'Urine Analyzer'
+                        WHEN Machine = 'Xray' THEN 'Xray'
+                        WHEN Machine = 'Ultrasound' THEN 'Ultrasound'
+                    END AS machine_label, COUNT(*) AS total",
                     false
                 )
-                ->where('Machine IS NOT NULL')
-                ->where("TRIM(Machine) !=", '')
-                ->groupBy('Machine')
+                ->whereIn('Machine', [
+                    'Hematology',
+                    'Hematology Analyzer',
+                    'Chemistry',
+                    'Chemistry Analyzer',
+                    'Urine',
+                    'Urine Analyzer',
+                    'Xray',
+                    'Ultrasound',
+                ])
+                ->groupBy('machine_label')
                 ->orderBy('total', 'DESC')
                 ->get()
                 ->getResultArray();

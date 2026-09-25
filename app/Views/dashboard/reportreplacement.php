@@ -381,7 +381,6 @@
                                     <th>Date</th>
                                     <th>Replaceable</th>
                                     <th>Reason</th>
-                                    <th>Replaced</th>
                                     <th>Status</th>
                                     <th>Approved by Management</th>
                                     <th>Approved by Manufacture</th>
@@ -489,44 +488,6 @@
                                             </td>
 
                                             <td>
-
-                                                <?php
-                                                $replaced = strtolower(
-                                                    trim($record['replaced'] ?? '')
-                                                );
-                                                ?>
-
-                                                <?php if (
-                                                    $replaced === 'yes' ||
-                                                    $replaced === '1'
-                                                ): ?>
-
-                                                    <span class="badge bg-success">
-                                                        <i class="bi bi-check-circle me-1"></i>
-                                                        Yes
-                                                    </span>
-
-                                                <?php elseif (
-                                                    $replaced === 'no' ||
-                                                    $replaced === '0'
-                                                ): ?>
-
-                                                    <span class="badge bg-warning text-dark">
-                                                        <i class="bi bi-x-circle me-1"></i>
-                                                        No
-                                                    </span>
-
-                                                <?php else: ?>
-
-                                                    <span class="text-muted">
-                                                        —
-                                                    </span>
-
-                                                <?php endif; ?>
-
-                                            </td>
-
-                                            <td>
                                                 <?php
                                                 $recordStatus = $record['status'] ?? 'Report by Clinic';
                                                 $statusClass = $recordStatus === 'Delivered' ? 'success' : ($recordStatus === 'Order' ? 'primary' : ($recordStatus === 'Report to Manufacture' ? 'warning text-dark' : 'secondary'));
@@ -580,7 +541,6 @@
                                                     data-date="<?= esc($record['date'] ?? '') ?>"
                                                     data-replaceable="<?= esc($record['replaceable'] ?? '') ?>"
                                                     data-reason="<?= esc($record['reason'] ?? '') ?>"
-                                                    data-replaced="<?= esc($record['replaced'] ?? '') ?>"
                                                     data-status="<?= esc($record['status'] ?? 'Report by Clinic') ?>"
                                                     data-approve-management="<?= esc($record['approve_management'] ?? 0) ?>"
                                                     data-approve-manufacture="<?= esc($record['approve_manufacture'] ?? 0) ?>"
@@ -1053,39 +1013,6 @@
                                 </div>
 
 
-                                <!-- REPLACED -->
-
-                                <div class="col-12 col-md-6">
-
-                                    <label
-                                        for="replaced"
-                                        class="form-label"
-                                    >
-                                        Replaced
-                                    </label>
-
-                                    <select
-                                        name="replaced"
-                                        id="replaced"
-                                        class="form-select"
-                                    >
-
-                                        <option value="">
-                                            -- Select --
-                                        </option>
-
-                                        <option value="Yes">
-                                            Yes
-                                        </option>
-
-                                        <option value="No">
-                                            No
-                                        </option>
-
-                                    </select>
-
-                                </div>
-
                                 <!-- STATUS -->
 
                                 <div class="col-12 col-md-6">
@@ -1441,39 +1368,6 @@
 
                                 </div>
 
-
-                                <!-- REPLACED -->
-
-                                <div class="col-12 col-md-6">
-
-                                    <label
-                                        for="edit_replaced"
-                                        class="form-label"
-                                    >
-                                        Replaced
-                                    </label>
-
-                                    <select
-                                        name="replaced"
-                                        id="edit_replaced"
-                                        class="form-select"
-                                    >
-
-                                        <option value="">
-                                            -- Select --
-                                        </option>
-
-                                        <option value="Yes">
-                                            Yes
-                                        </option>
-
-                                        <option value="No">
-                                            No
-                                        </option>
-
-                                    </select>
-
-                                </div>
 
                                 <!-- STATUS -->
 
@@ -1936,9 +1830,6 @@ document.addEventListener('DOMContentLoaded', function () {
                     reason:
                         button.getAttribute('data-reason') || '',
 
-                    replaced:
-                        button.getAttribute('data-replaced') || '',
-
                     status:
                         button.getAttribute('data-status') || 'Report by Clinic',
 
@@ -1978,8 +1869,6 @@ document.addEventListener('DOMContentLoaded', function () {
                     edit_replaceable: values.replaceable,
 
                     edit_reason: values.reason,
-
-                    edit_replaced: values.replaced,
 
                     edit_status: values.status
 
