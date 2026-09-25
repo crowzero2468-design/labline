@@ -220,6 +220,42 @@ class Dashboard extends BaseController
                 ->getResultArray();
         }
 
+                $monthlySupport = [];
+                $pulloutTimeline = [];
+                $machineYearly = [];
+
+                if ($database->tableExists('tb_support')) {
+                        $monthlySupport = $database->query(
+                                "SELECT DATE_FORMAT(support_date, '%Y-%m') AS period, COUNT(*) AS total
+                                 FROM tb_support
+                                 WHERE support_date IS NOT NULL
+                                 GROUP BY period
+                                 ORDER BY period ASC"
+                        )->getResultArray();
+
+                        $pulloutTimeline = $database->query(
+                                "SELECT DATE_FORMAT(COALESCE(update_date, support_date), '%Y-%m') AS period, COUNT(*) AS total
+                                 FROM tb_support
+                                 WHERE status = 'pullout'
+                                     AND COALESCE(update_date, support_date) IS NOT NULL
+                                 GROUP BY period
+                                 ORDER BY period ASC"
+                        )->getResultArray();
+                }
+
+                if ($database->tableExists('tb_data')) {
+                        $machineYearly = $database->query(
+                                "SELECT YEAR(Installed_date) AS year, Machine AS machine, COUNT(*) AS total
+                                 FROM tb_data
+                                 WHERE status = 'A'
+                                     AND Installed_date IS NOT NULL
+                                     AND Machine IS NOT NULL
+                                     AND TRIM(Machine) != ''
+                                 GROUP BY year, machine
+                                 ORDER BY year ASC, machine ASC"
+                        )->getResultArray();
+                }
+
         // ==========================================================
         // TOTAL FILTERED ROWS
         // ==========================================================
@@ -342,6 +378,9 @@ class Dashboard extends BaseController
             'total_data'     => $totalData,
             'total_machine'  => $totalMachine,
             'machine_counts' => $machineCounts,
+            'monthly_support' => $monthlySupport,
+            'pullout_timeline' => $pulloutTimeline,
+            'machine_yearly' => $machineYearly,
 
             // ======================================================
             // FILTERED TABLE

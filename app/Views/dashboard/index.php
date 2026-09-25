@@ -459,6 +459,51 @@
 
 
         <!-- ==================================================
+             SUPPORT ANALYTICS
+             ================================================== -->
+
+        <div class="col-12">
+            <div class="row g-4">
+                <div class="col-12 col-xl-4">
+                    <div class="card h-100">
+                        <div class="card-header">
+                            <h2 class="card-title mb-1">Monthly Service Support</h2>
+                            <p class="text-muted small mb-0">Support tickets by month</p>
+                        </div>
+                        <div class="card-body">
+                            <div id="monthlySupportChart" style="min-height: 280px;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12 col-xl-4">
+                    <div class="card h-100">
+                        <div class="card-header">
+                            <h2 class="card-title mb-1">Pullout Timeline</h2>
+                            <p class="text-muted small mb-0">Pullout tickets by month</p>
+                        </div>
+                        <div class="card-body">
+                            <div id="pulloutTimelineChart" style="min-height: 280px;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12 col-xl-4">
+                    <div class="card h-100">
+                        <div class="card-header">
+                            <h2 class="card-title mb-1">Machines Per Year</h2>
+                            <p class="text-muted small mb-0">Installed active machines by year</p>
+                        </div>
+                        <div class="card-body">
+                            <div id="machineYearlyChart" style="min-height: 280px;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- ==================================================
              CLINIC RECORDS
              ================================================== -->
 
@@ -3190,6 +3235,92 @@ setTimeout(
     },
     5000
 );
+
+/* ==========================================================
+   SUPPORT ANALYTICS CHARTS
+   ========================================================== */
+
+if (typeof ApexCharts !== 'undefined') {
+    const monthlySupport = <?= json_encode($monthly_support ?? [], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
+    const pulloutTimeline = <?= json_encode($pullout_timeline ?? [], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
+    const machineYearly = <?= json_encode($machine_yearly ?? [], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
+
+    function chartCategories(rows) {
+        return rows.map(function (row) {
+            return row.period || '';
+        });
+    }
+
+    function chartValues(rows) {
+        return rows.map(function (row) {
+            return Number(row.total || 0);
+        });
+    }
+
+    function renderEmptyChart(selector, message) {
+        const element = document.querySelector(selector);
+        if (element) {
+            element.innerHTML = '<div class="text-center text-muted py-5">' + message + '</div>';
+        }
+    }
+
+    if (monthlySupport.length) {
+        new ApexCharts(document.querySelector('#monthlySupportChart'), {
+            chart: { type: 'bar', height: 280, toolbar: { show: false } },
+            series: [{ name: 'Support Tickets', data: chartValues(monthlySupport) }],
+            xaxis: { categories: chartCategories(monthlySupport) },
+            colors: ['#0d6efd'],
+            plotOptions: { bar: { borderRadius: 4, columnWidth: '55%' } },
+            dataLabels: { enabled: false },
+            grid: { borderColor: '#e9ecef' }
+        }).render();
+    } else {
+        renderEmptyChart('#monthlySupportChart', 'No support data available.');
+    }
+
+    if (pulloutTimeline.length) {
+        new ApexCharts(document.querySelector('#pulloutTimelineChart'), {
+            chart: { type: 'area', height: 280, toolbar: { show: false } },
+            series: [{ name: 'Pullouts', data: chartValues(pulloutTimeline) }],
+            xaxis: { categories: chartCategories(pulloutTimeline) },
+            colors: ['#dc3545'],
+            stroke: { curve: 'smooth', width: 3 },
+            fill: { opacity: 0.22 },
+            dataLabels: { enabled: false },
+            grid: { borderColor: '#e9ecef' }
+        }).render();
+    } else {
+        renderEmptyChart('#pulloutTimelineChart', 'No pullout data available.');
+    }
+
+    if (machineYearly.length) {
+        const years = [...new Set(machineYearly.map(function (row) { return String(row.year); }))];
+        const machineNames = [...new Set(machineYearly.map(function (row) { return row.machine; }))];
+        const machineSeries = machineNames.map(function (machine) {
+            return {
+                name: machine,
+                data: years.map(function (year) {
+                    const row = machineYearly.find(function (item) {
+                        return String(item.year) === year && item.machine === machine;
+                    });
+                    return Number(row?.total || 0);
+                })
+            };
+        });
+
+        new ApexCharts(document.querySelector('#machineYearlyChart'), {
+            chart: { type: 'line', height: 280, toolbar: { show: false } },
+            series: machineSeries,
+            xaxis: { categories: years },
+            stroke: { curve: 'smooth', width: 3 },
+            dataLabels: { enabled: false },
+            legend: { position: 'bottom' },
+            grid: { borderColor: '#e9ecef' }
+        }).render();
+    } else {
+        renderEmptyChart('#machineYearlyChart', 'No machine data available.');
+    }
+}
 
 </script>
 
