@@ -1,6 +1,26 @@
 
 <?= view('dashboard/layout/head') ?>
 
+<style>
+    html,
+    body {
+        min-height: 100%;
+        overflow-y: auto !important;
+    }
+
+    .main-wrapper {
+        min-height: 100vh;
+        overflow: visible;
+    }
+
+    #btn-more-model + .machine-count-menu {
+        height: 150px !important;
+        max-height: 150px !important;
+        overflow-y: scroll !important;
+        overflow-x: hidden !important;
+    }
+</style>
+
 <body>
 
 <?php if (session()->getFlashdata('error')): ?>
@@ -394,7 +414,7 @@
                                     </button>
 
 
-                                    <ul class="dropdown-menu dropdown-menu-end dropdown-menu-custom">
+                                    <ul class="dropdown-menu dropdown-menu-end dropdown-menu-custom machine-count-menu">
 
                                         <?php foreach ($machine_counts ?? [] as $machine): ?>
 
@@ -403,12 +423,12 @@
                                                 <button
                                                     type="button"
                                                     class="dropdown-item machine-count-item"
-                                                    data-machine="<?= esc($machine['Machine']) ?>"
+                                                    data-machine="<?= esc($machine['machine_label']) ?>"
                                                     data-total="<?= (int) $machine['total'] ?>">
 
                                                     <i class="bi bi-box"></i>
 
-                                                    <?= esc($machine['Machine']) ?>
+                                                    <?= esc($machine['machine_label']) ?>
 
                                                     (<?= number_format((int) $machine['total']) ?>)
 
@@ -606,6 +626,7 @@
                         <form
                             method="get"
                             action="<?= site_url('dashboard') ?>"
+                            id="clinicRecordsSearchForm"
                             class="d-flex gap-2 w-100 w-md-auto"
                             style="max-width: 420px;">
 
@@ -627,23 +648,27 @@
                             <input
                                 type="text"
                                 name="search"
+                                id="clinicRecordsSearch"
                                 value="<?= esc($search ?? '') ?>"
                                 class="form-control"
                                 placeholder="Search clinic, machine, model...">
 
 
-                            <button
+                            <!-- <button
                                 type="submit"
+                                id="clinicRecordsSearchButton"
                                 class="btn btn-primary">
 
                                 Search
 
-                            </button>
+                            </button> -->
 
 
                             <?php if (!empty($search)): ?>
 
-                                <a
+                                <button
+                                    type="button"
+                                    id="clinicRecordsReset"
                                     href="<?= site_url('dashboard') ?><?=
 
                                         (!empty($start_date) || !empty($end_date))
@@ -660,7 +685,7 @@
 
                                     Reset
 
-                                </a>
+                                </button>
 
                             <?php endif; ?>
 
@@ -679,7 +704,7 @@
 
                     <div class="table-responsive">
 
-                        <table class="table table-striped table-hover align-middle mb-0">
+                        <table id="clinicRecordsTable" class="table table-striped table-hover align-middle mb-0">
 
                             <thead class="table-dark">
 
@@ -894,15 +919,16 @@
 
 
                                 <tr>
-
-                                    <td
-                                        colspan="10"
-                                        class="text-center py-4 text-muted">
-
-                                        No records found.
-
-                                    </td>
-
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                    <td class="text-center py-4 text-muted">No records found.</td>
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
                                 </tr>
 
 
@@ -3235,6 +3261,41 @@ setTimeout(
     },
     5000
 );
+
+$(function () {
+    if (typeof $.fn.DataTable === 'undefined' || !$('#clinicRecordsTable').length) {
+        return;
+    }
+
+    const clinicRecordsTable = $('#clinicRecordsTable').DataTable({
+        paging: false,
+        searching: true,
+        ordering: true,
+        info: false,
+        autoWidth: false,
+        dom: 't'
+    });
+
+    const searchInput = $('#clinicRecordsSearch');
+
+    $('#clinicRecordsSearchForm').on('submit', function (event) {
+        event.preventDefault();
+        clinicRecordsTable.search(searchInput.val()).draw();
+    });
+
+    searchInput.on('input', function () {
+        clinicRecordsTable.search(this.value).draw();
+    });
+
+    $('#clinicRecordsReset').on('click', function () {
+        searchInput.val('');
+        clinicRecordsTable.search('').draw();
+    });
+
+    if (searchInput.val()) {
+        clinicRecordsTable.search(searchInput.val()).draw();
+    }
+});
 
 /* ==========================================================
    SUPPORT ANALYTICS CHARTS
