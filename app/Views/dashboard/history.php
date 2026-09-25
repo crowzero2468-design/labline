@@ -106,12 +106,15 @@
               <thead style="background: #f3f4f6;">
                 <tr>
                   <th>Ticket Number</th>
-                  <th>Date</th>
-                  <th>Clinic</th>
-                  <th>Machine</th>
-                  <th>Technician</th>
+                  <th>Clinic Name</th>
+                  <th>Province</th>
+                  <th>Address</th>
+                  <th>Reported Date</th>
                   <th>Concern</th>
-                  <th>Status</th>
+                  <th>Machine Status</th>
+                  <!-- <th>Service Status</th> -->
+                  <th>Service Engr</th>
+                  <th>Service Status</th>
                 </tr>
               </thead>
 
@@ -183,23 +186,35 @@
                       </td>
 
                       <td>
-                        <?= esc($ticket['support_date'] ?? '-') ?>
-                      </td>
-
-                      <td>
                         <?= esc($ticket['clinic_name'] ?? '-') ?>
                       </td>
 
                       <td>
-                        <?= esc($ticket['machine'] ?? '-') ?>
+                        <?= esc($ticket['province'] ?? '-') ?>
                       </td>
 
                       <td>
-                        <?= esc($ticket['technician'] ?? '-') ?>
+                        <?= esc($ticket['address'] ?? '-') ?>
+                      </td>
+
+                      <td>
+                        <?= esc($ticket['support_date'] ?? '-') ?>
                       </td>
 
                       <td>
                         <?= esc($ticket['concern'] ?? '-') ?>
+                      </td>
+
+                      <td>
+                        <?= esc($ticket['machine_status'] ?? '-') ?>
+                      </td>
+
+                      <!-- <td>
+                        <?= esc($ticket['service_status'] ?? '-') ?>
+                      </td> -->
+
+                      <td>
+                        <?= esc($ticket['service_engr'] ?? ($ticket['technician'] ?? '-')) ?>
                       </td>
 
                       <td>
@@ -225,22 +240,16 @@
                   -->
 
                   <tr>
-
+                    <td class="text-center text-muted py-4">No records</td>
                     <td></td>
-
                     <td></td>
-
                     <td></td>
-
-                    <td class="text-center text-muted py-4">
-                      No records</td>
-
                     <td></td>
-
                     <td></td>
-
                     <td></td>
-
+                    <td></td>
+                    <td></td>
+                    <td></td>
                   </tr>
 
                 <?php endif; ?>

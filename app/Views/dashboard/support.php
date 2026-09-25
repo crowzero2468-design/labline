@@ -368,42 +368,82 @@
               >
                   <option value="">Select clinic</option>
 
-                  <?php foreach ($clinics as $clinic): ?>
-                      <?php $clinicName = $clinic['Clinic_name'] ?? ''; ?>
+                    <?php
+                    $clinicOptions = [];
+                    foreach ($clinics as $clinic) {
+                      $clinicName = trim((string) ($clinic['Clinic_name'] ?? ''));
+                      $address = trim((string) ($clinic['Address'] ?? ''));
+                      $clinicKey = $clinicName . '|' . $address;
 
-                      <?php if ($clinicName !== ''): ?>
-                          <option value="<?= esc($clinicName) ?>">
-                              <?= esc($clinicName) ?>
-                          </option>
-                      <?php endif; ?>
+                      if ($clinicName === '') {
+                        continue;
+                      }
 
-                  <?php endforeach; ?>
+                      if (!isset($clinicOptions[$clinicKey])) {
+                        $clinicOptions[$clinicKey] = [
+                          'name' => $clinicName,
+                          'province' => $clinic['Province'] ?? '',
+                          'address' => $address,
+                          'machines' => [],
+                        ];
+                      }
+
+                      $machineName = trim((string) ($clinic['Machine'] ?? ''));
+                      if ($machineName !== '') {
+                        $clinicOptions[$clinicKey]['machines'][$machineName] = true;
+                      }
+                    }
+                    ?>
+
+                    <?php foreach ($clinicOptions as $clinicOption): ?>
+                      <?php $clinicMachines = htmlspecialchars(json_encode(array_keys($clinicOption['machines'])), ENT_QUOTES, 'UTF-8'); ?>
+                      <option value="<?= esc($clinicOption['name']) ?>"
+                          data-province="<?= esc($clinicOption['province']) ?>"
+                          data-address="<?= esc($clinicOption['address']) ?>"
+                          data-machines="<?= $clinicMachines ?>">
+                        <?= esc($clinicOption['name']) ?> | <?= esc($clinicOption['address']) ?>
+                      </option>
+                    <?php endforeach; ?>
               </select>
           </div>
 
             <div class="col-md-6">
               <label class="form-label">Machine</label>
-              <select class="form-select" name="machine" required>
+              <select class="form-select" name="machine" id="support_machine" required disabled>
                 <option value="">Select machine</option>
-                <?php foreach ($machines as $machine): ?>
-                  <?php $machineName = $machine['Machine'] ?? ''; ?>
-                  <?php if ($machineName !== ''): ?>
-                    <option value="<?= esc($machineName) ?>"><?= esc($machineName) ?></option>
-                  <?php endif; ?>
-                <?php endforeach; ?>
               </select>
             </div>
 
             <div class="col-md-6">
-              <label class="form-label">Technician</label>
-              <select class="form-select" name="technician" required>
-                <option value="">Select technician</option>
+              <label class="form-label">Province</label>
+              <input type="text" class="form-control" name="province" id="support_province" readonly>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label">Address</label>
+              <input type="text" class="form-control" name="address" id="support_address" readonly>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label">Service Engr</label>
+              <select class="form-select" name="service_engr" required>
+                <option value="">Select service engineer</option>
                 <?php foreach ($techs as $tech): ?>
                   <?php $techName = trim((($tech['fname'] ?? '') . ' ' . ($tech['lname'] ?? ''))); ?>
                   <?php if ($techName !== ''): ?>
                     <option value="<?= esc($techName) ?>"><?= esc($techName) ?></option>
                   <?php endif; ?>
                 <?php endforeach; ?>
+              </select>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label">Machine Status</label>
+              <select class="form-select" name="machine_status">
+                <option value="">Select machine status</option>
+                <option value="Operational">Operational</option>
+                <option value="Not Operational">Not Operational</option>
+                <option value="Fully Functional">Fully Functional</option>
               </select>
             </div>
 
@@ -498,6 +538,43 @@ $(document).ready(function () {
         minimumResultsForSearch: 0,
         dropdownParent: $('#supportTicketModal')
     });
+
+    function updateClinicFields() {
+      const clinicSelect = document.getElementById('clinic_name');
+      const machineSelect = document.getElementById('support_machine');
+      const provinceInput = document.getElementById('support_province');
+      const addressInput = document.getElementById('support_address');
+      const selected = clinicSelect?.options[clinicSelect.selectedIndex];
+      let machines = [];
+
+      try {
+        machines = JSON.parse(selected?.dataset.machines || '[]');
+      } catch (error) {
+        machines = [];
+      }
+
+      if (provinceInput) {
+        provinceInput.value = selected?.dataset.province || '';
+      }
+
+      if (addressInput) {
+        addressInput.value = selected?.dataset.address || '';
+      }
+
+      if (machineSelect) {
+        machineSelect.innerHTML = '<option value="">Select machine</option>';
+        machines.forEach(function (machine) {
+          const option = document.createElement('option');
+          option.value = machine;
+          option.textContent = machine;
+          machineSelect.appendChild(option);
+        });
+        machineSelect.disabled = machines.length === 0;
+      }
+    }
+
+    $('#clinic_name').on('change select2:select select2:clear', updateClinicFields);
+    updateClinicFields();
 
 });
   </script>

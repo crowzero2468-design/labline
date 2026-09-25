@@ -69,12 +69,12 @@ class SupportController extends BaseController
             ->getResultArray();
 
         $clinics = $database->table('tb_data')
-            ->select('Clinic_name')
+            ->select('Clinic_name, Province, Address, Machine')
             ->where('Clinic_name !=', '')
             ->where('Clinic_name IS NOT NULL', null, false)
             ->where('status', 'A')
-            ->groupBy('Clinic_name')
             ->orderBy('Clinic_name', 'ASC')
+            ->orderBy('Address', 'ASC')
             ->get()
             ->getResultArray();
 
@@ -112,15 +112,19 @@ class SupportController extends BaseController
     }
 
     $clinic = trim((string) $this->request->getPost('clinic_name'));
+    $province = trim((string) $this->request->getPost('province'));
+    $address = trim((string) $this->request->getPost('address'));
     $machine = trim((string) $this->request->getPost('machine'));
-    $technician = trim((string) $this->request->getPost('technician'));
+    $serviceEngr = trim((string) ($this->request->getPost('service_engr') ?? $this->request->getPost('technician')));
+    $machineStatus = trim((string) $this->request->getPost('machine_status'));
+    $serviceStatus = trim((string) $this->request->getPost('service_status'));
     $concern = trim((string) $this->request->getPost('concern'));
     $supportDate = trim((string) $this->request->getPost('support_date'));
 
     if (
         $clinic === '' ||
         $machine === '' ||
-        $technician === '' ||
+        $serviceEngr === '' ||
         $concern === ''
     ) {
         return redirect()->to(site_url('dashboard/support'))
@@ -200,8 +204,13 @@ class SupportController extends BaseController
     $supportTable->insert([
         'ticket_number' => $ticketNumber,
         'clinic_name'    => $clinic,
+        'province'       => $province,
+        'address'        => $address,
         'machine'        => $machine,
-        'technician'     => $technician,
+        'technician'     => $serviceEngr,
+        'service_engr'   => $serviceEngr,
+        'machine_status' => $machineStatus,
+        'service_status' => $serviceStatus,
         'concern'        => $concern,
         'support_date'   => $supportDate,
         'status'         => 'waiting',
@@ -410,7 +419,7 @@ class SupportController extends BaseController
         $dateTo = trim((string) ($this->request->getGet('date_to') ?? ''));
 
         $builder = $database->table('tb_support')
-            ->select('id, clinic_name, machine, technician, concern, support_date, status, created_at');
+            ->select('id, ticket_number, clinic_name, province, address, machine, machine_status, service_status, service_engr, technician, concern, support_date, status, created_at');
 
         if ($dateFrom !== '') {
             $builder->where('support_date >=', $dateFrom);
@@ -434,14 +443,19 @@ class SupportController extends BaseController
         header('Expires: 0');
 
         $output = fopen('php://output', 'w');
-        fputcsv($output, ['ID', 'Clinic', 'Machine', 'Technician', 'Concern', 'Support Date', 'Status', 'Created At']);
+        fputcsv($output, ['ID', 'Ticket Number', 'Clinic Name', 'Province', 'Address', 'Machine', 'Machine Status', 'Service Status', 'Service Engr', 'Concern', 'Reported Date', 'Status', 'Created At']);
 
         foreach ($rows as $row) {
             fputcsv($output, [
                 $row['id'] ?? '',
+                $row['ticket_number'] ?? '',
                 $row['clinic_name'] ?? '',
+                $row['province'] ?? '',
+                $row['address'] ?? '',
                 $row['machine'] ?? '',
-                $row['technician'] ?? '',
+                $row['machine_status'] ?? '',
+                $row['service_status'] ?? '',
+                $row['service_engr'] ?? ($row['technician'] ?? ''),
                 $row['concern'] ?? '',
                 $row['support_date'] ?? '',
                 $row['status'] ?? '',
@@ -512,9 +526,14 @@ class SupportController extends BaseController
             "CREATE TABLE IF NOT EXISTS tb_support (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 clinic_name VARCHAR(255) NULL,
+                province VARCHAR(255) NULL,
+                address VARCHAR(500) NULL,
                 machine VARCHAR(255) NULL,
                 technician VARCHAR(255) NULL,
                 concern TEXT NULL,
+                machine_status VARCHAR(50) NULL,
+                service_status VARCHAR(50) NULL,
+                service_engr VARCHAR(255) NULL,
                 remarks TEXT NULL,
                 support_date DATE NULL,
                 status VARCHAR(20) NOT NULL DEFAULT 'waiting',
@@ -530,6 +549,21 @@ class SupportController extends BaseController
         $remarksFieldResult = $database->query("SHOW COLUMNS FROM tb_support LIKE 'remarks'");
         if ($remarksFieldResult->getNumRows() === 0) {
             $database->query("ALTER TABLE tb_support ADD COLUMN remarks TEXT NULL AFTER concern");
+        }
+
+        $supportFields = [
+            'province' => "ALTER TABLE tb_support ADD COLUMN province VARCHAR(255) NULL AFTER clinic_name",
+            'address' => "ALTER TABLE tb_support ADD COLUMN address VARCHAR(500) NULL AFTER province",
+            'machine_status' => "ALTER TABLE tb_support ADD COLUMN machine_status VARCHAR(50) NULL AFTER concern",
+            'service_status' => "ALTER TABLE tb_support ADD COLUMN service_status VARCHAR(50) NULL AFTER machine_status",
+            'service_engr' => "ALTER TABLE tb_support ADD COLUMN service_engr VARCHAR(255) NULL AFTER technician",
+        ];
+
+        foreach ($supportFields as $field => $alterQuery) {
+            $fieldResult = $database->query("SHOW COLUMNS FROM tb_support LIKE '{$field}'");
+            if ($fieldResult->getNumRows() === 0) {
+                $database->query($alterQuery);
+            }
         }
 
         $acceptedAtFieldResult = $database->query("SHOW COLUMNS FROM tb_support LIKE 'accepted_at'");
