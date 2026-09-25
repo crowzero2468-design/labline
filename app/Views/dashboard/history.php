@@ -132,18 +132,23 @@
                     $statusLabels = [
 
                         'waiting' => [
-                            'label' => 'Waiting',
+                          'label' => 'Not Started',
                             'class' => 'warning'
                         ],
 
                         'ongoing' => [
-                            'label' => 'Ongoing',
+                          'label' => 'In Progress',
                             'class' => 'primary'
                         ],
 
                         'done' => [
-                            'label' => 'Done',
+                          'label' => 'Completed',
                             'class' => 'success'
+                        ],
+
+                        'on_hold' => [
+                          'label' => 'On Hold',
+                          'class' => 'secondary'
                         ],
 
                         'pullout' => [
@@ -169,6 +174,16 @@
                             'label' => ucfirst($status),
                             'class' => 'secondary'
                         ];
+
+                    if (
+                      $status === 'pullout' &&
+                      strtolower((string) ($ticket['returnstat'] ?? '')) === 'return'
+                    ) {
+                      $statusInfo = [
+                        'label' => 'Return',
+                        'class' => 'success'
+                      ];
+                    }
                     ?>
 
                     <tr class="history-row" role="button"
@@ -290,6 +305,10 @@
                   <span class="timeline-dot bg-warning"></span>
                   <div><strong>Pullout returned</strong><small id="timelineReturned">Not recorded</small></div>
                 </div>
+                <div class="timeline-item">
+                  <span class="timeline-dot bg-info"></span>
+                  <div><strong>Service duration</strong><small id="timelineDuration">Not completed</small></div>
+                </div>
               </div>
               <div class="d-none" id="clinicHistory">
                 <div class="table-responsive">
@@ -299,6 +318,7 @@
                         <th>Time Called</th>
                         <th>History</th>
                         <th>Status</th>
+                        <th>Duration</th>
                       </tr>
                     </thead>
                     <tbody id="clinicHistoryBody"></tbody>
@@ -330,6 +350,32 @@
           $(selector).text(formatTimelineDate(value));
         }
 
+        function formatDuration(startValue, endValue) {
+          if (!startValue || !endValue) {
+            return 'Not completed';
+          }
+
+          const start = new Date(startValue.replace(' ', 'T'));
+          const end = new Date(endValue.replace(' ', 'T'));
+          const milliseconds = end.getTime() - start.getTime();
+
+          if (Number.isNaN(milliseconds) || milliseconds < 0) {
+            return 'Not available';
+          }
+
+          const totalMinutes = Math.floor(milliseconds / 60000);
+          const days = Math.floor(totalMinutes / 1440);
+          const hours = Math.floor((totalMinutes % 1440) / 60);
+          const minutes = totalMinutes % 60;
+          const parts = [];
+
+          if (days) parts.push(days + 'd');
+          if (hours) parts.push(hours + 'h');
+          if (minutes || !parts.length) parts.push(minutes + 'm');
+
+          return parts.join(' ');
+        }
+
         function showTicketTimeline(row) {
           const returned = row.data('returned');
 
@@ -344,6 +390,10 @@
           setTimelineValue('#timelineUpdated', row.data('updated'));
           setTimelineValue('#timelineReturned', returned);
           $('#timelineReturnItem').toggleClass('d-none', !returned);
+          $('#timelineDuration').text(formatDuration(
+            row.data('inputed'),
+            returned || (row.data('status') === 'Completed' ? row.data('updated') : '')
+          ));
         }
 
         function showClinicHistory(clinic) {
@@ -352,9 +402,12 @@
           });
           const historyRows = matchingRows.map(function () {
             const row = $(this);
+            const durationEnd = row.data('returned') ||
+              (row.data('status') === 'Completed' ? row.data('updated') : '');
             return '<tr><td>' + formatTimelineDate(row.data('inputed')) + '</td><td>' +
               $('<div>').text(row.data('concern') || '-').html() + '</td><td>' +
-              $('<span>').text(row.data('status') || '-').html() + '</td></tr>';
+              $('<span>').text(row.data('status') || '-').html() + '</td><td>' +
+              formatDuration(row.data('inputed'), durationEnd) + '</td></tr>';
           }).get().join('');
 
           $('#historyTimeline .card-title').text('Clinic History');
@@ -363,7 +416,7 @@
           $('#timelineEmpty').addClass('d-none');
           $('#timelineEvents').addClass('d-none');
           $('#clinicHistory').removeClass('d-none');
-          $('#clinicHistoryBody').html(historyRows || '<tr><td colspan="3" class="text-muted">No history found.</td></tr>');
+          $('#clinicHistoryBody').html(historyRows || '<tr><td colspan="4" class="text-muted">No history found.</td></tr>');
         }
 
         const historyTable = $('#historyTable').DataTable({
