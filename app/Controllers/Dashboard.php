@@ -210,9 +210,9 @@ class Dashboard extends BaseController
                     "CASE
                         WHEN Machine IN ('Hematology', 'Hematology Analyzer') THEN 'Hematology Analyzer'
                         WHEN Machine IN ('Chemistry', 'Chemistry Analyzer') THEN 'Chemistry Analyzer'
-                        WHEN Machine IN ('Urine', 'Urine Analyzer') THEN 'Urine Analyzer'
+                        WHEN Machine IN ('Urine', 'Urine Analyzer', 'VU10') THEN 'Urine Analyzer'
+                        WHEN Machine IN ('Ultrasound', 'UTZ') THEN 'Ultrasound'
                         WHEN Machine = 'Xray' THEN 'Xray'
-                        WHEN Machine = 'Ultrasound' THEN 'Ultrasound'
                     END AS machine_label, COUNT(*) AS total",
                     false
                 )
@@ -223,8 +223,10 @@ class Dashboard extends BaseController
                     'Chemistry Analyzer',
                     'Urine',
                     'Urine Analyzer',
+                    'VU10',
                     'Xray',
                     'Ultrasound',
+                    'UTZ',
                 ])
                 ->groupBy('machine_label')
                 ->orderBy('total', 'DESC')
