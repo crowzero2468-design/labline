@@ -20,6 +20,16 @@ class CreateTbSupport extends Migration
                 'constraint' => 255,
                 'null' => true,
             ],
+            'province' => [
+                'type' => 'VARCHAR',
+                'constraint' => 255,
+                'null' => true,
+            ],
+            'address' => [
+                'type' => 'VARCHAR',
+                'constraint' => 500,
+                'null' => true,
+            ],
             'machine' => [
                 'type' => 'VARCHAR',
                 'constraint' => 255,
@@ -32,6 +42,21 @@ class CreateTbSupport extends Migration
             ],
             'concern' => [
                 'type' => 'TEXT',
+                'null' => true,
+            ],
+            'machine_status' => [
+                'type' => 'VARCHAR',
+                'constraint' => 50,
+                'null' => true,
+            ],
+            'service_status' => [
+                'type' => 'VARCHAR',
+                'constraint' => 50,
+                'null' => true,
+            ],
+            'service_engr' => [
+                'type' => 'VARCHAR',
+                'constraint' => 255,
                 'null' => true,
             ],
             'support_date' => [
