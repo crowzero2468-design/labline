@@ -71,7 +71,8 @@
                   <?php endforeach; ?>
                 <?php else: ?>
                   <tr>
-                    <td colspan="2" class="text-center text-muted py-4">No clinic records found.</td>
+                    <td class="text-center text-muted py-4">No clinic records found.</td>
+                    <td></td>
                   </tr>
                 <?php endif; ?>
               </tbody>
