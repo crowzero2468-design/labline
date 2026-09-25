@@ -364,6 +364,41 @@ class RotorController extends BaseController
             );
     }
 
+    public function advanceStatus()
+    {
+        $id = (int) $this->request->getPost('id');
+
+        $nextStatuses = [
+            'Report by Clinic' => 'Report to Manufacture',
+            'Report to Manufacture' => 'Order',
+            'Order' => 'Delivered',
+        ];
+
+        $record = $this->db
+            ->table($this->table)
+            ->select('status')
+            ->where('id', $id)
+            ->get()
+            ->getRowArray();
+
+        $currentStatus = $record['status'] ?? 'Report by Clinic';
+
+        if ($id <= 0 || !isset($nextStatuses[$currentStatus])) {
+            return redirect()
+                ->back()
+                ->with('error', 'This replacement report cannot advance to another status.');
+        }
+
+        $this->db
+            ->table($this->table)
+            ->where('id', $id)
+            ->update(['status' => $nextStatuses[$currentStatus]]);
+
+        return redirect()
+            ->back()
+            ->with('success', 'Replacement status updated to ' . $nextStatuses[$currentStatus] . '.');
+    }
+
     /**
      * ==========================================================
      * PRINT ROTOR REPLACEMENT REPORT

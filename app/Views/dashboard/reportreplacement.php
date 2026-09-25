@@ -531,9 +531,19 @@
                                                 $recordStatus = $record['status'] ?? 'Report by Clinic';
                                                 $statusClass = $recordStatus === 'Delivered' ? 'success' : ($recordStatus === 'Order' ? 'primary' : ($recordStatus === 'Report to Manufacture' ? 'warning text-dark' : 'secondary'));
                                                 ?>
-                                                <span class="badge bg-<?= esc($statusClass) ?>">
-                                                    <?= esc($recordStatus) ?>
-                                                </span>
+                                                <?php if ($recordStatus !== 'Delivered'): ?>
+                                                    <form method="post" action="<?= site_url('rotor_replace/advance-status') ?>" class="d-inline">
+                                                        <?= csrf_field() ?>
+                                                        <input type="hidden" name="id" value="<?= esc($record['id'] ?? '') ?>">
+                                                        <button type="submit" class="badge border-0 bg-<?= esc($statusClass) ?>" title="Advance status">
+                                                            <?= esc($recordStatus) ?>
+                                                        </button>
+                                                    </form>
+                                                <?php else: ?>
+                                                    <span class="badge bg-success">
+                                                        Delivered
+                                                    </span>
+                                                <?php endif; ?>
                                             </td>
 
                                             <td>
@@ -971,13 +981,18 @@
                                         Concern
                                     </label>
 
-                                    <textarea
+                                    <select
                                         name="concern"
                                         id="concern"
-                                        class="form-control"
-                                        rows="3"
-                                        placeholder="Enter concern"
-                                    ></textarea>
+                                        class="form-select"
+                                        required
+                                    >
+                                        <option value="">-- Select Concern --</option>
+                                        <option value="Reagent disk fault">Reagent disk fault</option>
+                                        <option value="Equipment failure">Equipment failure</option>
+                                        <option value="Insufficient sample or coagulation">Insufficient sample or coagulation</option>
+                                        <option value="Machine error">Machine error</option>
+                                    </select>
 
                                 </div>
 
@@ -1356,12 +1371,18 @@
                                         Concern
                                     </label>
 
-                                    <textarea
+                                    <select
                                         name="concern"
                                         id="edit_concern"
-                                        class="form-control"
-                                        rows="3"
-                                    ></textarea>
+                                        class="form-select"
+                                        required
+                                    >
+                                        <option value="">-- Select Concern --</option>
+                                        <option value="Reagent disk fault">Reagent disk fault</option>
+                                        <option value="Equipment failure">Equipment failure</option>
+                                        <option value="Insufficient sample or coagulation">Insufficient sample or coagulation</option>
+                                        <option value="Machine error">Machine error</option>
+                                    </select>
 
                                 </div>
 
