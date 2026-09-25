@@ -93,6 +93,7 @@ $routes->get('rotor_replace', 'RotorController::index');
 $routes->post('rotor_replace/save', 'RotorController::save');
 $routes->get('rotor_replace/print', 'RotorController::printReport');
 $routes->post('rotor_replace/update', 'RotorController::update');
+$routes->post('rotor_replace/advance-status', 'RotorController::advanceStatus');
 $routes->post('rotor_replace/delete/(:num)', 'RotorController::delete/$1');
 
 
