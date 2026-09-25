@@ -1,6 +1,57 @@
 <script>
 $(document).ready(function () {
 
+    function populateEditMfsMachines(selectedMachine, selectedSerial) {
+        const accountSelect = document.getElementById('edit_accounts');
+        const machineSelect = document.getElementById('edit_machine');
+        const addressInput = document.getElementById('edit_address');
+        const serialInput = document.getElementById('edit_serial_number');
+
+        if (!accountSelect || !machineSelect) {
+            return;
+        }
+
+        const option = accountSelect.options[accountSelect.selectedIndex];
+        let machines = {};
+
+        try {
+            machines = JSON.parse(option?.dataset.machines || '{}');
+        }
+        catch (error) {
+            machines = {};
+        }
+
+        if (addressInput) {
+            addressInput.value = option?.dataset.address || '';
+        }
+
+        machineSelect.innerHTML = '<option value="">-- Select Machine --</option>';
+
+        Object.keys(machines).forEach(function (machine) {
+            const machineOption = document.createElement('option');
+            machineOption.value = machine;
+            machineOption.textContent = machine;
+            machineSelect.appendChild(machineOption);
+        });
+
+        machineSelect.disabled = Object.keys(machines).length === 0;
+        machineSelect.value = selectedMachine || '';
+
+        if (serialInput) {
+            serialInput.value = selectedMachine && machines[selectedMachine]
+                ? machines[selectedMachine]
+                : (selectedSerial || '');
+        }
+    }
+
+    $('#edit_accounts').on('change', function () {
+        populateEditMfsMachines('', '');
+    });
+
+    $('#edit_machine').on('change', function () {
+        populateEditMfsMachines(this.value, '');
+    });
+
     // ============================================================
     // MFS DATATABLE
     // ============================================================
@@ -79,8 +130,8 @@ $(document).ready(function () {
                     r.mfs_number ?? ''
                 );
 
-                $('#edit_employee').val(
-                    r.employee ?? ''
+                $('#edit_service_eng_id').val(
+                    r.service_eng_id ?? ''
                 );
 
                 $('#edit_accounts').val(
@@ -99,8 +150,9 @@ $(document).ready(function () {
                     r.unit ?? ''
                 );
 
-                $('#edit_machine').val(
-                    r.machine ?? ''
+                populateEditMfsMachines(
+                    r.machine ?? '',
+                    r.serial_number ?? ''
                 );
 
                 $('#edit_serial_number').val(

@@ -274,6 +274,7 @@ foreach (($accounts ?? []) as $a) {
                             <th>Remarks</th>
                             <th>Action Made</th>
                             <th>Acknowledge</th>
+                            <th>Action</th>
                         </tr>
                     </thead>
 
@@ -339,6 +340,26 @@ foreach (($accounts ?? []) as $a) {
                                     <?php endif; ?>
                                 </td>
 
+                                <td class="text-nowrap">
+                                    <button type="button"
+                                            class="btn btn-sm btn-outline-success edit-fsr-btn"
+                                            data-id="<?= (int) $r['id'] ?>">
+                                        <i class="bi bi-pencil-square"></i>
+                                        Edit
+                                    </button>
+
+                                    <form method="post"
+                                          action="<?= site_url('fsr/delete/' . (int) $r['id']) ?>"
+                                          class="d-inline"
+                                          onsubmit="return confirm('Delete this FSR record?');">
+                                        <?= csrf_field() ?>
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                                            <i class="bi bi-trash"></i>
+                                            Delete
+                                        </button>
+                                    </form>
+                                </td>
+
                             </tr>
 
                         <?php endforeach; ?>
@@ -359,6 +380,103 @@ foreach (($accounts ?? []) as $a) {
 
     </div>
 
+</div>
+
+<!-- ==========================================
+     EDIT FSR MODAL
+     ========================================== -->
+
+<div class="modal fade" id="editFsrModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <form id="editFsrForm" method="post">
+                <?= csrf_field() ?>
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit FSR Record</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <div class="modal-body">
+                    <div id="editFsrMessage" class="alert d-none"></div>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">FSR Number</label>
+                            <input class="form-control" id="edit_fsr_number" name="fsr_number" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Service Engineer</label>
+                            <select class="form-select" id="edit_fsr_service_eng_id" name="service_eng_id" required>
+                                <option value="">-- Select Service Engineer --</option>
+                                <?php foreach (($users ?? []) as $u): ?>
+                                    <?php $fullName = trim(($u['fname'] ?? '') . ' ' . ($u['lname'] ?? '')); ?>
+                                    <option value="<?= (int) $u['id'] ?>"><?= esc($fullName !== '' ? $fullName : ($u['uname'] ?? '')) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Date</label>
+                            <input type="date" class="form-control" id="edit_fsr_date" name="date">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Account</label>
+                            <select class="form-select" id="edit_fsr_account" name="account" required>
+                                <option value="">-- Select Account --</option>
+                                <?php foreach ($clinicMap as $clinicName => $info): ?>
+                                    <?php $machinesJson = htmlspecialchars(json_encode($info['machines']), ENT_QUOTES, 'UTF-8'); ?>
+                                    <option value="<?= esc($clinicName) ?>"
+                                            data-address="<?= esc($info['address']) ?>"
+                                            data-machines="<?= $machinesJson ?>">
+                                        <?= esc($clinicName) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Address</label>
+                            <textarea class="form-control" id="edit_fsr_address" name="address" rows="2"></textarea>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Machine</label>
+                            <select class="form-select" id="edit_fsr_machine" name="machine" required disabled>
+                                <option value="">-- Select Machine --</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Serial Number</label>
+                            <input class="form-control" id="edit_fsr_serial" name="serial_number">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Acknowledge</label>
+                            <select class="form-select" id="edit_fsr_acknowledge" name="acknowledge">
+                                <option value="">-- Select --</option>
+                                <option value="Yes">Yes</option>
+                                <option value="No">No</option>
+                            </select>
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label">Technical Concern</label>
+                            <textarea class="form-control" id="edit_fsr_technical_concern" name="technical_concern" rows="2"></textarea>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Remarks</label>
+                            <textarea class="form-control" id="edit_fsr_remarks" name="remarks" rows="3"></textarea>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Action Made</label>
+                            <textarea class="form-control" id="edit_fsr_action_made" name="action_made" rows="3"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="saveEditFsrBtn">
+                        <i class="bi bi-save me-1"></i> Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 
 
@@ -743,6 +861,81 @@ foreach (($accounts ?? []) as $a) {
 
 document.addEventListener('DOMContentLoaded', function () {
 
+    const editFsrModal = document.getElementById('editFsrModal');
+    const editFsrForm = document.getElementById('editFsrForm');
+    const editFsrMessage = document.getElementById('editFsrMessage');
+
+    function showEditFsrMessage(message, type) {
+        editFsrMessage.className = 'alert alert-' + type;
+        editFsrMessage.textContent = message;
+    }
+
+    document.querySelectorAll('.edit-fsr-btn').forEach(function (button) {
+        button.addEventListener('click', function () {
+            const id = button.dataset.id;
+            editFsrForm.reset();
+            editFsrForm.dataset.id = id;
+            editFsrMessage.className = 'alert d-none';
+
+            fetch('<?= site_url('fsr/edit/') ?>' + id, {
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(function (response) { return response.json(); })
+            .then(function (result) {
+                if (!result.success) {
+                    throw new Error(result.message || 'Unable to load FSR.');
+                }
+
+                const data = result.data || {};
+                document.getElementById('edit_fsr_number').value = data.fsr_number || '';
+                document.getElementById('edit_fsr_service_eng_id').value = data.service_eng_id || '';
+                document.getElementById('edit_fsr_date').value = data.date || '';
+                document.getElementById('edit_fsr_account').value = data.account || '';
+                populateEditMachines(data.machine || '', data.serial_number || '');
+                document.getElementById('edit_fsr_acknowledge').value = data.acknowledge || '';
+                document.getElementById('edit_fsr_technical_concern').value = data.technical_concern || '';
+                document.getElementById('edit_fsr_remarks').value = data.remarks || '';
+                document.getElementById('edit_fsr_action_made').value = data.action_made || '';
+                bootstrap.Modal.getOrCreateInstance(editFsrModal).show();
+            })
+            .catch(function (error) {
+                showEditFsrMessage(error.message, 'danger');
+                bootstrap.Modal.getOrCreateInstance(editFsrModal).show();
+            });
+        });
+    });
+
+    editFsrForm.addEventListener('submit', function (event) {
+        event.preventDefault();
+        const button = document.getElementById('saveEditFsrBtn');
+        button.disabled = true;
+
+        fetch('<?= site_url('fsr/update/') ?>' + editFsrForm.dataset.id, {
+            method: 'POST',
+            body: new FormData(editFsrForm),
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(function (response) { return response.json(); })
+        .then(function (result) {
+            if (!result.success) {
+                throw new Error(result.message || 'Unable to update FSR.');
+            }
+
+            bootstrap.Modal.getInstance(editFsrModal).hide();
+            window.location.reload();
+        })
+        .catch(function (error) {
+            showEditFsrMessage(error.message, 'danger');
+            button.disabled = false;
+        });
+    });
+
     const accountSelect =
         document.getElementById('fsr_account');
 
@@ -754,6 +947,81 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const serialInput =
         document.getElementById('fsr_serial');
+
+    const editAccountSelect =
+        document.getElementById('edit_fsr_account');
+
+    const editAddressInput =
+        document.getElementById('edit_fsr_address');
+
+    const editMachineSelect =
+        document.getElementById('edit_fsr_machine');
+
+    const editSerialInput =
+        document.getElementById('edit_fsr_serial');
+
+    function populateEditMachines(selectedMachine, selectedSerial) {
+        if (!editAccountSelect || !editMachineSelect) {
+            return;
+        }
+
+        const selectedOption = editAccountSelect.options[editAccountSelect.selectedIndex];
+        const address = selectedOption?.dataset.address || '';
+        let machines = {};
+
+        try {
+            machines = JSON.parse(selectedOption?.dataset.machines || '{}');
+        }
+        catch (error) {
+            machines = {};
+        }
+
+        if (editAddressInput) {
+            editAddressInput.value = address;
+        }
+
+        editMachineSelect.innerHTML = '<option value="">-- Select Machine --</option>';
+
+        Object.keys(machines).forEach(function (machine) {
+            const option = document.createElement('option');
+            option.value = machine;
+            option.textContent = machine;
+            editMachineSelect.appendChild(option);
+        });
+
+        editMachineSelect.disabled = Object.keys(machines).length === 0;
+        editMachineSelect.value = selectedMachine || '';
+
+        if (editSerialInput) {
+            editSerialInput.value = selectedMachine && machines[selectedMachine]
+                ? machines[selectedMachine]
+                : (selectedSerial || '');
+        }
+    }
+
+    if (editAccountSelect) {
+        editAccountSelect.addEventListener('change', function () {
+            populateEditMachines('', '');
+        });
+    }
+
+    if (editMachineSelect) {
+        editMachineSelect.addEventListener('change', function () {
+            const selectedOption = editAccountSelect?.options[editAccountSelect.selectedIndex];
+            let machines = {};
+
+            try {
+                machines = JSON.parse(selectedOption?.dataset.machines || '{}');
+            }
+            catch (error) {
+                machines = {};
+            }
+
+            if (editSerialInput) {
+                editSerialInput.value = machines[this.value] || '';
+            }
+        });
+    }
 
 
     let currentMachines = {};

@@ -463,6 +463,138 @@ class Fsr extends BaseController
     }
 
 
+    public function edit($id)
+    {
+        if (!session()->get('logged_in')) {
+            return $this->response->setStatusCode(401)->setJSON([
+                'success' => false,
+                'message' => 'Please login first.'
+            ]);
+        }
+
+        $record = db_connect()->table('tb_fsr')->where('id', (int) $id)->get()->getRowArray();
+
+        if (!$record) {
+            return $this->response->setStatusCode(404)->setJSON([
+                'success' => false,
+                'message' => 'FSR record not found.'
+            ]);
+        }
+
+        $serviceEngId = 0;
+        if (db_connect()->tableExists('tb_user')) {
+            $users = db_connect()->table('tb_user')->select('id,fname,lname,uname')->get()->getResultArray();
+            foreach ($users as $user) {
+                $name = trim(($user['fname'] ?? '') . ' ' . ($user['lname'] ?? ''));
+                $name = $name !== '' ? $name : trim((string) ($user['uname'] ?? ''));
+                if (strcasecmp($name, (string) ($record['service_engineer'] ?? '')) === 0) {
+                    $serviceEngId = (int) $user['id'];
+                    break;
+                }
+            }
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'data' => array_merge($record, ['service_eng_id' => $serviceEngId])
+        ]);
+    }
+
+    public function update($id)
+    {
+        if (!session()->get('logged_in')) {
+            return $this->response->setStatusCode(401)->setJSON([
+                'success' => false,
+                'message' => 'Please login first.'
+            ]);
+        }
+
+        $database = db_connect();
+        $record = $database->table('tb_fsr')->where('id', (int) $id)->get()->getRowArray();
+
+        if (!$record) {
+            return $this->response->setStatusCode(404)->setJSON([
+                'success' => false,
+                'message' => 'FSR record not found.'
+            ]);
+        }
+
+        $serviceEngineer = trim((string) $this->request->getPost('service_engineer'));
+        $serviceEngId = (int) $this->request->getPost('service_eng_id');
+
+        if ($serviceEngId > 0 && $database->tableExists('tb_user')) {
+            $user = $database->table('tb_user')->where('id', $serviceEngId)->get()->getRowArray();
+
+            if ($user) {
+                $serviceEngineer = trim(($user['fname'] ?? '') . ' ' . ($user['lname'] ?? ''));
+                $serviceEngineer = $serviceEngineer !== '' ? $serviceEngineer : trim((string) ($user['uname'] ?? ''));
+            }
+        }
+
+        if ($serviceEngineer === '' || trim((string) $this->request->getPost('account')) === '' || trim((string) $this->request->getPost('machine')) === '') {
+            return $this->response->setStatusCode(422)->setJSON([
+                'success' => false,
+                'message' => 'Please fill in Service Engineer, Account and Machine.'
+            ]);
+        }
+
+        $fsrNumber = trim((string) $this->request->getPost('fsr_number'));
+        if (preg_match('/^\d+$/', $fsrNumber)) {
+            $fsrNumber = str_pad($fsrNumber, 6, '0', STR_PAD_LEFT);
+        }
+
+        $updated = $database->table('tb_fsr')->where('id', (int) $id)->update([
+            'fsr_number' => $fsrNumber,
+            'service_engineer' => $serviceEngineer,
+            'account' => trim((string) $this->request->getPost('account')),
+            'address' => trim((string) $this->request->getPost('address')),
+            'date' => trim((string) $this->request->getPost('date')) ?: null,
+            'machine' => trim((string) $this->request->getPost('machine')),
+            'serial_number' => trim((string) $this->request->getPost('serial_number')),
+            'technical_concern' => trim((string) $this->request->getPost('technical_concern')),
+            'remarks' => trim((string) $this->request->getPost('remarks')),
+            'action_made' => trim((string) $this->request->getPost('action_made')),
+            'acknowledge' => trim((string) $this->request->getPost('acknowledge'))
+        ]);
+
+        if (!$updated) {
+            return $this->response->setStatusCode(500)->setJSON([
+                'success' => false,
+                'message' => 'Failed to update FSR record.'
+            ]);
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'message' => 'FSR record updated successfully.'
+        ]);
+    }
+
+    public function delete($id): RedirectResponse
+    {
+        if (!session()->get('logged_in')) {
+            return redirect()->to(site_url('login'))->with('error', 'Please login first.');
+        }
+
+        $database = db_connect();
+        $id = (int) $id;
+
+        if (!$database->table('tb_fsr')->where('id', $id)->countAllResults()) {
+            return redirect()->back()->with('error', 'FSR record not found.');
+        }
+
+        if ($database->tableExists('tb_pms')) {
+            $database->table('tb_pms')->where('fsr', $id)->update(['fsr' => null]);
+        }
+
+        $deleted = $database->table('tb_fsr')->where('id', $id)->delete();
+
+        return redirect()->back()->with(
+            $deleted ? 'success' : 'error',
+            $deleted ? 'FSR record deleted successfully.' : 'Failed to delete FSR record.'
+        );
+    }
+
     /*
      * ==========================================
      * EXPORT FSR

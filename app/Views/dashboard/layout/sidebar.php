@@ -161,8 +161,15 @@
                       </a>
                   </li>
 
-                  
-      </div>
+            
+          <li class="sidebar-menu-item">
+                      <a href="<?= site_url('404') ?>" class="sidebar-menu-link <?= ($currentUri === '404') ? 'active' : '' ?>" id="menu-map" title="Clinic Map">
+                        <i class="bi bi-geo-alt-fill"></i>
+                        <span>Accounting</span>
+                      </a>
+                    </li>
+                            
+                </div>
 
       <!-- Group: Pages -->
       <!-- <div class="sidebar-menu-section">

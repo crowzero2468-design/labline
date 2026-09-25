@@ -711,6 +711,28 @@ public function edit($id)
             ]);
     }
 
+    $serviceEngId = 0;
+
+    if ($database->tableExists('tb_user')) {
+        $users = $database
+            ->table('tb_user')
+            ->select('id,fname,lname,uname')
+            ->get()
+            ->getResultArray();
+
+        foreach ($users as $user) {
+            $name = trim(($user['fname'] ?? '') . ' ' . ($user['lname'] ?? ''));
+            $name = $name !== '' ? $name : trim((string) ($user['uname'] ?? ''));
+
+            if (strcasecmp($name, (string) ($mfs['employee'] ?? '')) === 0) {
+                $serviceEngId = (int) $user['id'];
+                break;
+            }
+        }
+    }
+
+    $mfs['service_eng_id'] = $serviceEngId;
+
     return $this->response->setJSON([
         'success' => true,
         'data' => $mfs
@@ -785,6 +807,22 @@ public function update($id)
     $employee = trim(
         (string) $this->request->getPost('employee')
     );
+
+    $serviceEngId = (int) ($this->request->getPost('service_eng_id') ?? 0);
+
+    if ($serviceEngId > 0 && $database->tableExists('tb_user')) {
+        $user = $database
+            ->table('tb_user')
+            ->select('fname,lname,uname')
+            ->where('id', $serviceEngId)
+            ->get()
+            ->getRowArray();
+
+        if ($user) {
+            $employee = trim(($user['fname'] ?? '') . ' ' . ($user['lname'] ?? ''));
+            $employee = $employee !== '' ? $employee : trim((string) ($user['uname'] ?? ''));
+        }
+    }
 
     $accounts = trim(
         (string) $this->request->getPost('accounts')
