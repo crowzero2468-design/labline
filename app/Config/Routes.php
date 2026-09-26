@@ -23,6 +23,10 @@ $routes->get('dashboard/users', 'UserController::index');
 $routes->get('dashboard/support', 'SupportController::index');
 $routes->get('dashboard/history', 'SupportController::history');
 $routes->get('dashboard/history/export', 'SupportController::exportHistory');
+
+$routes->post('dashboard/history/update', 'SupportController::update');
+$routes->post('dashboard/history/delete', 'SupportController::delete');
+
 $routes->get('dashboard/history/export-clinic-counts', 'SupportController::exportClinicCounts');
 $routes->get('support', 'SupportController::index');
 $routes->get('history', 'SupportController::history');

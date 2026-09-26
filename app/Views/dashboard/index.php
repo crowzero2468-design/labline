@@ -3056,33 +3056,79 @@ $(document).ready(function () {
              * ACTIONS
              */
 
-            {
+           {
                 data: null,
-
                 orderable: false,
-
                 searchable: false,
-
                 className: 'text-center',
 
                 render: function (data, type, row) {
 
-                    const id =
-                        Number(row.id || 0);
+                    const id = Number(row.id || 0);
+                    const contractId = Number(row.contract_id || 0);
 
                     return `
+                        <div class="d-flex justify-content-center align-items-center gap-1 flex-wrap">
 
-                        <div
-                            class="d-flex justify-content-center
-                                   align-items-center
-                                   gap-1
-                                   flex-wrap">
+                            <!-- ==========================================
+                                VIEW CONTRACT
+                                ========================================== -->
+
+                            ${
+                                contractId > 0
+                                ? `
+                                    <button
+                                        type="button"
+                                        class="btn btn-outline-success btn-sm dt-view-contract"
+                                        data-id="${id}"
+                                        data-contract-id="${contractId}"
+                                        title="View Contract">
+
+                                        <i class="bi bi-file-earmark-text"></i>
+                                        View
+
+                                    </button>
+                                `
+                                : `
+                                    <span
+                                        class="badge bg-warning text-dark"
+                                        title="No contract attached">
+
+                                        <i class="bi bi-file-earmark-x"></i>
+                                        No Contract Attached
+
+                                    </span>
+                                `
+                            }
+
+
+                            <!-- ==========================================
+                                ATTACH / REPLACE CONTRACT
+                                ========================================== -->
 
                             <button
                                 type="button"
-                                class="btn btn-outline-primary btn-sm
-                                       dt-edit-record"
-                                data-id="${id}">
+                                class="btn btn-outline-success btn-sm dt-contract"
+                                data-id="${id}"
+                                data-contract-id="${contractId}"
+                                title="${contractId > 0 ? 'Replace Contract' : 'Attach Contract'}">
+
+                                <i class="bi bi-paperclip"></i>
+
+                                ${contractId > 0 ? 'Replace' : 'Attach'}
+
+                            </button>
+
+
+                            <!-- ==========================================
+                                EDIT
+                                ========================================== -->
+
+                            <button
+                                type="button"
+                                class="btn btn-outline-primary btn-sm dt-edit-record"
+                                data-id="${id}"
+                                title="Edit Machine">
 
                                 <i class="bi bi-pencil"></i>
                                 Edit
@@ -3090,14 +3136,15 @@ $(document).ready(function () {
                             </button>
 
 
+                            <!-- ==========================================
+                                DELETE
+                                ========================================== -->
+
                             <a
                                 href="<?= site_url('dashboard') ?>?delete=${id}"
                                 class="btn btn-outline-danger btn-sm"
-                                onclick="
-                                    return confirm(
-                                        'Delete this record?'
-                                    );
-                                ">
+                                onclick="return confirm('Delete this record?');"
+                                title="Delete Machine">
 
                                 <i class="bi bi-trash"></i>
                                 Delete
@@ -3105,11 +3152,8 @@ $(document).ready(function () {
                             </a>
 
                         </div>
-
                     `;
-
                 }
-
             }
 
         ],
@@ -3242,6 +3286,155 @@ $(document).ready(function () {
        ====================================================== */
 
     window.clinicRecordsTable = table;
+
+    /* ======================================================
+   OPEN EDIT MODAL
+   ====================================================== */
+
+$(document).on(
+    'click',
+    '.dt-edit-record',
+    function (event) {
+
+        event.preventDefault();
+
+        const id = Number(
+            $(this).data('id')
+        );
+
+        if (!id) {
+            console.error('Edit: Invalid record ID.');
+            return;
+        }
+
+        const modalElement =
+            document.getElementById(
+                'editRecordModal' + id
+            );
+
+        if (!modalElement) {
+
+            console.error(
+                'Edit modal not found:',
+                'editRecordModal' + id
+            );
+
+            alert(
+                'Edit modal for this record was not found.'
+            );
+
+            return;
+        }
+
+        const modal =
+            bootstrap.Modal.getOrCreateInstance(
+                modalElement
+            );
+
+        modal.show();
+
+    }
+);
+
+
+/* ======================================================
+   OPEN ATTACH / REPLACE CONTRACT MODAL
+   ====================================================== */
+
+$(document).on(
+    'click',
+    '.dt-contract',
+    function (event) {
+
+        event.preventDefault();
+
+        const id = Number(
+            $(this).data('id')
+        );
+
+        if (!id) {
+            console.error('Contract: Invalid record ID.');
+            return;
+        }
+
+        const modalElement =
+            document.getElementById(
+                'contractModal' + id
+            );
+
+        if (!modalElement) {
+
+            console.error(
+                'Contract modal not found:',
+                'contractModal' + id
+            );
+
+            alert(
+                'Contract modal for this record was not found.'
+            );
+
+            return;
+        }
+
+        const modal =
+            bootstrap.Modal.getOrCreateInstance(
+                modalElement
+            );
+
+        modal.show();
+
+    }
+);
+
+
+/* ======================================================
+   OPEN VIEW CONTRACT MODAL
+   ====================================================== */
+
+$(document).on(
+    'click',
+    '.dt-view-contract',
+    function (event) {
+
+        event.preventDefault();
+
+        const id = Number(
+            $(this).data('id')
+        );
+
+        if (!id) {
+            console.error('View Contract: Invalid record ID.');
+            return;
+        }
+
+        const modalElement =
+            document.getElementById(
+                'viewContractModal' + id
+            );
+
+        if (!modalElement) {
+
+            console.error(
+                'View contract modal not found:',
+                'viewContractModal' + id
+            );
+
+            alert(
+                'View contract modal for this record was not found.'
+            );
+
+            return;
+        }
+
+        const modal =
+            bootstrap.Modal.getOrCreateInstance(
+                modalElement
+            );
+
+        modal.show();
+
+    }
+);
 
 });
 
