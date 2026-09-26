@@ -2149,4 +2149,184 @@ class Dashboard extends BaseController
 
         return false;
     }
+
+    public function search()
+{
+    if (!session()->get('logged_in')) {
+        return $this->response
+            ->setStatusCode(401)
+            ->setJSON([
+                'error' => 'Unauthorized'
+            ]);
+    }
+
+    $db = db_connect();
+
+    $request = $this->request;
+
+    $draw = (int) ($request->getGet('draw') ?? 1);
+    $start = max(0, (int) ($request->getGet('start') ?? 0));
+    $length = (int) ($request->getGet('length') ?? 10);
+
+    if ($length < 1) {
+        $length = 10;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | SEARCH VALUE
+    |--------------------------------------------------------------------------
+    */
+
+    $searchData = $request->getGet('search');
+
+    if (is_array($searchData)) {
+        $search = trim((string) ($searchData['value'] ?? ''));
+    } else {
+        $search = trim((string) ($searchData ?? ''));
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | DATE FILTER
+    |--------------------------------------------------------------------------
+    */
+
+    $startDate = trim(
+        (string) ($request->getGet('start_date') ?? '')
+    );
+
+    $endDate = trim(
+        (string) ($request->getGet('end_date') ?? '')
+    );
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | TOTAL ACTIVE RECORDS
+    |--------------------------------------------------------------------------
+    */
+
+    $totalBuilder = $db->table('tb_data')
+        ->where('status', 'A');
+
+    $recordsTotal = $totalBuilder->countAllResults();
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | FILTERED QUERY
+    |--------------------------------------------------------------------------
+    */
+
+    $builder = $db->table('tb_data')
+        ->where('status', 'A');
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | SEARCH ALL tb_data
+    |--------------------------------------------------------------------------
+    */
+
+    if ($search !== '') {
+
+        $builder->groupStart()
+
+            ->like('Clinic_name', $search)
+
+            ->orLike('Address', $search)
+
+            ->orLike('Province', $search)
+
+            ->orLike('Machine', $search)
+
+            ->orLike('Model', $search)
+
+            ->orLike('Installed_date', $search)
+
+            ->orLike('SN', $search)
+
+            ->orLike('DR_Number', $search)
+
+            ->groupEnd();
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | INSTALLED DATE FILTER
+    |--------------------------------------------------------------------------
+    */
+
+    if ($startDate !== '') {
+
+        $builder->where(
+            'Installed_date >=',
+            $startDate
+        );
+
+    }
+
+    if ($endDate !== '') {
+
+        $builder->where(
+            'Installed_date <=',
+            $endDate
+        );
+
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | FILTERED COUNT
+    |--------------------------------------------------------------------------
+    */
+
+    $countBuilder = clone $builder;
+
+    $recordsFiltered =
+        $countBuilder->countAllResults();
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | GET CURRENT DATATABLE PAGE
+    |--------------------------------------------------------------------------
+    */
+
+    $records = $builder
+        ->select([
+            'id',
+            'Clinic_name',
+            'Address',
+            'Province',
+            'Machine',
+            'Model',
+            'Installed_date',
+            'SN',
+            'DR_Number',
+            'contract_id'
+        ])
+        ->orderBy('Clinic_name', 'ASC')
+        ->orderBy('id', 'DESC')
+        ->limit($length, $start)
+        ->get()
+        ->getResultArray();
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | RETURN
+    |--------------------------------------------------------------------------
+    */
+
+    return $this->response->setJSON([
+        'draw'            => $draw,
+        'recordsTotal'    => $recordsTotal,
+        'recordsFiltered' => $recordsFiltered,
+        'data'            => $records
+    ]);
+}
 }
