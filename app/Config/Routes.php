@@ -36,6 +36,7 @@ $routes->post('dashboard/user/delete', 'UserController::delete');
 $routes->post('dashboard/support/save', 'SupportController::store');
 $routes->post('dashboard/support/update-status', 'SupportController::updateStatus');
 $routes->post('dashboard/attach-contract', 'Dashboard::attachContract');
+$routes->get('dashboard/search', 'Dashboard::search');
 
 
 

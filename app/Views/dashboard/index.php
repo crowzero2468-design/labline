@@ -19,6 +19,42 @@
         overflow-y: scroll !important;
         overflow-x: hidden !important;
     }
+
+    /* ==========================================================
+   DATATABLE PAGINATION — RIGHT ALIGN
+   ========================================================== */
+
+    #clinicRecordsTable_wrapper .dataTables_paginate {
+        float: right !important;
+        text-align: right !important;
+        margin-top: 10px;
+        margin-right: 10px;
+    }
+
+    #clinicRecordsTable_wrapper .dataTables_info {
+        float: left;
+        margin-top: 10px;
+        margin-left: 10px;
+    }
+
+    #clinicRecordsTable_wrapper .dataTables_length {
+        float: left;
+    }
+
+    #clinicRecordsTable_wrapper::after {
+        content: "";
+        display: table;
+        clear: both;
+    }
+
+    #clinicRecordsTable_wrapper .dataTables_info {
+    margin: 0 !important;
+    }
+
+    #clinicRecordsTable_wrapper .dataTables_paginate {
+        margin: 0 !important;
+        text-align: right !important;
+    }
 </style>
 
 <body>
@@ -416,27 +452,74 @@
 
                                     <ul class="dropdown-menu dropdown-menu-end dropdown-menu-custom machine-count-menu">
 
-                                        <?php foreach ($machine_counts ?? [] as $machine): ?>
+                                        <?php
+                                            /*
+                                            |--------------------------------------------------------------------------
+                                            | MACHINE TYPE MAPPING
+                                            |--------------------------------------------------------------------------
+                                            | Vu10       -> Urine Analyzer
+                                            | utz        -> Ultrasound
+                                            | vet monitor -> X-Ray
+                                            |--------------------------------------------------------------------------
+                                            */
 
-                                            <li>
+                                            $machineGroupedCounts = [];
 
-                                                <button
-                                                    type="button"
-                                                    class="dropdown-item machine-count-item"
-                                                    data-machine="<?= esc($machine['machine_label']) ?>"
-                                                    data-total="<?= (int) $machine['total'] ?>">
+                                            foreach ($machine_counts ?? [] as $machine) {
 
-                                                    <i class="bi bi-box"></i>
+                                                $rawMachine = strtolower(trim((string) ($machine['machine_label'] ?? '')));
+                                                $total = (int) ($machine['total'] ?? 0);
 
-                                                    <?= esc($machine['machine_label']) ?>
+                                                switch ($rawMachine) {
 
-                                                    (<?= number_format((int) $machine['total']) ?>)
+                                                    case 'vu10':
+                                                        $machineLabel = 'Urine Analyzer';
+                                                        break;
 
-                                                </button>
+                                                    case 'utz':
+                                                        $machineLabel = 'Ultrasound';
+                                                        break;
 
-                                            </li>
+                                                    case 'vet monitor':
+                                                        $machineLabel = 'X-Ray';
+                                                        break;
 
-                                        <?php endforeach; ?>
+                                                    default:
+                                                        $machineLabel = trim((string) ($machine['machine_label'] ?? ''));
+                                                        break;
+                                                }
+
+                                                if ($machineLabel === '') {
+                                                    continue;
+                                                }
+
+                                                if (!isset($machineGroupedCounts[$machineLabel])) {
+                                                    $machineGroupedCounts[$machineLabel] = 0;
+                                                }
+
+                                                $machineGroupedCounts[$machineLabel] += $total;
+                                            }
+                                            ?>
+
+                                            <?php foreach ($machineGroupedCounts as $machineLabel => $total): ?>
+
+                                                <li>
+                                                    <button
+                                                        type="button"
+                                                        class="dropdown-item machine-count-item"
+                                                        data-machine="<?= esc($machineLabel) ?>"
+                                                        data-total="<?= (int) $total ?>">
+
+                                                        <i class="bi bi-box"></i>
+
+                                                        <?= esc($machineLabel) ?>
+
+                                                        (<?= number_format((int) $total) ?>)
+
+                                                    </button>
+                                                </li>
+
+                                            <?php endforeach; ?>
 
                                     </ul>
 
@@ -448,9 +531,9 @@
                             <div
                                 class="stat-value"
                                 id="all-machine-total"
-                                data-default-value="<?= (int) count($machine_counts ?? []) ?>">
+                                data-default-value="<?= (int) count($machineGroupedCounts ?? []) ?>">
 
-                                <?= number_format(count($machine_counts ?? [])) ?>
+                                <?= number_format(count($machineGroupedCounts ?? [])) ?>
 
                             </div>
 
@@ -704,239 +787,30 @@
 
                     <div class="table-responsive">
 
-                        <table id="clinicRecordsTable" class="table table-striped table-hover align-middle mb-0">
+                        <table id="clinicRecordsTable"
+                            class="table table-striped table-hover align-middle mb-0">
 
                             <thead class="table-dark">
-
                                 <tr>
-
-                                    <th>ID</th>
-
+                                    <th>No.</th>
                                     <th>Clinic Name</th>
-
                                     <th>Address</th>
-
                                     <th>Province</th>
-
                                     <th>Machine</th>
-
                                     <th>Model</th>
-
                                     <th>Installed Date</th>
-
                                     <th>SN</th>
-
                                     <th>DR Number</th>
-
-                                    <th class="text-center">
-                                        Actions
-                                    </th>
-
+                                    <th class="text-center">Actions</th>
                                 </tr>
-
                             </thead>
 
-
                             <tbody>
-
-                            <?php if (!empty($records)): ?>
-
-                                <?php foreach ($records as $index => $row): ?>
-
-                                    <?php
-
-                                    $rowNumber =
-                                        ((int) ($page ?? 1) - 1) *
-                                        (int) ($per_page ?? 10) +
-                                        $index +
-                                        1;
-
-                                    $recordId =
-                                        (int) ($row['id'] ?? 0);
-
-                                    $contractId =
-                                        (int) ($row['contract_id'] ?? 0);
-
-                                    $status =
-                                        strtoupper(
-                                            trim(
-                                                (string) ($row['status'] ?? '')
-                                            )
-                                        );
-
-                                    ?>
-
-
-                                    <tr class="<?= $status === 'I' ? 'table-danger' : '' ?>">
-
-
-                                        <td>
-                                            <?= esc($rowNumber) ?>
-                                        </td>
-
-
-                                        <td>
-                                            <?= esc($row['Clinic_name'] ?? '') ?>
-                                        </td>
-
-
-                                        <td>
-                                            <?= esc($row['Address'] ?? '') ?>
-                                        </td>
-
-
-                                        <td>
-                                            <?= esc($row['Province'] ?? '') ?>
-                                        </td>
-
-
-                                        <td>
-                                            <?= esc($row['Machine'] ?? '') ?>
-                                        </td>
-
-
-                                        <td>
-                                            <?= esc($row['Model'] ?? '') ?>
-                                        </td>
-
-
-                                        <td>
-                                            <?= esc($row['Installed_date'] ?? '') ?>
-                                        </td>
-
-
-                                        <td>
-                                            <?= esc($row['SN'] ?? '') ?>
-                                        </td>
-
-
-                                        <td>
-                                            <?= esc($row['DR_Number'] ?? '') ?>
-                                        </td>
-
-
-                                        <!-- ======================================
-                                             ACTIONS
-                                             ====================================== -->
-
-                                        <td class="text-center">
-
-                                            <div
-                                                class="d-flex justify-content-center align-items-center gap-1 flex-wrap">
-
-
-                                                <!-- ==================================
-                                                     VIEW CONTRACT
-                                                     ================================== -->
-
-                                                <?php if ($contractId > 0): ?>
-
-                                                    <button
-                                                        type="button"
-                                                        class="btn btn-outline-success btn-sm"
-                                                        data-bs-toggle="modal"
-                                                        data-bs-target="#viewContractModal<?= $recordId ?>"
-                                                        title="View Contract">
-
-                                                        <i class="bi bi-file-earmark-text"></i>
-                                                        View
-
-                                                    </button>
-
-                                                <?php else: ?>
-
-                                                    <span
-                                                        class="badge bg-warning text-dark"
-                                                        title="No contract attached">
-
-                                                        <i class="bi bi-file-earmark-x"></i>
-
-                                                        No Contract Attached
-
-                                                    </span>
-
-                                                <?php endif; ?>
-
-
-                                                <!-- ==================================
-                                                     ATTACH / REPLACE
-                                                     ================================== -->
-
-                                                <button
-                                                    type="button"
-                                                    class="btn btn-outline-success btn-sm"
-                                                    data-bs-toggle="modal"
-                                                    data-bs-target="#contractModal<?= $recordId ?>"
-                                                    title="<?= $contractId > 0 ? 'Replace Contract' : 'Attach Contract' ?>">
-
-                                                    <i class="bi bi-paperclip"></i>
-
-                                                    <?= $contractId > 0 ? 'Replace' : 'Attach' ?>
-
-                                                </button>
-
-
-                                                <!-- ==================================
-                                                     EDIT
-                                                     ================================== -->
-
-                                                <button
-                                                    type="button"
-                                                    class="btn btn-outline-primary btn-sm"
-                                                    data-bs-toggle="modal"
-                                                    data-bs-target="#editRecordModal<?= $recordId ?>">
-
-                                                    <i class="bi bi-pencil"></i>
-                                                    Edit
-
-                                                </button>
-
-
-                                                <!-- ==================================
-                                                     DELETE
-                                                     ================================== -->
-
-                                                <a
-                                                    href="<?= site_url('dashboard') ?>?delete=<?= $recordId ?>"
-                                                    class="btn btn-outline-danger btn-sm"
-                                                    onclick="return confirm('Delete this record?');">
-
-                                                    <i class="bi bi-trash"></i>
-                                                    Delete
-
-                                                </a>
-
-                                            </div>
-
-                                        </td>
-
-                                    </tr>
-
-                                <?php endforeach; ?>
-
-
-                            <?php else: ?>
-
-
-                                <tr>
-                                    <td></td>
-                                    <td></td>
-                                    <td></td>
-                                    <td></td>
-                                    <td class="text-center py-4 text-muted">No records found.</td>
-                                    <td></td>
-                                    <td></td>
-                                    <td></td>
-                                    <td></td>
-                                    <td></td>
-                                </tr>
-
-
-                            <?php endif; ?>
-
+                                <!-- DataTables loads the rows through AJAX -->
                             </tbody>
 
                         </table>
+
 
                     </div>
 
@@ -944,252 +818,6 @@
                     <!-- ==================================================
                          PAGINATION
                          ================================================== -->
-
-                    <?php if (($total_pages ?? 1) > 1): ?>
-
-                        <div class="d-flex align-items-center p-3 border-top">
-
-
-                            <div class="text-muted small">
-
-                                Showing
-                                <?= count($records ?? []) ?>
-                                of
-                                <?= (int) ($total_rows ?? 0) ?>
-                                records
-
-                            </div>
-
-
-                            <?php
-
-                            /*
-                             * Preserve all active filters.
-                             */
-
-                            $paginationParams = [];
-
-
-                            if (!empty($search)) {
-
-                                $paginationParams['search'] =
-                                    $search;
-
-                            }
-
-
-                            if (!empty($start_date)) {
-
-                                $paginationParams['start_date'] =
-                                    $start_date;
-
-                            }
-
-
-                            if (!empty($end_date)) {
-
-                                $paginationParams['end_date'] =
-                                    $end_date;
-
-                            }
-
-                            ?>
-
-
-                            <nav
-                                aria-label="Pagination"
-                                class="ms-auto">
-
-                                <ul class="pagination pagination-sm mb-0">
-
-
-                                    <!-- ======================================
-                                         PREVIOUS
-                                         ====================================== -->
-
-                                    <?php
-
-                                    $previousPage =
-                                        max(
-                                            1,
-                                            ((int) ($page ?? 1)) - 1
-                                        );
-
-
-                                    $previousParams =
-                                        array_merge(
-                                            $paginationParams,
-                                            [
-                                                'page' =>
-                                                    $previousPage
-                                            ]
-                                        );
-
-                                    ?>
-
-
-                                    <li
-                                        class="page-item
-                                        <?= ($page ?? 1) <= 1
-                                            ? 'disabled'
-                                            : '' ?>">
-
-                                        <a
-                                            class="page-link"
-                                            href="<?= site_url('dashboard') ?>?<?= http_build_query($previousParams) ?>">
-
-                                            Previous
-
-                                        </a>
-
-                                    </li>
-
-
-                                    <!-- ======================================
-                                         PAGE NUMBERS
-                                         ====================================== -->
-
-                                    <?php
-
-                                    $curPage =
-                                        (int) ($page ?? 1);
-
-
-                                    $totalPages =
-                                        (int) ($total_pages ?? 1);
-
-
-                                    $maxLinks = 5;
-
-
-                                    $start =
-                                        max(
-                                            1,
-                                            $curPage -
-                                            (int) floor(
-                                                $maxLinks / 2
-                                            )
-                                        );
-
-
-                                    $end =
-                                        min(
-                                            $totalPages,
-                                            $start +
-                                            $maxLinks -
-                                            1
-                                        );
-
-
-                                    if (
-                                        $end -
-                                        $start +
-                                        1 <
-                                        $maxLinks
-                                    ) {
-
-                                        $start =
-                                            max(
-                                                1,
-                                                $end -
-                                                $maxLinks +
-                                                1
-                                            );
-
-                                    }
-
-                                    ?>
-
-
-                                    <?php for (
-                                        $i = $start;
-                                        $i <= $end;
-                                        $i++
-                                    ): ?>
-
-
-                                        <?php
-
-                                        $pageParams =
-                                            array_merge(
-                                                $paginationParams,
-                                                [
-                                                    'page' => $i
-                                                ]
-                                            );
-
-                                        ?>
-
-
-                                        <li
-                                            class="page-item
-                                            <?= ($i == $curPage)
-                                                ? 'active'
-                                                : '' ?>">
-
-                                            <a
-                                                class="page-link"
-                                                href="<?= site_url('dashboard') ?>?<?= http_build_query($pageParams) ?>">
-
-                                                <?= $i ?>
-
-                                            </a>
-
-                                        </li>
-
-
-                                    <?php endfor; ?>
-
-
-                                    <!-- ======================================
-                                         NEXT
-                                         ====================================== -->
-
-                                    <?php
-
-                                    $nextPage =
-                                        min(
-                                            $totalPages,
-                                            $curPage + 1
-                                        );
-
-
-                                    $nextParams =
-                                        array_merge(
-                                            $paginationParams,
-                                            [
-                                                'page' =>
-                                                    $nextPage
-                                            ]
-                                        );
-
-                                    ?>
-
-
-                                    <li
-                                        class="page-item
-                                        <?= $curPage >= $totalPages
-                                            ? 'disabled'
-                                            : '' ?>">
-
-                                        <a
-                                            class="page-link"
-                                            href="<?= site_url('dashboard') ?>?<?= http_build_query($nextParams) ?>">
-
-                                            Next
-
-                                        </a>
-
-                                    </li>
-
-
-                                </ul>
-
-                            </nav>
-
-                        </div>
-
-                    <?php endif; ?>
 
                 </div>
 
@@ -3262,39 +2890,359 @@ setTimeout(
     5000
 );
 
-$(function () {
-    if (typeof $.fn.DataTable === 'undefined' || !$('#clinicRecordsTable').length) {
+$(document).ready(function () {
+
+    if (
+        typeof $.fn.DataTable === 'undefined' ||
+        !$('#clinicRecordsTable').length
+    ) {
         return;
     }
 
-    const clinicRecordsTable = $('#clinicRecordsTable').DataTable({
-        paging: false,
+
+    /* ======================================================
+       DATATABLE
+       ====================================================== */
+
+    const table = $('#clinicRecordsTable').DataTable({
+
+        processing: true,
+
+        serverSide: true,
+
         searching: true,
+
         ordering: true,
-        info: false,
+
+        paging: true,
+
+        pageLength: 10,
+
+        lengthMenu: [
+            [10, 25, 50, 100],
+            [10, 25, 50, 100]
+        ],
+
+        ajax: {
+
+            url: "<?= site_url('dashboard/search') ?>",
+
+            type: "GET",
+
+            data: function (d) {
+
+                /*
+                 * Send Installed Date filters
+                 */
+
+                d.start_date =
+                    $('#start_date').val() || '';
+
+                d.end_date =
+                    $('#end_date').val() || '';
+
+            },
+
+            error: function (xhr) {
+
+                console.error(
+                    'DataTables AJAX Error:',
+                    xhr.responseText
+                );
+
+            }
+
+        },
+
+
+        /* ==================================================
+           COLUMNS
+           ================================================== */
+
+        columns: [
+
+
+                {
+                    data: null,
+
+                    className: 'text-center',
+
+                    orderable: false,
+
+                    searchable: false,
+
+                    render: function (data, type, row, meta) {
+
+                        return meta.settings._iDisplayStart + meta.row + 1;
+
+                    }
+
+                },
+
+
+            /*
+             * CLINIC
+             */
+
+            {
+                data: 'Clinic_name'
+            },
+
+
+            /*
+             * ADDRESS
+             */
+
+            {
+                data: 'Address'
+            },
+
+
+            /*
+             * PROVINCE
+             */
+
+            {
+                data: 'Province'
+            },
+
+
+            /*
+             * MACHINE
+             */
+
+            {
+                data: 'Machine'
+            },
+
+
+            /*
+             * MODEL
+             */
+
+            {
+                data: 'Model'
+            },
+
+
+            /*
+             * INSTALLED DATE
+             */
+
+            {
+                data: 'Installed_date'
+            },
+
+
+            /*
+             * SN
+             */
+
+            {
+                data: 'SN'
+            },
+
+
+            /*
+             * DR NUMBER
+             */
+
+            {
+                data: 'DR_Number'
+            },
+
+
+            /*
+             * ACTIONS
+             */
+
+            {
+                data: null,
+
+                orderable: false,
+
+                searchable: false,
+
+                className: 'text-center',
+
+                render: function (data, type, row) {
+
+                    const id =
+                        Number(row.id || 0);
+
+                    return `
+
+                        <div
+                            class="d-flex justify-content-center
+                                   align-items-center
+                                   gap-1
+                                   flex-wrap">
+
+                            <button
+                                type="button"
+                                class="btn btn-outline-primary btn-sm
+                                       dt-edit-record"
+                                data-id="${id}">
+
+                                <i class="bi bi-pencil"></i>
+                                Edit
+
+                            </button>
+
+
+                            <a
+                                href="<?= site_url('dashboard') ?>?delete=${id}"
+                                class="btn btn-outline-danger btn-sm"
+                                onclick="
+                                    return confirm(
+                                        'Delete this record?'
+                                    );
+                                ">
+
+                                <i class="bi bi-trash"></i>
+                                Delete
+
+                            </a>
+
+                        </div>
+
+                    `;
+
+                }
+
+            }
+
+        ],
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | DEFAULT ORDER
+        |--------------------------------------------------------------------------
+        */
+
+        order: [
+            [1, 'asc']
+        ],
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | TABLE OPTIONS
+        |--------------------------------------------------------------------------
+        */
+
         autoWidth: false,
-        dom: 't'
+
+        scrollX: true,
+
+        dom: 'lt<"d-flex justify-content-between align-items-center px-3 py-2"ip>'
+
+
     });
 
-    const searchInput = $('#clinicRecordsSearch');
 
-    $('#clinicRecordsSearchForm').on('submit', function (event) {
-        event.preventDefault();
-        clinicRecordsTable.search(searchInput.val()).draw();
-    });
+    /* ======================================================
+       CUSTOM SEARCH INPUT
+       ====================================================== */
 
-    searchInput.on('input', function () {
-        clinicRecordsTable.search(this.value).draw();
-    });
+    $('#clinicRecordsSearchForm').on(
+        'submit',
+        function (event) {
 
-    $('#clinicRecordsReset').on('click', function () {
-        searchInput.val('');
-        clinicRecordsTable.search('').draw();
-    });
+            event.preventDefault();
 
-    if (searchInput.val()) {
-        clinicRecordsTable.search(searchInput.val()).draw();
-    }
+            table
+                .search(
+                    $('#clinicRecordsSearch').val()
+                )
+                .draw();
+
+        }
+    );
+
+
+    /* ======================================================
+       SEARCH WHILE TYPING
+       
+       THIS DOES NOT REFRESH THE PAGE.
+       
+       ONLY DATATABLES REQUESTS NEW DATA.
+       ====================================================== */
+
+    let searchTimer = null;
+
+    $('#clinicRecordsSearch').on(
+        'input',
+        function () {
+
+            const value = this.value;
+
+            clearTimeout(searchTimer);
+
+            searchTimer = setTimeout(
+                function () {
+
+                    table
+                        .search(value)
+                        .draw();
+
+                },
+                300
+            );
+
+        }
+    );
+
+
+    /* ======================================================
+       RESET SEARCH
+       ====================================================== */
+
+    $(document).on(
+        'click',
+        '#clinicRecordsReset',
+        function (event) {
+
+            event.preventDefault();
+
+            $('#clinicRecordsSearch').val('');
+
+            table
+                .search('')
+                .draw();
+
+        }
+    );
+
+
+    /* ======================================================
+       DATE FILTER
+       
+       ONLY RELOAD DATATABLE.
+       NO PAGE REFRESH.
+       ====================================================== */
+
+    $('#start_date, #end_date').on(
+        'change',
+        function () {
+
+            table.ajax.reload(
+                null,
+                true
+            );
+
+        }
+    );
+
+
+    /* ======================================================
+       OPTIONAL:
+       EXPOSE DATATABLE INSTANCE
+       ====================================================== */
+
+    window.clinicRecordsTable = table;
+
 });
 
 /* ==========================================================
@@ -3304,7 +3252,81 @@ $(function () {
 if (typeof ApexCharts !== 'undefined') {
     const monthlySupport = <?= json_encode($monthly_support ?? [], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
     const pulloutTimeline = <?= json_encode($pullout_timeline ?? [], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
-    const machineYearly = <?= json_encode($machine_yearly ?? [], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
+   <?php
+        /*
+        |--------------------------------------------------------------------------
+        | NORMALIZE MACHINE YEARLY DATA
+        |--------------------------------------------------------------------------
+        */
+
+        $machineYearlyGrouped = [];
+
+        foreach ($machine_yearly ?? [] as $row) {
+
+            $rawMachine = strtolower(trim((string) ($row['machine'] ?? '')));
+            $year = (string) ($row['year'] ?? '');
+            $total = (int) ($row['total'] ?? 0);
+
+            switch ($rawMachine) {
+
+                case 'vu10':
+                    $machineLabel = 'Urine Analyzer';
+                    break;
+
+                case 'utz':
+                    $machineLabel = 'Ultrasound';
+                    break;
+
+                 case 'vet monitor':
+                case 'x-ray':
+                case 'xray':
+                    $machineLabel = 'X-Ray';
+                    break;
+
+                default:
+                    $machineLabel = trim((string) ($row['machine'] ?? ''));
+                    break;
+            }
+
+            if ($machineLabel === '' || $year === '') {
+                continue;
+            }
+
+            $key = $year . '|' . $machineLabel;
+
+            if (!isset($machineYearlyGrouped[$key])) {
+                $machineYearlyGrouped[$key] = [
+                    'year' => $year,
+                    'machine' => $machineLabel,
+                    'total' => 0
+                ];
+            }
+
+            $machineYearlyGrouped[$key]['total'] += $total;
+        }
+
+        $machineYearly = array_values($machineYearlyGrouped);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Sort by year and machine name
+        |--------------------------------------------------------------------------
+        */
+
+        usort($machineYearly, function ($a, $b) {
+
+            if ($a['year'] === $b['year']) {
+                return strcmp($a['machine'], $b['machine']);
+            }
+
+            return strcmp($a['year'], $b['year']);
+        });
+        ?>
+
+        const machineYearly = <?= json_encode(
+            $machineYearly,
+            JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP
+        ) ?>;
 
     function chartCategories(rows) {
         return rows.map(function (row) {

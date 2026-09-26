@@ -3327,3 +3327,34 @@ span.flatpickr-weekday {
 .footer-copy a {
     margin-left: 3px;
 }
+
+/* Sidebar toggle buttons */
+.btn-desktop-toggle,
+.sidebar-toggle-btn {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    width: auto !important;
+    height: auto !important;
+}
+
+/* Bigger icons */
+.btn-desktop-toggle i,
+.sidebar-toggle-btn i {
+    font-size: 1.5rem;
+    line-height: 1;
+}
+
+/* Optional hover effect */
+.btn-desktop-toggle:hover,
+.sidebar-toggle-btn:hover {
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+.btn-desktop-toggle:hover i,
+.sidebar-toggle-btn:hover i {
+    transform: scale(1.1);
+}
