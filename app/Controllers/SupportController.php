@@ -89,6 +89,7 @@ class SupportController extends BaseController
 
         $techs = $database->table('tb_user')
             ->select('id, fname, lname, uname, role')
+            ->where('uname !=', 'admin')
             ->orderBy('fname', 'ASC')
             ->orderBy('lname', 'ASC')
             ->get()
