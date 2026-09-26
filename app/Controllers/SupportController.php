@@ -582,4 +582,97 @@ class SupportController extends BaseController
             $database->query("ALTER TABLE tb_support MODIFY COLUMN update_date DATETIME NULL");
         }
     }
+
+    public function update()
+{
+    if (!session()->get('logged_in')) {
+        return $this->response->setJSON([
+            'success' => false,
+            'message' => 'Please login first.'
+        ]);
+    }
+
+    $id = $this->request->getPost('id');
+
+    if (!$id) {
+        return $this->response->setJSON([
+            'success' => false,
+            'message' => 'Invalid ticket ID.'
+        ]);
+    }
+
+    $data = [
+        'clinic_name'   => trim((string) $this->request->getPost('clinic_name')),
+        'province'      => trim((string) $this->request->getPost('province')),
+        'address'       => trim((string) $this->request->getPost('address')),
+        'support_date'  => $this->request->getPost('support_date'),
+        'concern'       => trim((string) $this->request->getPost('concern')),
+        'machine_status'=> trim((string) $this->request->getPost('machine_status')),
+        'service_engr'  => trim((string) $this->request->getPost('service_engr')),
+        'status'        => $this->request->getPost('status'),
+    ];
+
+    $db = \Config\Database::connect();
+
+    $builder = $db->table('tb_support');
+
+    $exists = $builder
+        ->where('id', $id)
+        ->countAllResults();
+
+    if (!$exists) {
+        return $this->response->setJSON([
+            'success' => false,
+            'message' => 'Ticket not found.'
+        ]);
+    }
+
+    $builder->where('id', $id)->update($data);
+
+    return $this->response->setJSON([
+        'success' => true,
+        'message' => 'Support ticket updated successfully.'
+    ]);
+}
+
+public function delete()
+{
+    if (!session()->get('logged_in')) {
+        return $this->response->setJSON([
+            'success' => false,
+            'message' => 'Please login first.'
+        ]);
+    }
+
+    $id = $this->request->getPost('id');
+
+    if (!$id) {
+        return $this->response->setJSON([
+            'success' => false,
+            'message' => 'Invalid ticket ID.'
+        ]);
+    }
+
+    $db = \Config\Database::connect();
+
+    $builder = $db->table('tb_support');
+
+    $exists = $builder
+        ->where('id', $id)
+        ->countAllResults();
+
+    if (!$exists) {
+        return $this->response->setJSON([
+            'success' => false,
+            'message' => 'Ticket not found.'
+        ]);
+    }
+
+    $builder->where('id', $id)->delete();
+
+    return $this->response->setJSON([
+        'success' => true,
+        'message' => 'Support ticket deleted successfully.'
+    ]);
+}
 }

@@ -878,7 +878,7 @@ if (!empty($pms_records)) {
                                                 title="Edit PMS"
                                             >
 
-                                                Edit
+                                                Edit PMS
 
                                             </button>
 

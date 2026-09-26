@@ -3468,7 +3468,7 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
-        editDocumentFocus = button.getAttribute('data-document') || '';
+        window.editDocumentFocus = button.getAttribute('data-document') || '';
         editButton.click();
     });
 
@@ -3764,21 +3764,31 @@ document.addEventListener('DOMContentLoaded', function () {
                 'FSR'
             );
 
-            if (editDocumentFocus) {
-                const focusId = 'edit_' + editDocumentFocus + '_id';
-                const focusSelect = document.getElementById(focusId);
+           if (window.editDocumentFocus) {
+
+                const focusId =
+                    'edit_' + window.editDocumentFocus + '_id';
+
+                const focusSelect =
+                    document.getElementById(focusId);
 
                 if (focusSelect) {
+
                     setTimeout(function () {
+
                         focusSelect.focus();
 
-                        if (window.jQuery && window.jQuery.fn.select2) {
+                        if (
+                            window.jQuery &&
+                            window.jQuery.fn.select2
+                        ) {
                             window.jQuery(focusSelect).select2('open');
                         }
+
                     }, 150);
                 }
 
-                editDocumentFocus = '';
+                window.editDocumentFocus = '';
             }
 
 
