@@ -828,276 +828,319 @@
     </div>
 
 
-    <!-- ======================================================
-         CONTRACT MODALS
-         ====================================================== -->
 
-    <?php
-    $database = db_connect();
-    ?>
+<!-- ======================================================
+     REUSABLE VIEW CONTRACT MODAL
+     
+     IMPORTANT:
+     This modal is intentionally NOT inside $records foreach.
+     
+     DataTables is server-side, so rows are loaded through AJAX.
+     We use ONE reusable modal for every record.
+     ====================================================== -->
 
+<div
+    class="modal fade"
+    id="viewContractModal"
+    tabindex="-1"
+    aria-labelledby="viewContractModalLabel"
+    aria-hidden="true">
 
-    <?php if (!empty($records)): ?>
+    <div class="modal-dialog modal-xl modal-dialog-centered">
 
-        <?php foreach ($records as $row): ?>
+        <div class="modal-content">
 
-            <?php
+            <div class="modal-header">
 
-            $recordId =
-                (int) ($row['id'] ?? 0);
+                <h5
+                    class="modal-title"
+                    id="viewContractModalLabel">
 
-            $contractId =
-                (int) ($row['contract_id'] ?? 0);
+                    <i class="bi bi-file-earmark-text me-2"></i>
+                    Contract
 
-            $contractLocation = '';
-            $contractUrl = '';
-            $contractExtension = '';
+                </h5>
 
-            ?>
+                <button
+                    type="button"
+                    class="btn-close"
+                    data-bs-dismiss="modal"
+                    aria-label="Close">
+                </button>
 
-
-            <?php if ($contractId > 0): ?>
-
-                <?php
-
-                $contractRecord =
-                    $database
-                        ->table('tb_contract')
-                        ->select('id, location')
-                        ->where('id', $contractId)
-                        ->get()
-                        ->getRowArray();
-
-
-                if ($contractRecord) {
-
-                    $contractLocation =
-                        trim(
-                            (string)
-                            ($contractRecord['location'] ?? '')
-                        );
+            </div>
 
 
-                    if ($contractLocation !== '') {
+            <div class="modal-body p-0">
 
-                        $contractUrl =
-                            base_url(
-                                ltrim(
-                                    $contractLocation,
-                                    '/\\'
-                                )
-                            );
+                <!--
+                    JavaScript will put the contract preview here.
+                -->
+
+                <div
+                    id="viewContractContent"
+                    class="p-5 text-center">
+
+                    <div class="spinner-border text-primary mb-3"></div>
+
+                    <div>
+                        Loading contract...
+                    </div>
+
+                </div>
+
+            </div>
 
 
-                        $contractExtension =
-                            strtolower(
-                                pathinfo(
-                                    $contractLocation,
-                                    PATHINFO_EXTENSION
-                                )
-                            );
+            <div class="modal-footer">
 
-                    }
+                <a
+                    href="#"
+                    target="_blank"
+                    id="viewContractOpenLink"
+                    class="btn btn-outline-primary d-none">
 
-                }
+                    <i class="bi bi-box-arrow-up-right me-1"></i>
 
-                ?>
+                    Open in New Tab
+
+                </a>
+
+                <button
+                    type="button"
+                    class="btn btn-secondary"
+                    data-bs-dismiss="modal">
+
+                    Close
+
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+
+<!-- ======================================================
+     REUSABLE ATTACH / REPLACE CONTRACT MODAL
+
+     IMPORTANT:
+     ONE modal only.
+
+     JavaScript fills the record ID dynamically.
+     ====================================================== -->
+
+<div
+    class="modal fade"
+    id="contractModal"
+    tabindex="-1"
+    aria-labelledby="contractModalLabel"
+    aria-hidden="true">
+
+    <div class="modal-dialog modal-dialog-centered">
+
+        <div class="modal-content">
+
+            <form
+                method="post"
+                action="<?= site_url('dashboard/attach-contract') ?>"
+                enctype="multipart/form-data"
+                id="contractForm">
+
+                <?= csrf_field() ?>
 
 
                 <!-- ==========================================
-                     VIEW CONTRACT MODAL
+                     RECORD ID
                      ========================================== -->
 
-                <div
-                    class="modal fade"
-                    id="viewContractModal<?= $recordId ?>"
-                    tabindex="-1"
-                    aria-labelledby="viewContractModalLabel<?= $recordId ?>"
-                    aria-hidden="true">
+                <input
+                    type="hidden"
+                    name="id"
+                    id="contract_id"
+                    value="">
 
+
+                <div class="modal-header">
+
+                    <h5
+                        class="modal-title"
+                        id="contractModalLabel">
+
+                        <i class="bi bi-paperclip me-2"></i>
+                        Attach Contract
+
+                    </h5>
+
+                    <button
+                        type="button"
+                        class="btn-close"
+                        data-bs-dismiss="modal"
+                        aria-label="Close">
+                    </button>
+
+                </div>
+
+
+                <div class="modal-body">
+
+                    <!-- ======================================
+                         CLINIC
+                         ====================================== -->
+
+                    <div class="mb-3">
+
+                        <label class="form-label">
+                            Clinic
+                        </label>
+
+                        <input
+                            type="text"
+                            id="contract_clinic"
+                            class="form-control"
+                            readonly>
+
+                    </div>
+
+
+                    <!-- ======================================
+                         ADDRESS
+                         ====================================== -->
+
+                    <div class="mb-3">
+
+                        <label class="form-label">
+                            Address
+                        </label>
+
+                        <input
+                            type="text"
+                            id="contract_address"
+                            class="form-control"
+                            readonly>
+
+                    </div>
+
+
+                    <!-- ======================================
+                         MACHINE / MODEL
+                         ====================================== -->
+
+                    <div class="row g-3">
+
+                        <div class="col-md-6">
+
+                            <label class="form-label">
+                                Machine
+                            </label>
+
+                            <input
+                                type="text"
+                                id="contract_machine"
+                                class="form-control"
+                                readonly>
+
+                        </div>
+
+
+                        <div class="col-md-6">
+
+                            <label class="form-label">
+                                Model
+                            </label>
+
+                            <input
+                                type="text"
+                                id="contract_model"
+                                class="form-control"
+                                readonly>
+
+                        </div>
+
+
+                        <div class="col-md-12">
+
+                            <label class="form-label">
+                                Serial Number
+                            </label>
+
+                            <input
+                                type="text"
+                                id="contract_sn"
+                                class="form-control"
+                                readonly>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- ======================================
+                         EXISTING CONTRACT NOTICE
+                         ====================================== -->
 
                     <div
-                        class="modal-dialog modal-xl modal-dialog-centered">
+                        id="contractExistingAlert"
+                        class="alert alert-info mt-3 d-none">
 
+                        <i class="bi bi-info-circle me-1"></i>
 
-                        <div class="modal-content">
+                        This record already has a contract.
 
+                        <br>
 
-                            <div class="modal-header">
+                        Uploading a new file will replace the
+                        current contract association.
 
-                                <h5
-                                    class="modal-title"
-                                    id="viewContractModalLabel<?= $recordId ?>">
+                    </div>
 
-                                    <i class="bi bi-file-earmark-text"></i>
 
-                                    Contract
+                    <!-- ======================================
+                         NO CONTRACT NOTICE
+                         ====================================== -->
 
-                                </h5>
+                    <div
+                        id="contractNoExistingAlert"
+                        class="alert alert-warning mt-3 d-none">
 
+                        <i class="bi bi-exclamation-triangle me-1"></i>
 
-                                <button
-                                    type="button"
-                                    class="btn-close"
-                                    data-bs-dismiss="modal"
-                                    aria-label="Close">
-                                </button>
+                        No contract is currently attached.
 
-                            </div>
+                    </div>
 
 
-                            <div class="modal-body p-0">
+                    <!-- ======================================
+                         FILE
+                         ====================================== -->
 
+                    <div class="mb-3 mt-3">
 
-                                <?php if ($contractUrl !== ''): ?>
+                        <label
+                            for="contract_file"
+                            class="form-label">
 
+                            Contract File
+                            <span class="text-danger">*</span>
 
-                                    <?php if ($contractExtension === 'pdf'): ?>
+                        </label>
 
-                                        <iframe
-                                            src="<?= esc($contractUrl) ?>"
-                                            style="
-                                                width:100%;
-                                                height:75vh;
-                                                border:none;
-                                            "
-                                            title="Contract PDF">
-                                        </iframe>
+                        <input
+                            type="file"
+                            name="contract_file"
+                            id="contract_file"
+                            class="form-control"
+                            accept=".pdf,.jpg,.jpeg,.png"
+                            required>
 
+                        <div class="form-text">
 
-                                    <?php elseif (
-                                        in_array(
-                                            $contractExtension,
-                                            ['jpg', 'jpeg', 'png'],
-                                            true
-                                        )
-                                    ): ?>
-
-
-                                        <div
-                                            class="d-flex justify-content-center align-items-center p-3"
-                                            style="
-                                                min-height:70vh;
-                                                background:#f8f9fa;
-                                            ">
-
-
-                                            <img
-                                                src="<?= esc($contractUrl) ?>"
-                                                alt="Contract"
-                                                class="img-fluid"
-                                                style="
-                                                    max-width:100%;
-                                                    max-height:70vh;
-                                                    object-fit:contain;
-                                                ">
-
-                                        </div>
-
-
-                                    <?php else: ?>
-
-
-                                        <div
-                                            class="p-5 text-center">
-
-                                            <i
-                                                class="bi bi-file-earmark-x"
-                                                style="font-size:3rem;">
-                                            </i>
-
-
-                                            <h5 class="mt-3">
-                                                File cannot be previewed
-                                            </h5>
-
-
-                                            <p class="text-muted">
-
-                                                This file type cannot be
-                                                displayed inside the browser.
-
-                                            </p>
-
-
-                                            <a
-                                                href="<?= esc($contractUrl) ?>"
-                                                target="_blank"
-                                                class="btn btn-primary">
-
-                                                <i class="bi bi-box-arrow-up-right"></i>
-
-                                                Open Contract
-
-                                            </a>
-
-                                        </div>
-
-
-                                    <?php endif; ?>
-
-
-                                <?php else: ?>
-
-
-                                    <div
-                                        class="p-5 text-center">
-
-                                        <i
-                                            class="bi bi-file-earmark-x text-warning"
-                                            style="font-size:3rem;">
-                                        </i>
-
-
-                                        <h5 class="mt-3">
-                                            Contract File Not Found
-                                        </h5>
-
-
-                                        <p class="text-muted mb-0">
-
-                                            The contract record exists,
-                                            but no file location was found.
-
-                                        </p>
-
-                                    </div>
-
-
-                                <?php endif; ?>
-
-                            </div>
-
-
-                            <div class="modal-footer">
-
-
-                                <?php if ($contractUrl !== ''): ?>
-
-                                    <a
-                                        href="<?= esc($contractUrl) ?>"
-                                        target="_blank"
-                                        class="btn btn-outline-primary">
-
-                                        <i class="bi bi-box-arrow-up-right"></i>
-
-                                        Open in New Tab
-
-                                    </a>
-
-                                <?php endif; ?>
-
-
-                                <button
-                                    type="button"
-                                    class="btn btn-secondary"
-                                    data-bs-dismiss="modal">
-
-                                    Close
-
-                                </button>
-
-                            </div>
+                            Allowed files:
+                            PDF, JPG, JPEG, PNG.
 
                         </div>
 
@@ -1105,211 +1148,43 @@
 
                 </div>
 
-            <?php endif; ?>
 
-        <?php endforeach; ?>
+                <div class="modal-footer">
 
-    <?php endif; ?>
+                    <button
+                        type="button"
+                        class="btn btn-secondary"
+                        data-bs-dismiss="modal">
 
+                        <i class="bi bi-x-circle me-1"></i>
 
-    <!-- ======================================================
-         ATTACH / REPLACE CONTRACT MODALS
-         ====================================================== -->
+                        Cancel
 
-    <?php if (!empty($records)): ?>
+                    </button>
 
-        <?php foreach ($records as $row): ?>
 
-            <?php
+                    <button
+                        type="submit"
+                        class="btn btn-success">
 
-            $recordId =
-                (int) ($row['id'] ?? 0);
+                        <i class="bi bi-upload me-1"></i>
 
-            $contractId =
-                (int) ($row['contract_id'] ?? 0);
+                        <span id="contractSubmitText">
+                            Upload Contract
+                        </span>
 
-            ?>
-
-
-            <div
-                class="modal fade"
-                id="contractModal<?= $recordId ?>"
-                tabindex="-1"
-                aria-labelledby="contractModalLabel<?= $recordId ?>"
-                aria-hidden="true">
-
-
-                <div class="modal-dialog modal-dialog-centered">
-
-                    <div class="modal-content">
-
-
-                        <form
-                            method="post"
-                            action="<?= site_url('dashboard/attach-contract') ?>"
-                            enctype="multipart/form-data">
-
-
-                            <?= csrf_field() ?>
-
-
-                            <input
-                                type="hidden"
-                                name="id"
-                                value="<?= $recordId ?>">
-
-
-                            <div class="modal-header">
-
-                                <h5
-                                    class="modal-title"
-                                    id="contractModalLabel<?= $recordId ?>">
-
-                                    <i class="bi bi-file-earmark-text me-2"></i>
-
-                                    <?= $contractId > 0
-                                        ? 'Replace Contract'
-                                        : 'Attach Contract'
-                                    ?>
-
-                                </h5>
-
-
-                                <button
-                                    type="button"
-                                    class="btn-close"
-                                    data-bs-dismiss="modal"
-                                    aria-label="Close">
-                                </button>
-
-                            </div>
-
-
-                            <div class="modal-body">
-
-
-                                <div class="mb-3">
-
-                                    <label class="form-label">
-                                        Clinic
-                                    </label>
-
-
-                                    <input
-                                        type="text"
-                                        class="form-control"
-                                        value="<?= esc($row['Clinic_name'] ?? '') ?>"
-                                        readonly>
-
-                                </div>
-
-
-                                <?php if ($contractId > 0): ?>
-
-                                    <div class="alert alert-info">
-
-                                        <i class="bi bi-info-circle me-1"></i>
-
-                                        This record already has contract
-                                        <strong>#<?= $contractId ?></strong>.
-
-                                        <br>
-
-                                        Uploading a new file will create a new
-                                        contract record and update
-                                        <code>tb_data.contract_id</code>.
-
-                                    </div>
-
-                                <?php else: ?>
-
-                                    <div class="alert alert-warning">
-
-                                        <i class="bi bi-exclamation-triangle me-1"></i>
-
-                                        No contract is currently attached.
-
-                                        <br>
-
-                                        Upload a contract below to create a new
-                                        record in <code>tb_contract</code>.
-
-                                    </div>
-
-                                <?php endif; ?>
-
-
-                                <div class="mb-3">
-
-                                    <label
-                                        for="contract_file<?= $recordId ?>"
-                                        class="form-label">
-
-                                        Contract File
-                                        <span class="text-danger">*</span>
-
-                                    </label>
-
-
-                                    <input
-                                        type="file"
-                                        name="contract_file"
-                                        id="contract_file<?= $recordId ?>"
-                                        class="form-control"
-                                        accept=".pdf,.jpg,.jpeg,.png"
-                                        required>
-
-
-                                    <div class="form-text">
-
-                                        Allowed files:
-                                        PDF, JPG, JPEG, PNG.
-
-                                    </div>
-
-                                </div>
-
-                            </div>
-
-
-                            <div class="modal-footer">
-
-                                <button
-                                    type="button"
-                                    class="btn btn-secondary"
-                                    data-bs-dismiss="modal">
-
-                                    Cancel
-
-                                </button>
-
-
-                                <button
-                                    type="submit"
-                                    class="btn btn-success">
-
-                                    <i class="bi bi-upload me-1"></i>
-
-                                    <?= $contractId > 0
-                                        ? 'Replace Contract'
-                                        : 'Upload Contract'
-                                    ?>
-
-                                </button>
-
-                            </div>
-
-                        </form>
-
-                    </div>
+                    </button>
 
                 </div>
 
-            </div>
+            </form>
 
-        <?php endforeach; ?>
+        </div>
 
-    <?php endif; ?>
+    </div>
+
+</div>
+
 
 
     <!-- ======================================================
@@ -1524,237 +1399,230 @@
          EDIT MACHINE MODALS
          ====================================================== -->
 
-    <?php if (!empty($records)): ?>
+<div
+    class="modal fade"
+    id="editRecordModal"
+    tabindex="-1"
+    aria-labelledby="editRecordModalLabel"
+    aria-hidden="true">
 
-        <?php foreach ($records as $row): ?>
+    <div class="modal-dialog modal-lg modal-dialog-centered">
 
-            <?php
-            $recordId =
-                (int) ($row['id'] ?? 0);
-            ?>
+        <div class="modal-content">
 
+            <form
+                method="post"
+                action="<?= site_url('dashboard/update') ?>"
+                id="editRecordForm">
 
-            <div
-                class="modal fade"
-                id="editRecordModal<?= $recordId ?>"
-                tabindex="-1"
-                aria-labelledby="editRecordModalLabel<?= $recordId ?>"
-                aria-hidden="true">
+                <?= csrf_field() ?>
 
+                <input
+                    type="hidden"
+                    name="id"
+                    id="edit_id">
 
-                <div
-                    class="modal-dialog modal-lg modal-dialog-centered">
+                <div class="modal-header">
 
+                    <h5
+                        class="modal-title"
+                        id="editRecordModalLabel">
 
-                    <div class="modal-content">
+                        <i class="bi bi-pencil-square me-2"></i>
+                        Edit Machine
 
+                    </h5>
 
-                        <form
-                            method="post"
-                            action="<?= site_url('dashboard/update') ?>">
+                    <button
+                        type="button"
+                        class="btn-close"
+                        data-bs-dismiss="modal"
+                        aria-label="Close">
+                    </button>
 
+                </div>
 
-                            <?= csrf_field() ?>
+                <div class="modal-body">
 
+                    <div class="row g-3">
+
+                        <!-- CLINIC -->
+
+                        <div class="col-md-6">
+
+                            <label class="form-label">
+                                Clinic Name
+                            </label>
 
                             <input
-                                type="hidden"
-                                name="id"
-                                value="<?= $recordId ?>">
+                                type="text"
+                                name="Clinic_name"
+                                id="edit_Clinic_name"
+                                class="form-control"
+                                required>
 
+                        </div>
 
-                            <div class="modal-header">
 
-                                <h5
-                                    class="modal-title"
-                                    id="editRecordModalLabel<?= $recordId ?>">
+                        <!-- ADDRESS -->
 
-                                    Edit Machine
+                        <div class="col-md-6">
 
-                                </h5>
+                            <label class="form-label">
+                                Address
+                            </label>
 
+                            <input
+                                type="text"
+                                name="Address"
+                                id="edit_Address"
+                                class="form-control"
+                                required>
 
-                                <button
-                                    type="button"
-                                    class="btn-close"
-                                    data-bs-dismiss="modal"
-                                    aria-label="Close">
-                                </button>
+                        </div>
 
-                            </div>
 
+                        <!-- PROVINCE -->
 
-                            <div class="modal-body">
+                        <div class="col-md-6">
 
-                                <div class="row g-3">
+                            <label class="form-label">
+                                Province
+                            </label>
 
+                            <input
+                                type="text"
+                                name="Province"
+                                id="edit_Province"
+                                class="form-control"
+                                required>
 
-                                    <div class="col-md-6">
+                        </div>
 
-                                        <label class="form-label">
-                                            Clinic Name
-                                        </label>
 
-                                        <input
-                                            type="text"
-                                            name="Clinic_name"
-                                            class="form-control"
-                                            value="<?= esc($row['Clinic_name'] ?? '') ?>"
-                                            required>
+                        <!-- MACHINE -->
 
-                                    </div>
+                        <div class="col-md-6">
 
+                            <label class="form-label">
+                                Machine
+                            </label>
 
-                                    <div class="col-md-6">
+                            <input
+                                type="text"
+                                name="Machine"
+                                id="edit_Machine"
+                                class="form-control"
+                                required>
 
-                                        <label class="form-label">
-                                            Address
-                                        </label>
+                        </div>
 
-                                        <input
-                                            type="text"
-                                            name="Address"
-                                            class="form-control"
-                                            value="<?= esc($row['Address'] ?? '') ?>"
-                                            required>
 
-                                    </div>
+                        <!-- MODEL -->
 
+                        <div class="col-md-6">
 
-                                    <div class="col-md-6">
+                            <label class="form-label">
+                                Model
+                            </label>
 
-                                        <label class="form-label">
-                                            Province
-                                        </label>
+                            <input
+                                type="text"
+                                name="Model"
+                                id="edit_Model"
+                                class="form-control"
+                                required>
 
-                                        <input
-                                            type="text"
-                                            name="Province"
-                                            class="form-control"
-                                            value="<?= esc($row['Province'] ?? '') ?>"
-                                            required>
+                        </div>
 
-                                    </div>
 
+                        <!-- INSTALLED DATE -->
 
-                                    <div class="col-md-6">
+                        <div class="col-md-6">
 
-                                        <label class="form-label">
-                                            Machine
-                                        </label>
+                            <label class="form-label">
+                                Installed Date
+                            </label>
 
-                                        <input
-                                            type="text"
-                                            name="Machine"
-                                            class="form-control"
-                                            value="<?= esc($row['Machine'] ?? '') ?>"
-                                            required>
+                            <input
+                                type="date"
+                                name="Installed_date"
+                                id="edit_Installed_date"
+                                class="form-control"
+                                required>
 
-                                    </div>
+                        </div>
 
 
-                                    <div class="col-md-6">
+                        <!-- SERIAL NUMBER -->
 
-                                        <label class="form-label">
-                                            Model
-                                        </label>
+                        <div class="col-md-6">
 
-                                        <input
-                                            type="text"
-                                            name="Model"
-                                            class="form-control"
-                                            value="<?= esc($row['Model'] ?? '') ?>"
-                                            required>
+                            <label class="form-label">
+                                SN
+                            </label>
 
-                                    </div>
+                            <input
+                                type="text"
+                                name="SN"
+                                id="edit_SN"
+                                class="form-control"
+                                required>
 
+                        </div>
 
-                                    <div class="col-md-6">
 
-                                        <label class="form-label">
-                                            Installed Date
-                                        </label>
+                        <!-- DR NUMBER -->
 
-                                        <input
-                                            type="date"
-                                            name="Installed_date"
-                                            class="form-control"
-                                            value="<?= esc($row['Installed_date'] ?? '') ?>"
-                                            required>
+                        <div class="col-md-6">
 
-                                    </div>
+                            <label class="form-label">
+                                DR Number
+                            </label>
 
+                            <input
+                                type="text"
+                                name="DR_Number"
+                                id="edit_DR_Number"
+                                class="form-control"
+                                required>
 
-                                    <div class="col-md-6">
-
-                                        <label class="form-label">
-                                            SN
-                                        </label>
-
-                                        <input
-                                            type="text"
-                                            name="SN"
-                                            class="form-control"
-                                            value="<?= esc($row['SN'] ?? '') ?>"
-                                            required>
-
-                                    </div>
-
-
-                                    <div class="col-md-6">
-
-                                        <label class="form-label">
-                                            DR Number
-                                        </label>
-
-                                        <input
-                                            type="text"
-                                            name="DR_Number"
-                                            class="form-control"
-                                            value="<?= esc($row['DR_Number'] ?? '') ?>"
-                                            required>
-
-                                    </div>
-
-                                </div>
-
-                            </div>
-
-
-                            <div class="modal-footer">
-
-                                <button
-                                    type="button"
-                                    class="btn btn-secondary"
-                                    data-bs-dismiss="modal">
-
-                                    Close
-
-                                </button>
-
-
-                                <button
-                                    type="submit"
-                                    class="btn btn-primary">
-
-                                    Update Machine
-
-                                </button>
-
-                            </div>
-
-                        </form>
+                        </div>
 
                     </div>
 
                 </div>
 
-            </div>
+                <div class="modal-footer">
 
-        <?php endforeach; ?>
+                    <button
+                        type="button"
+                        class="btn btn-secondary"
+                        data-bs-dismiss="modal">
 
-    <?php endif; ?>
+                        <i class="bi bi-x-circle me-1"></i>
+                        Close
 
+                    </button>
+
+                    <button
+                        type="submit"
+                        class="btn btn-primary">
+
+                        <i class="bi bi-check-circle me-1"></i>
+                        Update Machine
+
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
+</div>
 
     <!-- ======================================================
          CANCEL ACCOUNT MODAL
@@ -3289,6 +3157,11 @@ $(document).ready(function () {
 
     /* ======================================================
    OPEN EDIT MODAL
+
+   SERVER-SIDE DATATABLES FIX
+   DataTables only renders the current page, so do NOT look
+   for editRecordModal + id. Read the clicked row directly
+   from DataTables and use ONE reusable edit modal.
    ====================================================== */
 
 $(document).on(
@@ -3298,47 +3171,66 @@ $(document).on(
 
         event.preventDefault();
 
-        const id = Number(
-            $(this).data('id')
-        );
+        const button = $(this);
+        const id = Number(button.attr('data-id'));
 
         if (!id) {
             console.error('Edit: Invalid record ID.');
             return;
         }
 
-        const modalElement =
-            document.getElementById(
-                'editRecordModal' + id
-            );
+        const dataTable = $('#clinicRecordsTable').DataTable();
 
-        if (!modalElement) {
+        const rowData = dataTable
+            .row(button.closest('tr'))
+            .data();
 
-            console.error(
-                'Edit modal not found:',
-                'editRecordModal' + id
-            );
-
-            alert(
-                'Edit modal for this record was not found.'
-            );
-
+        if (!rowData) {
+            console.error('Edit: Could not retrieve row data.', id);
+            alert('Unable to load this machine record. Please try again.');
             return;
         }
 
-        const modal =
-            bootstrap.Modal.getOrCreateInstance(
-                modalElement
-            );
+        console.log('Edit record:', rowData);
 
+        const modalElement = document.getElementById('editRecordModal');
+
+        if (!modalElement) {
+            console.error('Edit modal not found: #editRecordModal');
+            alert('The Edit Machine modal is missing from the page.');
+            return;
+        }
+
+        const fields = {
+            '#edit_id': rowData.id || id,
+            '#edit_Clinic_name': rowData.Clinic_name || '',
+            '#edit_Address': rowData.Address || '',
+            '#edit_Province': rowData.Province || '',
+            '#edit_Machine': rowData.Machine || '',
+            '#edit_Model': rowData.Model || '',
+            '#edit_Installed_date': rowData.Installed_date || '',
+            '#edit_SN': rowData.SN || '',
+            '#edit_DR_Number': rowData.DR_Number || ''
+        };
+
+        Object.keys(fields).forEach(function (selector) {
+            const element = document.querySelector(selector);
+            if (element) {
+                element.value = fields[selector];
+            }
+        });
+
+        $(modalElement).attr('data-record-id', rowData.id || id);
+
+        const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
         modal.show();
-
     }
 );
 
 
 /* ======================================================
    OPEN ATTACH / REPLACE CONTRACT MODAL
+   SERVER-SIDE DATATABLES FIX
    ====================================================== */
 
 $(document).on(
@@ -3348,44 +3240,138 @@ $(document).on(
 
         event.preventDefault();
 
-        const id = Number(
-            $(this).data('id')
-        );
+        const button = $(this);
+        const id = Number(button.attr('data-id'));
+        const contractId = Number(button.attr('data-contract-id') || 0);
 
         if (!id) {
             console.error('Contract: Invalid record ID.');
             return;
         }
 
-        const modalElement =
-            document.getElementById(
-                'contractModal' + id
-            );
+        const dataTable = $('#clinicRecordsTable').DataTable();
+        const rowData = dataTable.row(button.closest('tr')).data();
 
-        if (!modalElement) {
-
-            console.error(
-                'Contract modal not found:',
-                'contractModal' + id
-            );
-
-            alert(
-                'Contract modal for this record was not found.'
-            );
-
+        if (!rowData) {
+            console.error('Contract: Could not retrieve DataTables row.', id);
+            alert('Unable to load this machine record. Please try again.');
             return;
         }
 
-        const modal =
-            bootstrap.Modal.getOrCreateInstance(
-                modalElement
-            );
+        const modalElement = document.getElementById('contractModal');
 
-        modal.show();
+        if (!modalElement) {
+            console.error('Reusable contract modal not found: #contractModal');
+            alert('The Contract modal is missing from the page.');
+            return;
+        }
 
+        const fields = {
+            '#contract_id': rowData.id || id,
+            '#contract_contract_id': rowData.contract_id || contractId || '',
+            '#contract_clinic': rowData.Clinic_name || '',
+            '#contract_address': rowData.Address || '',
+            '#contract_machine': rowData.Machine || '',
+            '#contract_model': rowData.Model || '',
+            '#contract_sn': rowData.SN || ''
+        };
+
+        Object.keys(fields).forEach(function (selector) {
+            const element = document.querySelector(selector);
+            if (element) {
+                element.value = fields[selector];
+            }
+        });
+
+        $(modalElement)
+            .attr('data-record-id', rowData.id || id)
+            .attr('data-contract-id', rowData.contract_id || contractId || 0);
+
+        const title = modalElement.querySelector('.modal-title');
+
+        if (title) {
+            title.innerHTML =
+                contractId > 0
+                    ? '<i class="bi bi-paperclip me-2"></i>Replace Contract'
+                    : '<i class="bi bi-paperclip me-2"></i>Attach Contract';
+        }
+
+        bootstrap.Modal
+            .getOrCreateInstance(modalElement)
+            .show();
     }
 );
 
+
+/* ======================================================
+   OPEN VIEW CONTRACT MODAL
+   SERVER-SIDE DATATABLES FIX
+   ====================================================== */
+
+$(document).on(
+    'click',
+    '.dt-view-contract',
+    function (event) {
+
+        event.preventDefault();
+
+        const button = $(this);
+        const id = Number(button.attr('data-id'));
+        const contractId = Number(button.attr('data-contract-id') || 0);
+
+        if (!id) {
+            console.error('View Contract: Invalid record ID.');
+            return;
+        }
+
+        const dataTable = $('#clinicRecordsTable').DataTable();
+        const rowData = dataTable.row(button.closest('tr')).data();
+
+        if (!rowData) {
+            console.error('View Contract: Could not retrieve DataTables row.', id);
+            alert('Unable to load this machine record. Please try again.');
+            return;
+        }
+
+        const modalElement = document.getElementById('viewContractModal');
+
+        if (!modalElement) {
+            console.error('Reusable view contract modal not found: #viewContractModal');
+            alert('The View Contract modal is missing from the page.');
+            return;
+        }
+
+        const fields = {
+            '#view_contract_id': rowData.id || id,
+            '#view_contract_contract_id': rowData.contract_id || contractId || '',
+            '#view_contract_clinic': rowData.Clinic_name || '',
+            '#view_contract_address': rowData.Address || '',
+            '#view_contract_machine': rowData.Machine || '',
+            '#view_contract_model': rowData.Model || '',
+            '#view_contract_sn': rowData.SN || ''
+        };
+
+        Object.keys(fields).forEach(function (selector) {
+            const element = document.querySelector(selector);
+            if (element) {
+                element.value = fields[selector];
+            }
+        });
+
+        $(modalElement)
+            .attr('data-record-id', rowData.id || id)
+            .attr('data-contract-id', rowData.contract_id || contractId || 0);
+
+        bootstrap.Modal
+            .getOrCreateInstance(modalElement)
+            .show();
+    }
+);
+
+
+/* ======================================================
+   END CONTRACT HANDLERS
+   ====================================================== */
 
 /* ======================================================
    OPEN VIEW CONTRACT MODAL
@@ -3597,7 +3583,6 @@ if (typeof ApexCharts !== 'undefined') {
 }
 
 </script>
-
 
 </body>
 </html>
