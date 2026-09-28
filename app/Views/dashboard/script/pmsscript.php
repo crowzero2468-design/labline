@@ -4426,7 +4426,7 @@ document.addEventListener('DOMContentLoaded', function () {
              * 3 = Address
              * 4 = Date
              */
-            order: [[4, 'desc']],
+            order: [[0, 'asc']],
 
             scrollX: true,
 
