@@ -66,60 +66,22 @@
 
 <body>
 
-<?php if (session()->getFlashdata('error')): ?>
+<?php
+    $fsrError = session()->getFlashdata('error');
+    $fsrSuccess = session()->getFlashdata('success');
+?>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const errorMessage = <?= json_encode((string) ($fsrError ?? ''), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
+    const successMessage = <?= json_encode((string) ($fsrSuccess ?? ''), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
 
-
-<div class="flash-message"
-     style="position: fixed;
-            top: 12px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 1200;
-            width: min(90vw, 520px);
-            opacity: 1;
-            transition: opacity 0.5s ease;">
-
-    <div style="background: #ffe4e6;
-                color: #991b1b;
-                border: 1px solid #fecdd3;
-                padding: 12px 16px;
-                border-radius: 10px;
-                font-weight: 600;">
-
-        <?= esc(session()->getFlashdata('error')) ?>
-
-    </div>
-
-</div>
-
-<?php endif; ?>
-
-<?php if (session()->getFlashdata('success')): ?>
-
-
-<div class="flash-message"
-     style="position: fixed;
-            top: 12px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 1200;
-            width: min(90vw, 520px);
-            opacity: 1;
-            transition: opacity 0.5s ease;">
-
-    <div style="background: #dcfce7;
-                color: #166534;
-                border: 1px solid #bbf7d0;
-                padding: 12px 16px;
-                border-radius: 10px;
-                font-weight: 600;">
-
-        <?= esc(session()->getFlashdata('success')) ?>
-
-    </div>
-
-</div>
-<?php endif; ?>
+    if (errorMessage && window.Swal) {
+        Swal.fire({ icon: 'error', title: 'FSR Failed', text: errorMessage });
+    } else if (successMessage && window.Swal) {
+        Swal.fire({ icon: 'success', title: 'Success', text: successMessage, timer: 3000, timerProgressBar: true, showConfirmButton: false });
+    }
+});
+</script>
 
 <?= view('dashboard/layout/sidebar') ?>
 
@@ -418,8 +380,7 @@ foreach (($accounts ?? []) as $a) {
 
                                     <form method="post"
                                           action="<?= site_url('fsr/delete/' . (int) $r['id']) ?>"
-                                          class="d-inline"
-                                          onsubmit="return confirm('Delete this FSR record?');">
+                                          class="d-inline fsr-delete-form">
                                         <?= csrf_field() ?>
                                         <button type="submit" class="btn btn-sm btn-outline-danger">
                                             <i class="bi bi-trash"></i>
@@ -972,9 +933,32 @@ document.addEventListener('DOMContentLoaded', function () {
     const editFsrMessage = document.getElementById('editFsrMessage');
 
     function showEditFsrMessage(message, type) {
-        editFsrMessage.className = 'alert alert-' + type;
-        editFsrMessage.textContent = message;
+        Swal.fire({
+            icon: type === 'danger' ? 'error' : 'success',
+            title: type === 'danger' ? 'FSR Failed' : 'FSR Updated',
+            text: message
+        });
     }
+
+    document.querySelectorAll('.fsr-delete-form').forEach(function (form) {
+        form.addEventListener('submit', function (event) {
+            event.preventDefault();
+
+            Swal.fire({
+                icon: 'warning',
+                title: 'Delete FSR record?',
+                text: 'This action cannot be undone.',
+                showCancelButton: true,
+                confirmButtonText: 'Delete',
+                cancelButtonText: 'Cancel',
+                confirmButtonColor: '#dc3545'
+            }).then(function (result) {
+                if (result.isConfirmed) {
+                    form.submit();
+                }
+            });
+        });
+    });
 
     document.querySelectorAll('.edit-fsr-btn').forEach(function (button) {
         button.addEventListener('click', function () {
@@ -1034,7 +1018,16 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             bootstrap.Modal.getInstance(editFsrModal).hide();
-            window.location.reload();
+            Swal.fire({
+                icon: 'success',
+                title: 'Updated',
+                text: result.message || 'FSR record updated successfully.',
+                timer: 3000,
+                timerProgressBar: true,
+                showConfirmButton: false
+            }).then(function () {
+                window.location.reload();
+            });
         })
         .catch(function (error) {
             showEditFsrMessage(error.message, 'danger');

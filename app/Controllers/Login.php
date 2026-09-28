@@ -30,21 +30,21 @@ class Login extends BaseController
         if (!$user) {
             return redirect()
                 ->to(site_url('login'))
-                ->with('error', 'Username not found.')
+                ->with('login_error', 'Username not found.')
                 ->withInput();
         }
 
         if (!password_verify($password, $user['pass'])) {
             return redirect()
                 ->to(site_url('login'))
-                ->with('error', 'Incorrect password.')
+                ->with('login_error', 'Incorrect password.')
                 ->withInput();
         }
 
         if (strcasecmp((string) ($user['status'] ?? ''), 'inactive') === 0) {
             return redirect()
                 ->to(site_url('login'))
-                ->with('error', 'Your account is inactive. Please contact the system admin.')
+                ->with('login_error', 'Your account is inactive. Please contact the system admin.')
                 ->withInput();
         }
 
@@ -62,7 +62,7 @@ class Login extends BaseController
 
         return redirect()
             ->to(site_url('dashboard'))
-            ->with('success', 'Login successful.');
+            ->with('login_success', 'Login successful.');
     }
 
     public function signup(): RedirectResponse
@@ -75,19 +75,19 @@ class Login extends BaseController
 
         if ($fname === '' || $lname === '' || $username === '') {
             return redirect()->to(site_url('login'))
-                ->with('error', 'Please complete all required fields.')
+                ->with('login_error', 'Please complete all required fields.')
                 ->withInput();
         }
 
         if (strlen($password) < 6) {
             return redirect()->to(site_url('login'))
-                ->with('error', 'Password must be at least 6 characters long.')
+                ->with('login_error', 'Password must be at least 6 characters long.')
                 ->withInput();
         }
 
         if ($password !== $confirmPassword) {
             return redirect()->to(site_url('login'))
-                ->with('error', 'Passwords do not match.')
+                ->with('login_error', 'Passwords do not match.')
                 ->withInput();
         }
 
@@ -96,7 +96,7 @@ class Login extends BaseController
         $existingUser = $userModel->where('uname', $username)->first();
         if ($existingUser) {
             return redirect()->to(site_url('login'))
-                ->with('error', 'Username already exists. Please choose another one.')
+                ->with('login_error', 'Username already exists. Please choose another one.')
                 ->withInput();
         }
 
@@ -123,7 +123,7 @@ class Login extends BaseController
         ]);
 
         return redirect()->to(site_url('login'))
-            ->with('success', 'Account created successfully. Please sign in.');
+            ->with('login_success', 'Account created successfully. Please sign in.');
     }
 
     public function logout(): RedirectResponse
@@ -131,6 +131,6 @@ class Login extends BaseController
         session()->destroy();
 
         return redirect()->to(site_url('login'))
-            ->with('success', 'You have been logged out.');
+            ->with('login_success', 'You have been logged out.');
     }
 }

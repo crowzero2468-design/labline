@@ -1,6 +1,21 @@
 <script>
 $(document).ready(function () {
 
+    function showMfsAlert(icon, title, text, reload = false) {
+        Swal.fire({
+            icon: icon,
+            title: title,
+            text: text,
+            timer: reload ? 3000 : undefined,
+            timerProgressBar: reload,
+            showConfirmButton: !reload
+        }).then(function () {
+            if (reload) {
+                window.location.reload();
+            }
+        });
+    }
+
     function formatMfsAccount(account) {
         if (!account.id) {
             return account.text;
@@ -121,7 +136,7 @@ $(document).ready(function () {
 
         if (!id) {
 
-            alert('Invalid MFS record.');
+            showMfsAlert('error', 'Unable to edit MFS', 'Invalid MFS record.');
 
             return;
         }
@@ -142,10 +157,7 @@ $(document).ready(function () {
 
                 if (!response || !response.success) {
 
-                    alert(
-                        response?.message ||
-                        'Unable to load MFS record.'
-                    );
+                    showMfsAlert('error', 'Unable to load MFS', response?.message || 'Unable to load MFS record.');
 
                     return;
                 }
@@ -269,9 +281,7 @@ $(document).ready(function () {
                     xhr.responseText
                 );
 
-                alert(
-                    'Unable to load the MFS record.'
-                );
+                showMfsAlert('error', 'Unable to load MFS', 'Unable to load the MFS record.');
 
             }
 
@@ -355,24 +365,11 @@ $(document).ready(function () {
                     // SUCCESS MESSAGE
                     // =============================================
 
-                    alert(
-                        response.message ||
-                        'MFS record updated successfully.'
-                    );
-
-
-                    // =============================================
-                    // REFRESH TABLE
-                    // =============================================
-
-                    location.reload();
+                    showMfsAlert('success', 'Updated', response.message || 'MFS record updated successfully.', true);
 
                 } else {
 
-                    alert(
-                        response?.message ||
-                        'Unable to update MFS record.'
-                    );
+                    showMfsAlert('error', 'Update Failed', response?.message || 'Unable to update MFS record.');
 
                 }
 
@@ -385,9 +382,7 @@ $(document).ready(function () {
                     xhr.responseText
                 );
 
-                alert(
-                    'An error occurred while updating the MFS record.'
-                );
+                showMfsAlert('error', 'Update Failed', 'An error occurred while updating the MFS record.');
 
             },
 
@@ -425,29 +420,24 @@ $(document).ready(function () {
 
         if (!id) {
 
-            alert(
-                'Invalid MFS record.'
-            );
+            showMfsAlert('error', 'Unable to delete MFS', 'Invalid MFS record.');
 
             return;
         }
 
 
-        /*
-         * Native browser confirmation
-         */
-        const confirmed =
-            confirm(
-                'Are you sure you want to delete MFS ' +
-                mfsNumber +
-                '?\n\n' +
-                'This action cannot be undone.'
-            );
-
-
-        if (!confirmed) {
-            return;
-        }
+        Swal.fire({
+            icon: 'warning',
+            title: 'Delete MFS record?',
+            text: 'Delete MFS ' + mfsNumber + '? This action cannot be undone.',
+            showCancelButton: true,
+            confirmButtonText: 'Delete',
+            cancelButtonText: 'Cancel',
+            confirmButtonColor: '#dc3545'
+        }).then(function (confirmation) {
+            if (!confirmation.isConfirmed) {
+                return;
+            }
 
 
         /*
@@ -477,20 +467,11 @@ $(document).ready(function () {
                     response.success
                 ) {
 
-                    alert(
-                        response.message ||
-                        'MFS record deleted successfully.'
-                    );
-
-
-                    location.reload();
+                    showMfsAlert('success', 'Deleted', response.message || 'MFS record deleted successfully.', true);
 
                 } else {
 
-                    alert(
-                        response?.message ||
-                        'Unable to delete MFS record.'
-                    );
+                    showMfsAlert('error', 'Delete Failed', response?.message || 'Unable to delete MFS record.');
 
                 }
 
@@ -503,12 +484,11 @@ $(document).ready(function () {
                     xhr.responseText
                 );
 
-                alert(
-                    'An error occurred while deleting the MFS record.'
-                );
+                showMfsAlert('error', 'Delete Failed', 'An error occurred while deleting the MFS record.');
 
             }
 
+            });
         });
 
     });

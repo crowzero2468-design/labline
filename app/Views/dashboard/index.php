@@ -59,57 +59,64 @@
 
 <body>
 
-<?php if (session()->getFlashdata('error')): ?>
-    <div class="flash-message"
-         style="
-            position: fixed;
-            top: 12px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 1200;
-            width: min(90vw, 520px);
-            opacity: 1;
-            transition: opacity 0.5s ease;
-         ">
-        <div style="
-            background: #ffe4e6;
-            color: #991b1b;
-            border: 1px solid #fecdd3;
-            padding: 12px 16px;
-            border-radius: 10px;
-            font-weight: 600;
-        ">
-            <?= esc(session()->getFlashdata('error')) ?>
-        </div>
+<?php
+    $flashError = session()->getFlashdata('error');
+    $flashSuccess = session()->getFlashdata('success');
+    $loginSuccess = session()->getFlashdata('login_success');
+?>
+
+<?php if ($loginSuccess): ?>
+    <div id="login-success-message" style="position: fixed; top: 12px; left: 50%; transform: translateX(-50%); z-index: 1200; width: min(90vw, 520px); background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; padding: 12px 16px; border-radius: 10px; font-weight: 600; opacity: 1; transition: opacity 0.5s ease;">
+        <?= esc($loginSuccess) ?>
     </div>
+    <script>
+        setTimeout(function () {
+            const message = document.getElementById('login-success-message');
+            if (message) {
+                message.style.opacity = '0';
+                setTimeout(function () { message.remove(); }, 500);
+            }
+        }, 3000);
+    </script>
 <?php endif; ?>
 
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const errorMessage = <?= json_encode((string) ($flashError ?? ''), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
+    const successMessage = <?= json_encode((string) ($flashSuccess ?? ''), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
 
-<?php if (session()->getFlashdata('success')): ?>
-    <div class="flash-message"
-         style="
-            position: fixed;
-            top: 12px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 1200;
-            width: min(90vw, 520px);
-            opacity: 1;
-            transition: opacity 0.5s ease;
-         ">
-        <div style="
-            background: #dcfce7;
-            color: #166534;
-            border: 1px solid #bbf7d0;
-            padding: 12px 16px;
-            border-radius: 10px;
-            font-weight: 600;
-        ">
-            <?= esc(session()->getFlashdata('success')) ?>
-        </div>
-    </div>
-<?php endif; ?>
+    if (errorMessage) {
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: errorMessage,
+                timer: 3000,
+                timerProgressBar: true,
+                showConfirmButton: false,
+                allowOutsideClick: false,
+                allowEscapeKey: false
+            });
+        }
+        return;
+    }
 
+    if (successMessage) {
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                icon: 'success',
+                title: 'Success',
+                text: successMessage,
+                timer: 3000,
+                timerProgressBar: true,
+                showConfirmButton: false,
+                allowOutsideClick: false,
+                allowEscapeKey: false
+            });
+        }
+    }
+});
+</script>
 
 <?= view('dashboard/layout/sidebar') ?>
 

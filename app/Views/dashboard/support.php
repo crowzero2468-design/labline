@@ -1,5 +1,4 @@
-
-  <?= view('dashboard/layout/head') ?>
+<?= view('dashboard/layout/head') ?>
 <style>
   /* ==========================================
    SELECT2 - BOOTSTRAP STYLE
@@ -143,6 +142,29 @@
   </style>
 
 <body>
+
+  <?php
+    $ticketError = session()->getFlashdata('support_ticket_error');
+    $ticketSuccess = session()->getFlashdata('support_ticket_success');
+  ?>
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const ticketError = <?= json_encode((string) ($ticketError ?? ''), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
+      const ticketSuccess = <?= json_encode((string) ($ticketSuccess ?? ''), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
+      const message = ticketError || ticketSuccess;
+
+      if (message && typeof Swal !== 'undefined') {
+        Swal.fire({
+          icon: ticketError ? 'error' : 'success',
+          title: ticketError ? 'Error' : 'Success',
+          text: message,
+          timer: 3000,
+          timerProgressBar: true,
+          showConfirmButton: false
+        });
+      }
+    });
+  </script>
 
   <?php if (session()->getFlashdata('error')): ?>
     <div class="flash-message" style="position: fixed; top: 12px; left: 50%; transform: translateX(-50%); z-index: 1200; width: min(90vw, 520px); opacity: 1; transition: opacity 0.5s ease;">

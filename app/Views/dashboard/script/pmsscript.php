@@ -53,120 +53,22 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
 
-    /* ==========================================================
-       FLASH MESSAGES
-       ========================================================== */
-
-    function escapeFlashMessage(value) {
-
-        const div = document.createElement('div');
-
-        div.textContent = value ?? '';
-
-        return div.innerHTML;
-
-    }
-
-
     function showFlashMessage(message, type = 'success') {
-
-        document
-            .querySelectorAll('.js-flash-message')
-            .forEach(function (element) {
-                element.remove();
-            });
-
-
-        let icon = 'check-circle';
-
-        if (type === 'danger') {
-            icon = 'exclamation-triangle';
-        }
-        else if (type === 'warning') {
-            icon = 'exclamation-circle';
-        }
-        else if (type === 'info') {
-            icon = 'info-circle';
+        if (!window.Swal) {
+            return Promise.resolve();
         }
 
+        const icon = type === 'danger' ? 'error' : type === 'warning' ? 'warning' : type === 'info' ? 'info' : 'success';
 
-        const flash = document.createElement('div');
-
-        flash.className =
-            'alert alert-' +
-            type +
-            ' alert-dismissible fade show js-flash-message';
-
-        flash.style.position = 'fixed';
-        flash.style.top = '12px';
-        flash.style.left = '50%';
-        flash.style.transform = 'translateX(-50%)';
-        flash.style.zIndex = '99999';
-        flash.style.width = 'min(90vw, 520px)';
-        flash.style.boxShadow = '0 4px 15px rgba(0,0,0,0.15)';
-        flash.style.transition = 'opacity 0.5s ease';
-
-
-        flash.innerHTML = `
-            <i class="bi bi-${icon} me-2"></i>
-
-            <strong>
-                ${type === 'success' ? 'Success!' : 'Notice!'}
-            </strong>
-
-            <span class="ms-1">
-                ${escapeFlashMessage(message)}
-            </span>
-
-            <button
-                type="button"
-                class="btn-close"
-                data-bs-dismiss="alert"
-                aria-label="Close">
-            </button>
-        `;
-
-
-        document.body.appendChild(flash);
-
-
-        setTimeout(function () {
-
-            if (!flash.parentNode) {
-                return;
-            }
-
-            flash.style.opacity = '0';
-
-            setTimeout(function () {
-
-                if (flash.parentNode) {
-                    flash.remove();
-                }
-
-            }, 500);
-
-        }, 5000);
-
+        return Swal.fire({
+            icon: icon,
+            title: type === 'success' ? 'Success' : 'Error',
+            text: String(message ?? ''),
+            timer: type === 'success' ? 3000 : undefined,
+            timerProgressBar: type === 'success',
+            showConfirmButton: type !== 'success'
+        });
     }
-
-
-    setTimeout(function () {
-
-        document
-            .querySelectorAll('.flash-message')
-            .forEach(function (message) {
-
-                message.style.opacity = '0';
-                message.style.transition = 'opacity 0.5s ease';
-
-                setTimeout(function () {
-                    message.remove();
-                }, 500);
-
-            });
-
-    }, 5000);
 
 
     /* ==========================================================
@@ -1146,8 +1048,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 if (rows.length === 0) {
 
-                    alert(
-                        'Please add at least one machine.'
+                    showFlashMessage(
+                        'Please add at least one machine.',
+                        'warning'
                     );
 
                     return;
@@ -1181,8 +1084,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 if (!valid) {
 
-                    alert(
-                        'Please select a Machine and Technical Done for every machine.'
+                    showFlashMessage(
+                        'Please select a Machine and Technical Done for every machine.',
+                        'warning'
                     );
 
                     return;
@@ -1359,13 +1263,6 @@ document.addEventListener('DOMContentLoaded', function () {
                     );
 
 
-                    showFlashMessage(
-                        data.message ||
-                        'PMS saved successfully.',
-                        'success'
-                    );
-
-
                     const modalElement =
                         document.getElementById(
                             'addPmsModal'
@@ -1384,8 +1281,11 @@ document.addEventListener('DOMContentLoaded', function () {
                         modalInstance.hide();
                     }
 
-
-                    setTimeout(function () {
+                    showFlashMessage(
+                        data.message ||
+                        'PMS saved successfully.',
+                        'success'
+                    ).then(function () {
 
                         if (pendingMfs) {
 
@@ -1398,14 +1298,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
                         }
                         else {
-
-                            setTimeout(function () {
-                                location.reload();
-                            }, 1500);
-
+                            location.reload();
                         }
-
-                    }, 500);
+                    });
 
                 })
 
@@ -1609,13 +1504,6 @@ document.addEventListener('DOMContentLoaded', function () {
                     );
 
 
-                    showFlashMessage(
-                        data.message ||
-                        'MFS saved successfully.',
-                        'success'
-                    );
-
-
                     const modalElement =
                         document.getElementById(
                             'mfsModal'
@@ -1634,8 +1522,11 @@ document.addEventListener('DOMContentLoaded', function () {
                         modal.hide();
                     }
 
-
-                    setTimeout(function () {
+                    showFlashMessage(
+                        data.message ||
+                        'MFS saved successfully.',
+                        'success'
+                    ).then(function () {
 
                         if (pendingFsr) {
 
@@ -1643,14 +1534,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
                         }
                         else {
-
-                            setTimeout(function () {
-                                location.reload();
-                            }, 1500);
-
+                            location.reload();
                         }
-
-                    }, 500);
+                    });
 
                 })
 
@@ -1854,13 +1740,6 @@ document.addEventListener('DOMContentLoaded', function () {
                     );
 
 
-                    showFlashMessage(
-                        data.message ||
-                        'FSR saved successfully.',
-                        'success'
-                    );
-
-
                     const modalElement =
                         document.getElementById(
                             'fsrModal'
@@ -1879,12 +1758,13 @@ document.addEventListener('DOMContentLoaded', function () {
                         modal.hide();
                     }
 
-
-                    setTimeout(function () {
-
+                    showFlashMessage(
+                        data.message ||
+                        'FSR saved successfully.',
+                        'success'
+                    ).then(function () {
                         location.reload();
-
-                    }, 1200);
+                    });
 
                 })
 
@@ -3354,96 +3234,18 @@ document.addEventListener('DOMContentLoaded', function () {
        ========================================================== */
 
     function showMessage(message, type = 'success') {
+        if (!window.Swal) {
+            return;
+        }
 
-        document
-            .querySelectorAll('.flash-message-js')
-            .forEach(function (element) {
-                element.remove();
-            });
-
-
-        const isSuccess =
-            type === 'success';
-
-
-        const background =
-            isSuccess
-                ? '#d1e7dd'
-                : '#f8d7da';
-
-
-        const textColor =
-            isSuccess
-                ? '#0f5132'
-                : '#842029';
-
-
-        const borderColor =
-            isSuccess
-                ? '#badbcc'
-                : '#f5c2c7';
-
-
-        const icon =
-            isSuccess
-                ? 'bi-check-circle-fill'
-                : 'bi-exclamation-triangle-fill';
-
-
-        const messageBox =
-            document.createElement('div');
-
-
-        messageBox.className =
-            'flash-message flash-message-js';
-
-
-        messageBox.style.cssText = `
-            position: fixed;
-            top: 12px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 9999;
-            width: min(90vw, 520px);
-            padding: 12px 18px;
-            border-radius: 6px;
-            font-weight: 500;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            opacity: 1;
-            transition: opacity 0.5s ease;
-            background: ${background};
-            color: ${textColor};
-            border: 1px solid ${borderColor};
-        `;
-
-
-        messageBox.innerHTML =
-            '<i class="bi ' +
-            icon +
-            ' me-2"></i>' +
-            escapeHtml(message);
-
-
-        document.body.appendChild(
-            messageBox
-        );
-
-
-        setTimeout(function () {
-
-            messageBox.style.opacity =
-                '0';
-
-
-            setTimeout(function () {
-
-                if (messageBox.parentNode) {
-                    messageBox.remove();
-                }
-
-            }, 500);
-
-        }, 5000);
+        return Swal.fire({
+            icon: type === 'success' ? 'success' : 'error',
+            title: type === 'success' ? 'Success' : 'Error',
+            text: String(message ?? ''),
+            timer: type === 'success' ? 3000 : undefined,
+            timerProgressBar: type === 'success',
+            showConfirmButton: type !== 'success'
+        });
 
     }
 
@@ -4095,14 +3897,9 @@ document.addEventListener('DOMContentLoaded', function () {
                         result.message ||
                         'PMS record updated successfully.',
                         'success'
-                    );
-
-
-                    setTimeout(function () {
-
+                    ).then(function () {
                         window.location.reload();
-
-                    }, 1000);
+                    });
 
                 })
 
@@ -4180,22 +3977,22 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
 
-        const confirmed =
-            window.confirm(
-                'Delete PMS Record?\n\n' +
-                'You are about to delete PMS record #' +
-                pmsNumber +
-                '.\n\n' +
-                'Existing MFS, FSR and receipt records will NOT be deleted.'
-            );
+        Swal.fire({
+            icon: 'warning',
+            title: 'Delete PMS record?',
+            text: 'Delete PMS record #' + pmsNumber +
+                '? Existing MFS, FSR and receipt records will not be deleted.',
+            showCancelButton: true,
+            confirmButtonText: 'Delete',
+            cancelButtonText: 'Cancel',
+            confirmButtonColor: '#dc3545'
+        }).then(function (confirmation) {
+            if (!confirmation.isConfirmed) {
+                return;
+            }
 
 
-        if (!confirmed) {
-            return;
-        }
-
-
-        button.disabled = true;
+            button.disabled = true;
 
 
         const originalHtml =
@@ -4206,7 +4003,7 @@ document.addEventListener('DOMContentLoaded', function () {
             '<span class="spinner-border spinner-border-sm"></span>';
 
 
-        fetch(
+            fetch(
             '<?= site_url('pms/delete/') ?>' + id,
             {
                 method: 'POST',
@@ -4257,18 +4054,13 @@ document.addEventListener('DOMContentLoaded', function () {
                 result.message ||
                 'PMS record deleted successfully.',
                 'success'
-            );
-
-
-            setTimeout(function () {
-
+            ).then(function () {
                 window.location.reload();
-
-            }, 1000);
+            });
 
         })
 
-        .catch(function (error) {
+            .catch(function (error) {
 
             console.error(error);
 
@@ -4285,6 +4077,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 'error'
             );
 
+            });
         });
 
     });

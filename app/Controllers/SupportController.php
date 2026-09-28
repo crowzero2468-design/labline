@@ -129,7 +129,7 @@ class SupportController extends BaseController
         $concern === ''
     ) {
         return redirect()->to(site_url('dashboard/support'))
-            ->with('error', 'Please complete all support ticket fields.');
+            ->with('support_ticket_error', 'Please complete all support ticket fields.');
     }
 
     if ($supportDate === '') {
@@ -219,7 +219,7 @@ class SupportController extends BaseController
 
     return redirect()->to(site_url('dashboard/support'))
         ->with(
-            'success',
+            'support_ticket_success',
             'Support ticket ' . $ticketNumber .
             ' added successfully. It is now waiting for technician acceptance.'
         );
@@ -583,57 +583,70 @@ class SupportController extends BaseController
         }
     }
 
-    public function update()
-{
-    if (!session()->get('logged_in')) {
-        return $this->response->setJSON([
-            'success' => false,
-            'message' => 'Please login first.'
-        ]);
+    public function update(): RedirectResponse
+    {
+        if (!session()->get('logged_in')) {
+            return redirect()->to(site_url('login'))
+                ->with('error', 'Please login first.');
+        }
+
+        $id = (int) $this->request->getPost('id');
+
+        if ($id <= 0) {
+            return redirect()->to(site_url('dashboard/history'))
+                ->with('error', 'Invalid ticket ID.');
+        }
+
+        $serviceEngineer = trim((string) $this->request->getPost('service_engr'));
+        $serviceStatus = (string) $this->request->getPost('status');
+
+        $data = [
+            'clinic_name'    => trim((string) $this->request->getPost('clinic_name')),
+            'province'       => trim((string) $this->request->getPost('province')),
+            'address'        => trim((string) $this->request->getPost('address')),
+            'support_date'   => $this->request->getPost('support_date'),
+            'concern'        => trim((string) $this->request->getPost('concern')),
+            'machine_status' => trim((string) $this->request->getPost('machine_status')),
+            'service_engr'   => $serviceEngineer,
+            'technician'     => $serviceEngineer,
+            'status'         => $serviceStatus,
+            'service_status' => $serviceStatus,
+        ];
+
+        $db = \Config\Database::connect();
+        $builder = $db->table('tb_support');
+
+        if (!$builder->where('id', $id)->countAllResults()) {
+            return redirect()->to(site_url('dashboard/history'))
+                ->with('error', 'Ticket not found.');
+        }
+
+        try {
+            $updated = $db->table('tb_support')
+                ->where('id', $id)
+                ->update($data);
+        } catch (\Throwable $exception) {
+            log_message('error', 'Support ticket update failed: {message}', [
+                'message' => $exception->getMessage(),
+            ]);
+
+            return redirect()->to(site_url('dashboard/history'))
+                ->with('error', 'Unable to save the support ticket changes.');
+        }
+
+        if (!$updated) {
+            $databaseError = $db->error();
+            log_message('error', 'Support ticket update failed: {message}', [
+                'message' => $databaseError['message'] ?? 'Unknown database error.',
+            ]);
+
+            return redirect()->to(site_url('dashboard/history'))
+                ->with('error', 'Unable to save the support ticket changes.');
+        }
+
+        return redirect()->to(site_url('dashboard/history'))
+            ->with('success', 'Support ticket updated successfully.');
     }
-
-    $id = $this->request->getPost('id');
-
-    if (!$id) {
-        return $this->response->setJSON([
-            'success' => false,
-            'message' => 'Invalid ticket ID.'
-        ]);
-    }
-
-    $data = [
-        'clinic_name'   => trim((string) $this->request->getPost('clinic_name')),
-        'province'      => trim((string) $this->request->getPost('province')),
-        'address'       => trim((string) $this->request->getPost('address')),
-        'support_date'  => $this->request->getPost('support_date'),
-        'concern'       => trim((string) $this->request->getPost('concern')),
-        'machine_status'=> trim((string) $this->request->getPost('machine_status')),
-        'service_engr'  => trim((string) $this->request->getPost('service_engr')),
-        'status'        => $this->request->getPost('status'),
-    ];
-
-    $db = \Config\Database::connect();
-
-    $builder = $db->table('tb_support');
-
-    $exists = $builder
-        ->where('id', $id)
-        ->countAllResults();
-
-    if (!$exists) {
-        return $this->response->setJSON([
-            'success' => false,
-            'message' => 'Ticket not found.'
-        ]);
-    }
-
-    $builder->where('id', $id)->update($data);
-
-    return $this->response->setJSON([
-        'success' => true,
-        'message' => 'Support ticket updated successfully.'
-    ]);
-}
 
 public function delete()
 {

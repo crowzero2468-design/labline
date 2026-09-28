@@ -72,36 +72,29 @@
 
 <body>
 
-<?php if (session()->getFlashdata('error')): ?>
+<?php
+    $historyError = session()->getFlashdata('error');
+    $historySuccess = session()->getFlashdata('success');
+?>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const errorMessage = <?= json_encode((string) ($historyError ?? ''), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
+    const successMessage = <?= json_encode((string) ($historySuccess ?? ''), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
 
-    <div class="flash-message"
-         style="position: fixed; top: 12px; left: 50%; transform: translateX(-50%); z-index: 1200; width: min(90vw, 520px); opacity: 1; transition: opacity 0.5s ease;">
-
-        <div style="background: #ffe4e6; color: #991b1b; border: 1px solid #fecdd3; padding: 12px 16px; border-radius: 10px; font-weight: 600;">
-
-            <?= esc(session()->getFlashdata('error')) ?>
-
-        </div>
-
-    </div>
-
-<?php endif; ?>
-
-
-<?php if (session()->getFlashdata('success')): ?>
-
-    <div class="flash-message"
-         style="position: fixed; top: 12px; left: 50%; transform: translateX(-50%); z-index: 1200; width: min(90vw, 520px); opacity: 1; transition: opacity 0.5s ease;">
-
-        <div style="background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; padding: 12px 16px; border-radius: 10px; font-weight: 600;">
-
-            <?= esc(session()->getFlashdata('success')) ?>
-
-        </div>
-
-    </div>
-
-<?php endif; ?>
+    if (errorMessage && window.Swal) {
+        Swal.fire({ icon: 'error', title: 'Update Failed', text: errorMessage });
+    } else if (successMessage && window.Swal) {
+        Swal.fire({
+            icon: 'success',
+            title: 'Updated',
+            text: successMessage,
+            timer: 3000,
+            timerProgressBar: true,
+            showConfirmButton: false
+        });
+    }
+});
+</script>
 
 
 <?= view('dashboard/layout/sidebar') ?>
@@ -879,7 +872,12 @@
                 </div>
 
 
-                <form id="editTicketForm">
+                                <form id="editTicketForm"
+                                            method="post"
+                                            action="<?= site_url('dashboard/history/update') ?>"
+                                            data-ajax="false">
+
+                                        <?= csrf_field() ?>
 
 
                     <div class="modal-body">
@@ -2231,8 +2229,8 @@ $('#historyTable tbody').on(
 
 
             if (
-                e.target.id !==
-                'editTicketForm'
+                e.target.id !== 'editTicketForm' ||
+                e.target.dataset.ajax === 'false'
             ) {
 
                 return;
@@ -2376,11 +2374,16 @@ $('#historyTable tbody').on(
 
                 if (result.success) {
 
-                    if (
-                        window.Swal &&
-                        typeof Swal.fire === 'function'
-                    ) {
+                    const editModal = document.getElementById('editTicketModal');
+                    const modalInstance = window.bootstrap && editModal
+                        ? bootstrap.Modal.getInstance(editModal)
+                        : null;
 
+                    if (modalInstance && editModal.classList.contains('show')) {
+                        modalInstance.hide();
+                    }
+
+                    if (window.Swal && typeof Swal.fire === 'function') {
                         Swal.fire({
 
                             icon: 'success',
@@ -2391,9 +2394,18 @@ $('#historyTable tbody').on(
                                 result.message ||
                                 'Support ticket updated successfully.',
 
-                            timer: 1500,
+                            timer: 3000,
 
-                            showConfirmButton: false
+                            timerProgressBar: true,
+
+                            showConfirmButton: false,
+
+                            didOpen: function () {
+                                const alertContainer = document.querySelector('.swal2-container');
+                                if (alertContainer) {
+                                    alertContainer.style.zIndex = '2000';
+                                }
+                            }
 
                         }).then(function () {
 
