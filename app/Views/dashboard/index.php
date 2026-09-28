@@ -2071,657 +2071,516 @@ document.addEventListener('DOMContentLoaded', function () {
             'Installed Date Filter: required elements not found.'
         );
 
-        return;
-
-    }
-
-
-    /* ======================================================
-       CHECK FLATPICKR
-       ====================================================== */
-
-    if (typeof flatpickr === 'undefined') {
+    } else if (typeof flatpickr === 'undefined') {
 
         console.error(
             'Installed Date Filter: Flatpickr is not loaded.'
         );
 
-        return;
+    } else {
 
-    }
+        /* ======================================================
+           DESTROY EXISTING FLATPICKR INSTANCE
+           ====================================================== */
 
+        if (trigger._flatpickr) {
 
-    /* ======================================================
-       DESTROY ANY EXISTING FLATPICKR INSTANCE ON TRIGGER
-       
-       This protects against duplicate initialization.
-       ====================================================== */
+            try {
 
-    if (trigger._flatpickr) {
+                trigger._flatpickr.destroy();
 
-        try {
+            } catch (error) {
 
-            trigger._flatpickr.destroy();
+                console.warn(
+                    'Could not destroy existing Flatpickr instance.',
+                    error
+                );
 
-        } catch (error) {
-
-            console.warn(
-                'Could not destroy existing Flatpickr instance.',
-                error
-            );
-
-        }
-
-    }
-
-
-    /* ======================================================
-       REMOVE OLD ORPHANED FLATPICKR CALENDARS
-       
-       This is especially useful if an older version of the
-       page initialized Flatpickr before this script.
-       ====================================================== */
-
-    document
-        .querySelectorAll('.flatpickr-calendar')
-        .forEach(function (calendar) {
-
-            calendar.remove();
-
-        });
-
-
-    /* ======================================================
-       EXISTING DATE VALUES
-       ====================================================== */
-
-    const existingStart =
-        startInput.value.trim();
-
-    const existingEnd =
-        endInput.value.trim();
-
-
-    /* ======================================================
-       INITIAL DATES
-       ====================================================== */
-
-    let initialDates = [];
-
-
-    if (
-        existingStart &&
-        existingEnd
-    ) {
-
-        initialDates = [
-            existingStart,
-            existingEnd
-        ];
-
-    } else if (existingStart) {
-
-        initialDates = [
-            existingStart
-        ];
-
-    } else if (existingEnd) {
-
-        initialDates = [
-            existingEnd
-        ];
-
-    }
-
-
-    /* ======================================================
-       FORMAT DATE FOR DISPLAY
-       ====================================================== */
-
-    function formatDisplayDate(dateString) {
-
-        if (!dateString) {
-
-            return '';
-
-        }
-
-
-        const parts =
-            dateString.split('-');
-
-
-        if (parts.length !== 3) {
-
-            return dateString;
-
-        }
-
-
-        const year =
-            Number(parts[0]);
-
-
-        const month =
-            Number(parts[1]) - 1;
-
-
-        const day =
-            Number(parts[2]);
-
-
-        const date =
-            new Date(
-                year,
-                month,
-                day
-            );
-
-
-        if (
-            Number.isNaN(
-                date.getTime()
-            )
-        ) {
-
-            return dateString;
-
-        }
-
-
-        return date.toLocaleDateString(
-            'en-US',
-            {
-                year: 'numeric',
-                month: 'long',
-                day: '2-digit'
             }
-        );
 
-    }
+        }
 
 
-    /* ======================================================
-       UPDATE BUTTON TEXT
-       ====================================================== */
+        /* ======================================================
+           REMOVE ORPHANED FLATPICKR CALENDARS
+           ====================================================== */
 
-    function updateDateDisplay() {
+        document
+            .querySelectorAll('.flatpickr-calendar')
+            .forEach(function (calendar) {
 
-        const start =
+                calendar.remove();
+
+            });
+
+
+        /* ======================================================
+           EXISTING DATE VALUES
+           ====================================================== */
+
+        const existingStart =
             startInput.value.trim();
 
-        const end =
+        const existingEnd =
             endInput.value.trim();
 
 
-        /* -----------------------------------------------
-           START + END
-           ----------------------------------------------- */
+        /* ======================================================
+           INITIAL DATES
+           ====================================================== */
+
+        let initialDates = [];
+
 
         if (
-            start &&
-            end
+            existingStart &&
+            existingEnd
         ) {
 
-            display.textContent =
-                formatDisplayDate(start) +
-                ' - ' +
-                formatDisplayDate(end);
+            initialDates = [
+                existingStart,
+                existingEnd
+            ];
 
-            return;
+        } else if (existingStart) {
 
-        }
+            initialDates = [
+                existingStart
+            ];
 
+        } else if (existingEnd) {
 
-        /* -----------------------------------------------
-           START ONLY
-           ----------------------------------------------- */
-
-        if (start) {
-
-            display.textContent =
-                'From ' +
-                formatDisplayDate(start);
-
-            return;
+            initialDates = [
+                existingEnd
+            ];
 
         }
 
 
-        /* -----------------------------------------------
-           END ONLY
-           ----------------------------------------------- */
+        /* ======================================================
+           FORMAT DATE FOR DISPLAY
+           ====================================================== */
 
-        if (end) {
+        function formatDisplayDate(dateString) {
 
-            display.textContent =
-                'Until ' +
-                formatDisplayDate(end);
+            if (!dateString) {
+                return '';
+            }
 
-            return;
+            const parts =
+                dateString.split('-');
+
+            if (parts.length !== 3) {
+                return dateString;
+            }
+
+            const year =
+                Number(parts[0]);
+
+            const month =
+                Number(parts[1]) - 1;
+
+            const day =
+                Number(parts[2]);
+
+            const date =
+                new Date(
+                    year,
+                    month,
+                    day
+                );
+
+            if (
+                Number.isNaN(
+                    date.getTime()
+                )
+            ) {
+
+                return dateString;
+
+            }
+
+            return date.toLocaleDateString(
+                'en-US',
+                {
+                    year: 'numeric',
+                    month: 'long',
+                    day: '2-digit'
+                }
+            );
 
         }
 
 
-        /* -----------------------------------------------
-           NO FILTER
-           ----------------------------------------------- */
+        /* ======================================================
+           UPDATE BUTTON TEXT
+           ====================================================== */
 
-        display.textContent =
-            'Filter Installed Date';
+        function updateDateDisplay() {
 
-    }
+            const start =
+                startInput.value.trim();
 
-
-    /* ======================================================
-       INITIAL DISPLAY
-       ====================================================== */
-
-    updateDateDisplay();
+            const end =
+                endInput.value.trim();
 
 
-    /* ======================================================
-       CREATE ONE FLATPICKR INSTANCE
-       
-       ATTACHED DIRECTLY TO THE BUTTON.
-       ====================================================== */
+            if (
+                start &&
+                end
+            ) {
 
-    const picker =
-        flatpickr(
-            trigger,
-            {
+                display.textContent =
+                    formatDisplayDate(start) +
+                    ' - ' +
+                    formatDisplayDate(end);
 
-                /* -----------------------------------------
-                   RANGE MODE
-                   ----------------------------------------- */
+                return;
 
-                mode: 'range',
+            }
 
 
-                /* -----------------------------------------
-                   IMPORTANT:
-                   ONLY ONE MONTH
-                   ----------------------------------------- */
+            if (start) {
 
-                showMonths: 1,
+                display.textContent =
+                    'From ' +
+                    formatDisplayDate(start);
 
+                return;
 
-                /* -----------------------------------------
-                   DATE FORMAT
-                   ----------------------------------------- */
-
-                dateFormat: 'Y-m-d',
+            }
 
 
-                /* -----------------------------------------
-                   EXISTING FILTER
-                   ----------------------------------------- */
+            if (end) {
 
-                defaultDate: initialDates,
+                display.textContent =
+                    'Until ' +
+                    formatDisplayDate(end);
 
+                return;
 
-                /* -----------------------------------------
-                   PREVENT TEXT INPUT
-                   ----------------------------------------- */
-
-                allowInput: false,
+            }
 
 
-                /* -----------------------------------------
-                   WE WILL OPEN IT MANUALLY
-                   ----------------------------------------- */
+            display.textContent =
+                'Filter Installed Date';
 
-                clickOpens: false,
-
-
-                /* -----------------------------------------
-                   KEEP CALENDAR OPEN AFTER FIRST DATE
-                   ----------------------------------------- */
-
-                closeOnSelect: false,
+        }
 
 
-                /* -----------------------------------------
-                   USE FLATPICKR EVEN ON MOBILE
-                   ----------------------------------------- */
+        /* ======================================================
+           INITIAL DISPLAY
+           ====================================================== */
 
-                disableMobile: true,
-
-
-                /* ==================================================
-                   WHEN DATE CHANGES
-                   ================================================== */
-
-                onChange:
-                    function (
-                        selectedDates,
-                        dateStr,
-                        instance
-                    ) {
+        updateDateDisplay();
 
 
-                        /* ----------------------------------
-                           NOTHING SELECTED
-                           ---------------------------------- */
+        /* ======================================================
+           CREATE FLATPICKR
+           ====================================================== */
 
-                        if (
-                            !selectedDates ||
-                            selectedDates.length === 0
+        const picker =
+            flatpickr(
+                trigger,
+                {
+
+                    mode: 'range',
+
+                    showMonths: 1,
+
+                    dateFormat: 'Y-m-d',
+
+                    defaultDate: initialDates,
+
+                    allowInput: false,
+
+                    clickOpens: false,
+
+                    closeOnSelect: false,
+
+                    disableMobile: true,
+
+
+                    /* ==================================================
+                       DATE CHANGE
+                       ================================================== */
+
+                    onChange:
+                        function (
+                            selectedDates,
+                            dateStr,
+                            instance
                         ) {
 
-                            startInput.value = '';
-                            endInput.value = '';
+                            if (
+                                !selectedDates ||
+                                selectedDates.length === 0
+                            ) {
+
+                                startInput.value = '';
+                                endInput.value = '';
+
+                                updateDateDisplay();
+
+                                return;
+
+                            }
+
+
+                            /* ------------------------------------------
+                               FIRST DATE
+                               ------------------------------------------ */
+
+                            const firstDate =
+                                instance.formatDate(
+                                    selectedDates[0],
+                                    'Y-m-d'
+                                );
+
+
+                            /* ------------------------------------------
+                               ONLY FIRST DATE
+                               ------------------------------------------ */
+
+                            if (
+                                selectedDates.length === 1
+                            ) {
+
+                                startInput.value =
+                                    firstDate;
+
+                                endInput.value =
+                                    '';
+
+                                updateDateDisplay();
+
+                                return;
+
+                            }
+
+
+                            /* ------------------------------------------
+                               SECOND DATE
+                               ------------------------------------------ */
+
+                            const secondDate =
+                                instance.formatDate(
+                                    selectedDates[1],
+                                    'Y-m-d'
+                                );
+
+
+                            /* ------------------------------------------
+                               SORT DATES
+                               ------------------------------------------ */
+
+                            if (
+                                secondDate < firstDate
+                            ) {
+
+                                startInput.value =
+                                    secondDate;
+
+                                endInput.value =
+                                    firstDate;
+
+                            } else {
+
+                                startInput.value =
+                                    firstDate;
+
+                                endInput.value =
+                                    secondDate;
+
+                            }
+
 
                             updateDateDisplay();
 
-                            return;
 
-                        }
+                            /* ------------------------------------------
+                               CLOSE PICKER
+                               ------------------------------------------ */
 
+                            setTimeout(
+                                function () {
 
-                        /* ----------------------------------
-                           FIRST DATE
-                           ---------------------------------- */
+                                    instance.close();
 
-                        const firstDate =
-                            instance.formatDate(
-                                selectedDates[0],
-                                'Y-m-d'
+                                },
+                                100
                             );
 
 
-                        /* ----------------------------------
-                           ONLY FIRST DATE SELECTED
-                           
-                           DO NOT REDIRECT YET.
-                           ---------------------------------- */
+                            /* ------------------------------------------
+                               BUILD DASHBOARD URL
+                               ------------------------------------------ */
 
-                        if (
-                            selectedDates.length === 1
-                        ) {
-
-                            startInput.value =
-                                firstDate;
-
-                            endInput.value =
-                                '';
-
-                            updateDateDisplay();
-
-                            return;
-
-                        }
+                            const currentUrl =
+                                new URL(
+                                    window.location.href
+                                );
 
 
-                        /* ----------------------------------
-                           SECOND DATE
-                           ---------------------------------- */
-
-                        const secondDate =
-                            instance.formatDate(
-                                selectedDates[1],
-                                'Y-m-d'
-                            );
+                            const dashboardUrl =
+                                new URL(
+                                    '<?= site_url('dashboard') ?>',
+                                    window.location.origin
+                                );
 
 
-                        /* ----------------------------------
-                           SORT DATES
-                           
-                           This allows the user to click
-                           either the earlier or later date
-                           first.
-                           ---------------------------------- */
+                            /* ------------------------------------------
+                               PRESERVE SEARCH
+                               ------------------------------------------ */
 
-                        if (
-                            secondDate < firstDate
-                        ) {
-
-                            startInput.value =
-                                secondDate;
-
-                            endInput.value =
-                                firstDate;
-
-                        } else {
-
-                            startInput.value =
-                                firstDate;
-
-                            endInput.value =
-                                secondDate;
-
-                        }
+                            const currentSearch =
+                                currentUrl.searchParams.get(
+                                    'search'
+                                );
 
 
-                        /* ----------------------------------
-                           UPDATE BUTTON
-                           ---------------------------------- */
+                            if (currentSearch) {
 
-                        updateDateDisplay();
+                                dashboardUrl.searchParams.set(
+                                    'search',
+                                    currentSearch
+                                );
 
-
-                        /* ----------------------------------
-                           CLOSE PICKER
-                           ---------------------------------- */
-
-                        setTimeout(
-                            function () {
-
-                                instance.close();
-
-                            },
-                            100
-                        );
+                            }
 
 
-                        /* ----------------------------------
-                           BUILD DASHBOARD URL
-                           
-                           Preserve SEARCH if it exists.
-                           ---------------------------------- */
-
-                        const currentUrl =
-                            new URL(
-                                window.location.href
-                            );
-
-
-                        const dashboardUrl =
-                            new URL(
-                                '<?= site_url('dashboard') ?>',
-                                window.location.origin
-                            );
-
-
-                        /* ----------------------------------
-                           PRESERVE SEARCH
-                           ---------------------------------- */
-
-                        const currentSearch =
-                            currentUrl.searchParams.get(
-                                'search'
-                            );
-
-
-                        if (currentSearch) {
+                            /* ------------------------------------------
+                               ADD START DATE
+                               ------------------------------------------ */
 
                             dashboardUrl.searchParams.set(
-                                'search',
-                                currentSearch
+                                'start_date',
+                                startInput.value
                             );
+
+
+                            /* ------------------------------------------
+                               ADD END DATE
+                               ------------------------------------------ */
+
+                            dashboardUrl.searchParams.set(
+                                'end_date',
+                                endInput.value
+                            );
+
+
+                            /* ------------------------------------------
+                               REMOVE PAGE
+                               ------------------------------------------ */
+
+                            dashboardUrl.searchParams.delete(
+                                'page'
+                            );
+
+
+                            /* ------------------------------------------
+                               REDIRECT
+                               ------------------------------------------ */
+
+                            setTimeout(
+                                function () {
+
+                                    window.location.href =
+                                        dashboardUrl.toString();
+
+                                },
+                                180
+                            );
+
+                        },
+
+
+                    /* ==================================================
+                       OPEN
+                       ================================================== */
+
+                    onOpen:
+                        function (
+                            selectedDates,
+                            dateStr,
+                            instance
+                        ) {
+
+                            instance.set(
+                                'showMonths',
+                                1
+                            );
+
+                            updateDateDisplay();
+
+                        },
+
+
+                    /* ==================================================
+                       READY
+                       ================================================== */
+
+                    onReady:
+                        function (
+                            selectedDates,
+                            dateStr,
+                            instance
+                        ) {
+
+                            instance.set(
+                                'showMonths',
+                                1
+                            );
+
+                            updateDateDisplay();
 
                         }
 
-
-                        /* ----------------------------------
-                           ADD START DATE
-                           ---------------------------------- */
-
-                        dashboardUrl.searchParams.set(
-                            'start_date',
-                            startInput.value
-                        );
+                }
+            );
 
 
-                        /* ----------------------------------
-                           ADD END DATE
-                           ---------------------------------- */
+        /* ======================================================
+           MANUAL BUTTON CLICK
+           ====================================================== */
 
-                        dashboardUrl.searchParams.set(
-                            'end_date',
-                            endInput.value
-                        );
+        trigger.addEventListener(
+            'click',
+            function (event) {
 
+                event.preventDefault();
 
-                        /* ----------------------------------
-                           RESET PAGE TO 1
-                           
-                           Very important when a date filter
-                           is applied.
-                           ---------------------------------- */
+                event.stopPropagation();
 
-                        dashboardUrl.searchParams.delete(
-                            'page'
-                        );
+                picker.set(
+                    'showMonths',
+                    1
+                );
 
-
-                        /* ----------------------------------
-                           REDIRECT AFTER PICKER CLOSES
-                           ---------------------------------- */
-
-                        setTimeout(
-                            function () {
-
-                                window.location.href =
-                                    dashboardUrl.toString();
-
-                            },
-                            180
-                        );
-
-                    },
-
-
-                /* ==================================================
-                   OPEN
-                   ================================================== */
-
-                onOpen:
-                    function (
-                        selectedDates,
-                        dateStr,
-                        instance
-                    ) {
-
-                        /* ----------------------------------
-                           Force exactly one month
-                           ---------------------------------- */
-
-                        instance.set(
-                            'showMonths',
-                            1
-                        );
-
-
-                        updateDateDisplay();
-
-                    },
-
-
-                /* ==================================================
-                   READY
-                   ================================================== */
-
-                onReady:
-                    function (
-                        selectedDates,
-                        dateStr,
-                        instance
-                    ) {
-
-                        /* ----------------------------------
-                           Force exactly one month
-                           ---------------------------------- */
-
-                        instance.set(
-                            'showMonths',
-                            1
-                        );
-
-
-                        updateDateDisplay();
-
-                    }
+                picker.open();
 
             }
         );
 
 
-    /* ======================================================
-       MANUAL BUTTON CLICK
-       
-       clickOpens:false means Flatpickr will NOT automatically
-       handle the click.
+        /* ======================================================
+           PROTECTION FLAG
+           ====================================================== */
 
-       We open it ourselves.
-
-       stopPropagation() prevents another generic click
-       handler from interfering.
-       ====================================================== */
-
-    trigger.addEventListener(
-        'click',
-        function (event) {
-
-            event.preventDefault();
-
-            event.stopPropagation();
+        trigger.dataset.installedDatePicker =
+            'true';
 
 
-            /* -----------------------------------------
-               Make sure only one month is displayed.
-               ----------------------------------------- */
+        console.log(
+            'Installed Date Filter initialized successfully.'
+        );
 
-            picker.set(
-                'showMonths',
-                1
-            );
+        console.log(
+            'Single Flatpickr instance:',
+            picker
+        );
 
-
-            /* -----------------------------------------
-               Open calendar.
-               ----------------------------------------- */
-
-            picker.open();
-
-        }
-    );
-
-
-    /* ======================================================
-       EXTRA PROTECTION
-       
-       If some other script tries to initialize Flatpickr
-       on this same button, do not allow this script to
-       initialize again.
-       ====================================================== */
-
-    trigger.dataset.installedDatePicker =
-        'true';
-
-
-    /* ======================================================
-       DEBUG
-       ====================================================== */
-
-    console.log(
-        'Installed Date Filter initialized successfully.'
-    );
-
-    console.log(
-        'Single Flatpickr instance:',
-        picker
-    );
+    }
 
 });
 
@@ -2741,7 +2600,6 @@ setTimeout(
                     message.style.opacity =
                         '0';
 
-
                     setTimeout(
                         function () {
 
@@ -2758,13 +2616,66 @@ setTimeout(
     5000
 );
 
+
+/* ==========================================================
+   SWEETALERT HELPER
+   ========================================================== */
+
+function showSwalError(title, text) {
+
+    if (typeof Swal !== 'undefined') {
+
+        Swal.fire({
+            icon: 'error',
+            title: title || 'Error',
+            text: text || 'Something went wrong.',
+            confirmButtonText: 'OK'
+        });
+
+    } else {
+
+        alert(text || 'Something went wrong.');
+
+    }
+
+}
+
+
+/* ==========================================================
+   ESCAPE HTML
+   Prevents DataTables values from being injected into
+   SweetAlert HTML.
+   ========================================================== */
+
+function escapeHtml(value) {
+
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+
+}
+
+
 $(document).ready(function () {
+
+    /* ======================================================
+       CHECK DATATABLES
+       ====================================================== */
 
     if (
         typeof $.fn.DataTable === 'undefined' ||
         !$('#clinicRecordsTable').length
     ) {
+
+        console.error(
+            'DataTables is not loaded or #clinicRecordsTable was not found.'
+        );
+
         return;
+
     }
 
 
@@ -2772,63 +2683,64 @@ $(document).ready(function () {
        DATATABLE
        ====================================================== */
 
-    const table = $('#clinicRecordsTable').DataTable({
+    const table =
+        $('#clinicRecordsTable').DataTable({
 
-        processing: true,
+            processing: true,
 
-        serverSide: true,
+            serverSide: true,
 
-        searching: true,
+            searching: true,
 
-        ordering: true,
+            ordering: true,
 
-        paging: true,
+            paging: true,
 
-        pageLength: 10,
+            pageLength: 10,
 
-        lengthMenu: [
-            [10, 25, 50, 100],
-            [10, 25, 50, 100]
-        ],
+            lengthMenu: [
+                [10, 25, 50, 100],
+                [10, 25, 50, 100]
+            ],
 
-        ajax: {
+            ajax: {
 
-            url: "<?= site_url('dashboard/search') ?>",
+                url:
+                    "<?= site_url('dashboard/search') ?>",
 
-            type: "GET",
+                type: "GET",
 
-            data: function (d) {
+                data: function (d) {
 
-                /*
-                 * Send Installed Date filters
-                 */
+                    d.start_date =
+                        $('#start_date').val() || '';
 
-                d.start_date =
-                    $('#start_date').val() || '';
+                    d.end_date =
+                        $('#end_date').val() || '';
 
-                d.end_date =
-                    $('#end_date').val() || '';
+                },
+
+                error: function (xhr) {
+
+                    console.error(
+                        'DataTables AJAX Error:',
+                        xhr.responseText
+                    );
+
+                }
 
             },
 
-            error: function (xhr) {
 
-                console.error(
-                    'DataTables AJAX Error:',
-                    xhr.responseText
-                );
+            /* ==================================================
+               COLUMNS
+               ================================================== */
 
-            }
+            columns: [
 
-        },
-
-
-        /* ==================================================
-           COLUMNS
-           ================================================== */
-
-        columns: [
-
+                /* ----------------------------------------------
+                   NUMBER
+                   ---------------------------------------------- */
 
                 {
                     data: null,
@@ -2839,223 +2751,251 @@ $(document).ready(function () {
 
                     searchable: false,
 
-                    render: function (data, type, row, meta) {
+                    render:
+                        function (
+                            data,
+                            type,
+                            row,
+                            meta
+                        ) {
 
-                        return meta.settings._iDisplayStart + meta.row + 1;
+                            return (
+                                meta.settings._iDisplayStart +
+                                meta.row +
+                                1
+                            );
 
-                    }
+                        }
 
                 },
 
 
-            /*
-             * CLINIC
-             */
+                /* ----------------------------------------------
+                   CLINIC
+                   ---------------------------------------------- */
 
-            {
-                data: 'Clinic_name'
-            },
-
-
-            /*
-             * ADDRESS
-             */
-
-            {
-                data: 'Address'
-            },
+                {
+                    data: 'Clinic_name'
+                },
 
 
-            /*
-             * PROVINCE
-             */
+                /* ----------------------------------------------
+                   ADDRESS
+                   ---------------------------------------------- */
 
-            {
-                data: 'Province'
-            },
-
-
-            /*
-             * MACHINE
-             */
-
-            {
-                data: 'Machine'
-            },
+                {
+                    data: 'Address'
+                },
 
 
-            /*
-             * MODEL
-             */
+                /* ----------------------------------------------
+                   PROVINCE
+                   ---------------------------------------------- */
 
-            {
-                data: 'Model'
-            },
-
-
-            /*
-             * INSTALLED DATE
-             */
-
-            {
-                data: 'Installed_date'
-            },
+                {
+                    data: 'Province'
+                },
 
 
-            /*
-             * SN
-             */
+                /* ----------------------------------------------
+                   MACHINE
+                   ---------------------------------------------- */
 
-            {
-                data: 'SN'
-            },
-
-
-            /*
-             * DR NUMBER
-             */
-
-            {
-                data: 'DR_Number'
-            },
+                {
+                    data: 'Machine'
+                },
 
 
-            /*
-             * ACTIONS
-             */
+                /* ----------------------------------------------
+                   MODEL
+                   ---------------------------------------------- */
 
-           {
-                data: null,
-                orderable: false,
-                searchable: false,
-                className: 'text-center',
+                {
+                    data: 'Model'
+                },
 
-                render: function (data, type, row) {
 
-                    const id = Number(row.id || 0);
-                    const contractId = Number(row.contract_id || 0);
+                /* ----------------------------------------------
+                   INSTALLED DATE
+                   ---------------------------------------------- */
 
-                    return `
-                        <div class="d-flex justify-content-center align-items-center gap-1 flex-wrap">
+                {
+                    data: 'Installed_date'
+                },
 
-                            <!-- ==========================================
-                                VIEW CONTRACT
-                                ========================================== -->
 
-                            ${
-                                contractId > 0
-                                ? `
+                /* ----------------------------------------------
+                   SERIAL NUMBER
+                   ---------------------------------------------- */
+
+                {
+                    data: 'SN'
+                },
+
+
+                /* ----------------------------------------------
+                   DR NUMBER
+                   ---------------------------------------------- */
+
+                {
+                    data: 'DR_Number'
+                },
+
+
+                /* ==================================================
+                   ACTIONS
+                   ================================================== */
+
+                {
+                    data: null,
+
+                    orderable: false,
+
+                    searchable: false,
+
+                    className: 'text-center',
+
+                    render:
+                        function (
+                            data,
+                            type,
+                            row
+                        ) {
+
+                            const id =
+                                Number(
+                                    row.id || 0
+                                );
+
+                            const contractId =
+                                Number(
+                                    row.contract_id || 0
+                                );
+
+
+                            return `
+                                <div class="d-flex justify-content-center align-items-center gap-1 flex-wrap">
+
+                                    <!-- ==========================================
+                                         VIEW CONTRACT
+                                         ========================================== -->
+
+                                    ${
+                                        contractId > 0
+                                        ? `
+                                            <button
+                                                type="button"
+                                                class="btn btn-outline-success btn-sm dt-view-contract"
+                                                data-id="${id}"
+                                                data-contract-id="${contractId}"
+                                                title="View Contract">
+
+                                                <i class="bi bi-file-earmark-text"></i>
+                                                View
+
+                                            </button>
+                                        `
+                                        : `
+                                            <span
+                                                class="badge bg-warning text-dark"
+                                                title="No contract attached">
+
+                                                <i class="bi bi-file-earmark-x"></i>
+                                                No Contract Attached
+
+                                            </span>
+                                        `
+                                    }
+
+
+                                    <!-- ==========================================
+                                         ATTACH / REPLACE CONTRACT
+                                         ========================================== -->
+
                                     <button
                                         type="button"
-                                        class="btn btn-outline-success btn-sm dt-view-contract"
+                                        class="btn btn-outline-success btn-sm dt-contract"
                                         data-id="${id}"
                                         data-contract-id="${contractId}"
-                                        title="View Contract">
+                                        title="${contractId > 0 ? 'Replace Contract' : 'Attach Contract'}">
 
-                                        <i class="bi bi-file-earmark-text"></i>
-                                        View
+                                        <i class="bi bi-paperclip"></i>
+
+                                        ${
+                                            contractId > 0
+                                            ? 'Replace'
+                                            : 'Attach'
+                                        }
 
                                     </button>
-                                `
-                                : `
-                                    <span
-                                        class="badge bg-warning text-dark"
-                                        title="No contract attached">
-
-                                        <i class="bi bi-file-earmark-x"></i>
-                                        No Contract Attached
-
-                                    </span>
-                                `
-                            }
 
 
-                            <!-- ==========================================
-                                ATTACH / REPLACE CONTRACT
-                                ========================================== -->
+                                    <!-- ==========================================
+                                         EDIT
+                                         ========================================== -->
 
-                            <button
-                                type="button"
-                                class="btn btn-outline-success btn-sm dt-contract"
-                                data-id="${id}"
-                                data-contract-id="${contractId}"
-                                title="${contractId > 0 ? 'Replace Contract' : 'Attach Contract'}">
+                                    <button
+                                        type="button"
+                                        class="btn btn-outline-primary btn-sm dt-edit-record"
+                                        data-id="${id}"
+                                        title="Edit Machine">
 
-                                <i class="bi bi-paperclip"></i>
+                                        <i class="bi bi-pencil"></i>
+                                        Edit
 
-                                ${contractId > 0 ? 'Replace' : 'Attach'}
-
-                            </button>
+                                    </button>
 
 
-                            <!-- ==========================================
-                                EDIT
-                                ========================================== -->
+                                    <!-- ==========================================
+                                         DELETE
+                                         ========================================== -->
 
-                            <button
-                                type="button"
-                                class="btn btn-outline-primary btn-sm dt-edit-record"
-                                data-id="${id}"
-                                title="Edit Machine">
+                                    <button
+                                        type="button"
+                                        class="btn btn-outline-danger btn-sm dt-delete-record"
+                                        data-id="${id}"
+                                        title="Delete Machine">
 
-                                <i class="bi bi-pencil"></i>
-                                Edit
+                                        <i class="bi bi-trash"></i>
+                                        Delete
 
-                            </button>
+                                    </button>
 
+                                </div>
+                            `;
 
-                            <!-- ==========================================
-                                DELETE
-                                ========================================== -->
+                        }
 
-                            <a
-                                href="<?= site_url('dashboard') ?>?delete=${id}"
-                                class="btn btn-outline-danger btn-sm"
-                                onclick="return confirm('Delete this record?');"
-                                title="Delete Machine">
-
-                                <i class="bi bi-trash"></i>
-                                Delete
-
-                            </a>
-
-                        </div>
-                    `;
                 }
-            }
 
-        ],
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | DEFAULT ORDER
-        |--------------------------------------------------------------------------
-        */
-
-        order: [
-            [1, 'asc']
-        ],
+            ],
 
 
-        /*
-        |--------------------------------------------------------------------------
-        | TABLE OPTIONS
-        |--------------------------------------------------------------------------
-        */
+            /* ==================================================
+               DEFAULT ORDER
+               ================================================== */
 
-        autoWidth: false,
-
-        scrollX: true,
-
-        dom: 'lt<"d-flex justify-content-between align-items-center px-3 py-2"ip>'
+            order: [
+                [1, 'asc']
+            ],
 
 
-    });
+            /* ==================================================
+               TABLE OPTIONS
+               ================================================== */
+
+            autoWidth: false,
+
+            scrollX: true,
+
+            dom:
+                'lt<"d-flex justify-content-between align-items-center px-3 py-2"ip>'
+
+        });
 
 
     /* ======================================================
-       CUSTOM SEARCH INPUT
+       CUSTOM SEARCH FORM
        ====================================================== */
 
     $('#clinicRecordsSearchForm').on(
@@ -3076,10 +3016,6 @@ $(document).ready(function () {
 
     /* ======================================================
        SEARCH WHILE TYPING
-       
-       THIS DOES NOT REFRESH THE PAGE.
-       
-       ONLY DATATABLES REQUESTS NEW DATA.
        ====================================================== */
 
     let searchTimer = null;
@@ -3088,20 +3024,22 @@ $(document).ready(function () {
         'input',
         function () {
 
-            const value = this.value;
+            const value =
+                this.value;
 
             clearTimeout(searchTimer);
 
-            searchTimer = setTimeout(
-                function () {
+            searchTimer =
+                setTimeout(
+                    function () {
 
-                    table
-                        .search(value)
-                        .draw();
+                        table
+                            .search(value)
+                            .draw();
 
-                },
-                300
-            );
+                    },
+                    300
+                );
 
         }
     );
@@ -3118,7 +3056,8 @@ $(document).ready(function () {
 
             event.preventDefault();
 
-            $('#clinicRecordsSearch').val('');
+            $('#clinicRecordsSearch')
+                .val('');
 
             table
                 .search('')
@@ -3130,9 +3069,6 @@ $(document).ready(function () {
 
     /* ======================================================
        DATE FILTER
-       
-       ONLY RELOAD DATATABLE.
-       NO PAGE REFRESH.
        ====================================================== */
 
     $('#start_date, #end_date').on(
@@ -3149,88 +3085,713 @@ $(document).ready(function () {
 
 
     /* ======================================================
-       OPTIONAL:
        EXPOSE DATATABLE INSTANCE
        ====================================================== */
 
-    window.clinicRecordsTable = table;
+    window.clinicRecordsTable =
+        table;
+
 
     /* ======================================================
-   OPEN EDIT MODAL
+       OPEN EDIT MODAL
+       SERVER-SIDE DATATABLES SAFE
+       ====================================================== */
 
-   SERVER-SIDE DATATABLES FIX
-   DataTables only renders the current page, so do NOT look
-   for editRecordModal + id. Read the clicked row directly
-   from DataTables and use ONE reusable edit modal.
-   ====================================================== */
+    $(document).on(
+        'click',
+        '.dt-edit-record',
+        function (event) {
 
-$(document).on(
-    'click',
-    '.dt-edit-record',
-    function (event) {
+            event.preventDefault();
 
-        event.preventDefault();
+            event.stopPropagation();
 
-        const button = $(this);
-        const id = Number(button.attr('data-id'));
+            const button =
+                $(this);
 
-        if (!id) {
-            console.error('Edit: Invalid record ID.');
-            return;
-        }
+            const id =
+                Number(
+                    button.attr('data-id')
+                );
 
-        const dataTable = $('#clinicRecordsTable').DataTable();
 
-        const rowData = dataTable
-            .row(button.closest('tr'))
-            .data();
+            if (!id) {
 
-        if (!rowData) {
-            console.error('Edit: Could not retrieve row data.', id);
-            alert('Unable to load this machine record. Please try again.');
-            return;
-        }
+                showSwalError(
+                    'Invalid Record',
+                    'The machine record ID is missing.'
+                );
 
-        console.log('Edit record:', rowData);
+                return;
 
-        const modalElement = document.getElementById('editRecordModal');
-
-        if (!modalElement) {
-            console.error('Edit modal not found: #editRecordModal');
-            alert('The Edit Machine modal is missing from the page.');
-            return;
-        }
-
-        const fields = {
-            '#edit_id': rowData.id || id,
-            '#edit_Clinic_name': rowData.Clinic_name || '',
-            '#edit_Address': rowData.Address || '',
-            '#edit_Province': rowData.Province || '',
-            '#edit_Machine': rowData.Machine || '',
-            '#edit_Model': rowData.Model || '',
-            '#edit_Installed_date': rowData.Installed_date || '',
-            '#edit_SN': rowData.SN || '',
-            '#edit_DR_Number': rowData.DR_Number || ''
-        };
-
-        Object.keys(fields).forEach(function (selector) {
-            const element = document.querySelector(selector);
-            if (element) {
-                element.value = fields[selector];
             }
-        });
 
-        $(modalElement).attr('data-record-id', rowData.id || id);
 
-        const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
-        modal.show();
-    }
-);
+            const dataTable =
+                $('#clinicRecordsTable')
+                    .DataTable();
+
+
+            const rowData =
+                dataTable
+                    .row(
+                        button.closest('tr')
+                    )
+                    .data();
+
+
+            if (!rowData) {
+
+                console.error(
+                    'Edit: Could not retrieve row data.',
+                    id
+                );
+
+                showSwalError(
+                    'Unable to Load',
+                    'Unable to load this machine record. Please try again.'
+                );
+
+                return;
+
+            }
+
+
+            console.log(
+                'Edit record:',
+                rowData
+            );
+
+
+            const modalElement =
+                document.getElementById(
+                    'editRecordModal'
+                );
+
+
+            if (!modalElement) {
+
+                console.error(
+                    'Edit modal not found: #editRecordModal'
+                );
+
+                showSwalError(
+                    'Edit Modal Missing',
+                    'The Edit Machine modal is missing from the page.'
+                );
+
+                return;
+
+            }
+
+
+            /* ==================================================
+               FILL EDIT FORM
+               ================================================== */
+
+            const fields = {
+
+                '#edit_id':
+                    rowData.id || id,
+
+                '#edit_Clinic_name':
+                    rowData.Clinic_name || '',
+
+                '#edit_Address':
+                    rowData.Address || '',
+
+                '#edit_Province':
+                    rowData.Province || '',
+
+                '#edit_Machine':
+                    rowData.Machine || '',
+
+                '#edit_Model':
+                    rowData.Model || '',
+
+                '#edit_Installed_date':
+                    rowData.Installed_date || '',
+
+                '#edit_SN':
+                    rowData.SN || '',
+
+                '#edit_DR_Number':
+                    rowData.DR_Number || ''
+
+            };
+
+
+            Object.keys(fields)
+                .forEach(
+                    function (selector) {
+
+                        const element =
+                            document.querySelector(
+                                selector
+                            );
+
+                        if (element) {
+
+                            element.value =
+                                fields[selector];
+
+                        }
+
+                    }
+                );
+
+
+            $(modalElement)
+                .attr(
+                    'data-record-id',
+                    rowData.id || id
+                );
+
+
+            /* ==================================================
+               SHOW EDIT MODAL
+               ================================================== */
+
+            const modal =
+                bootstrap.Modal
+                    .getOrCreateInstance(
+                        modalElement
+                    );
+
+
+            modal.show();
+
+        }
+    );
+
+
+    /* ======================================================
+       EDIT FORM SUBMIT
+       SWEETALERT SUCCESS
+       ====================================================== */
+
+    $(document).on(
+        'submit',
+        '#editRecordForm',
+        function (event) {
+
+            event.preventDefault();
+
+            const form =
+                $(this);
+
+            const submitButton =
+                form.find(
+                    'button[type="submit"]'
+                );
+
+
+            if (
+                this.checkValidity &&
+                !this.checkValidity()
+            ) {
+
+                this.reportValidity();
+
+                return;
+
+            }
+
+
+            const originalButtonHtml =
+                submitButton.html();
+
+
+            submitButton
+                .prop(
+                    'disabled',
+                    true
+                )
+                .html(
+                    '<span class="spinner-border spinner-border-sm me-1"></span> Updating...'
+                );
+
+
+            /* ==================================================
+               SHOW LOADING
+               ================================================== */
+
+            if (typeof Swal !== 'undefined') {
+
+                Swal.fire({
+
+                    title:
+                        'Updating Machine...',
+
+                    text:
+                        'Please wait while the record is being updated.',
+
+                    allowOutsideClick:
+                        false,
+
+                    allowEscapeKey:
+                        false,
+
+                    showConfirmButton:
+                        false,
+
+                    didOpen:
+                        function () {
+
+                            Swal.showLoading();
+
+                        }
+
+                });
+
+            }
+
+
+            /* ==================================================
+               AJAX UPDATE
+               ================================================== */
+
+            $.ajax({
+
+                url:
+                    form.attr('action'),
+
+                type:
+                    'POST',
+
+                data:
+                    form.serialize(),
+
+                dataType:
+                    'html',
+
+
+                success:
+                    function (response) {
+
+                        console.log(
+                            'Update response:',
+                            response
+                        );
+
+
+                        /* ------------------------------------------
+                           CLOSE EDIT MODAL
+                           ------------------------------------------ */
+
+                        const modalElement =
+                            document.getElementById(
+                                'editRecordModal'
+                            );
+
+
+                        if (modalElement) {
+
+                            const modal =
+                                bootstrap.Modal
+                                    .getInstance(
+                                        modalElement
+                                    );
+
+                            if (modal) {
+
+                                modal.hide();
+
+                            }
+
+                        }
+
+
+                        /* ------------------------------------------
+                           SUCCESS SWEETALERT
+                           ------------------------------------------ */
+
+                        if (
+                            typeof Swal !== 'undefined'
+                        ) {
+
+                            Swal.fire({
+
+                                icon:
+                                    'success',
+
+                                title:
+                                    'Updated Successfully!',
+
+                                text:
+                                    'The machine record has been updated successfully.',
+
+                                timer:
+                                    1800,
+
+                                showConfirmButton:
+                                    false,
+
+                                timerProgressBar:
+                                    true
+
+                            });
+
+                        }
+
+
+                        /* ------------------------------------------
+                           RELOAD DATATABLE
+                           ------------------------------------------ */
+
+                        table.ajax.reload(
+                            null,
+                            false
+                        );
+
+                    },
+
+
+                error:
+                    function (xhr) {
+
+                        console.error(
+                            'Update Error:',
+                            xhr.responseText
+                        );
+
+
+                        if (
+                            typeof Swal !== 'undefined'
+                        ) {
+
+                            Swal.fire({
+
+                                icon:
+                                    'error',
+
+                                title:
+                                    'Update Failed',
+
+                                text:
+                                    'Unable to update the machine record. Please try again.',
+
+                                confirmButtonText:
+                                    'OK'
+
+                            });
+
+                        }
+
+                    },
+
+
+                complete:
+                    function () {
+
+                        submitButton
+                            .prop(
+                                'disabled',
+                                false
+                            )
+                            .html(
+                                originalButtonHtml
+                            );
+
+                    }
+
+            });
+
+        }
+    );
+
+
+    /* ======================================================
+       DELETE RECORD
+       SWEETALERT CONFIRMATION + SUCCESS
+       ====================================================== */
+
+    $(document).on(
+        'click',
+        '.dt-delete-record',
+        function (event) {
+
+            event.preventDefault();
+
+            event.stopPropagation();
+
+
+            const button =
+                $(this);
+
+
+            const id =
+                Number(
+                    button.attr('data-id')
+                );
+
+
+            if (!id) {
+
+                showSwalError(
+                    'Invalid Record',
+                    'The machine record ID is missing.'
+                );
+
+                return;
+
+            }
+
+
+            const dataTable =
+                $('#clinicRecordsTable')
+                    .DataTable();
+
+
+            const rowData =
+                dataTable
+                    .row(
+                        button.closest('tr')
+                    )
+                    .data();
+
+
+            const clinic =
+                rowData?.Clinic_name ||
+                'This machine';
+
+
+            const machine =
+                rowData?.Machine ||
+                '';
+
+
+            const sn =
+                rowData?.SN ||
+                '';
+
+
+            /* ==================================================
+               DELETE CONFIRMATION
+               ================================================== */
+
+            Swal.fire({
+
+                icon:
+                    'warning',
+
+                title:
+                    'Delete Machine?',
+
+                html:
+                    `
+                    <div class="text-muted">
+                        Are you sure you want to delete this record?
+                    </div>
+
+                    <div class="mt-3">
+
+                        <strong>
+                            ${escapeHtml(clinic)}
+                        </strong>
+
+                        ${
+                            machine
+                            ? `<br>${escapeHtml(machine)}`
+                            : ''
+                        }
+
+                        ${
+                            sn
+                            ? `<br>SN: ${escapeHtml(sn)}`
+                            : ''
+                        }
+
+                    </div>
+
+                    <div class="text-danger small mt-3">
+
+                        <i class="bi bi-exclamation-triangle me-1"></i>
+
+                        This action cannot be undone.
+
+                    </div>
+                    `,
+
+                showCancelButton:
+                    true,
+
+                confirmButtonText:
+                    '<i class="bi bi-trash me-1"></i> Yes, Delete',
+
+                cancelButtonText:
+                    '<i class="bi bi-x-circle me-1"></i> Cancel',
+
+                confirmButtonColor:
+                    '#dc3545',
+
+                cancelButtonColor:
+                    '#6c757d',
+
+                reverseButtons:
+                    true,
+
+                focusCancel:
+                    true
+
+            }).then(
+                function (result) {
+
+                    if (
+                        !result.isConfirmed
+                    ) {
+
+                        return;
+
+                    }
+
+
+                    /* ==================================================
+                       DELETE LOADING
+                       ================================================== */
+
+                    Swal.fire({
+
+                        title:
+                            'Deleting...',
+
+                        text:
+                            'Please wait while the record is being deleted.',
+
+                        allowOutsideClick:
+                            false,
+
+                        allowEscapeKey:
+                            false,
+
+                        showConfirmButton:
+                            false,
+
+                        didOpen:
+                            function () {
+
+                                Swal.showLoading();
+
+                            }
+
+                    });
+
+
+                    /* ==================================================
+                       AJAX DELETE
+                       ================================================== */
+
+                    $.ajax({
+
+                        url:
+                            "<?= site_url('dashboard') ?>",
+
+                        type:
+                            'GET',
+
+                        data:
+                            {
+                                delete: id
+                            },
+
+                        dataType:
+                            'html',
+
+
+                        success:
+                            function (response) {
+
+                                console.log(
+                                    'Delete response:',
+                                    response
+                                );
+
+
+                                /* --------------------------------------
+                                   SWEETALERT SUCCESS
+                                   -------------------------------------- */
+
+                                Swal.fire({
+
+                                    icon:
+                                        'success',
+
+                                    title:
+                                        'Deleted Successfully!',
+
+                                    text:
+                                        'The machine record has been deleted.',
+
+                                    timer:
+                                        1800,
+
+                                    showConfirmButton:
+                                        false,
+
+                                    timerProgressBar:
+                                        true
+
+                                });
+
+
+                                /* --------------------------------------
+                                   RELOAD DATATABLE
+                                   -------------------------------------- */
+
+                                setTimeout(
+                                    function () {
+
+                                        table.ajax.reload(
+                                            null,
+                                            false
+                                        );
+
+                                    },
+                                    300
+                                );
+
+                            },
+
+
+                        error:
+                            function (xhr) {
+
+                                console.error(
+                                    'Delete Error:',
+                                    xhr.responseText
+                                );
+
+
+                                Swal.fire({
+
+                                    icon:
+                                        'error',
+
+                                    title:
+                                        'Delete Failed',
+
+                                    text:
+                                        'Unable to delete the machine record. Please try again.',
+
+                                    confirmButtonText:
+                                        'OK'
+
+                                });
+
+                            }
+
+                    });
+
+                }
+            );
+
+        }
+    );
+
 
 
 /* ======================================================
    OPEN ATTACH / REPLACE CONTRACT MODAL
-   SERVER-SIDE DATATABLES FIX
    ====================================================== */
 
 $(document).on(
@@ -3239,347 +3800,1724 @@ $(document).on(
     function (event) {
 
         event.preventDefault();
+        event.stopPropagation();
 
         const button = $(this);
-        const id = Number(button.attr('data-id'));
-        const contractId = Number(button.attr('data-contract-id') || 0);
-
-        if (!id) {
-            console.error('Contract: Invalid record ID.');
-            return;
-        }
-
-        const dataTable = $('#clinicRecordsTable').DataTable();
-        const rowData = dataTable.row(button.closest('tr')).data();
-
-        if (!rowData) {
-            console.error('Contract: Could not retrieve DataTables row.', id);
-            alert('Unable to load this machine record. Please try again.');
-            return;
-        }
-
-        const modalElement = document.getElementById('contractModal');
-
-        if (!modalElement) {
-            console.error('Reusable contract modal not found: #contractModal');
-            alert('The Contract modal is missing from the page.');
-            return;
-        }
-
-        const fields = {
-            '#contract_id': rowData.id || id,
-            '#contract_contract_id': rowData.contract_id || contractId || '',
-            '#contract_clinic': rowData.Clinic_name || '',
-            '#contract_address': rowData.Address || '',
-            '#contract_machine': rowData.Machine || '',
-            '#contract_model': rowData.Model || '',
-            '#contract_sn': rowData.SN || ''
-        };
-
-        Object.keys(fields).forEach(function (selector) {
-            const element = document.querySelector(selector);
-            if (element) {
-                element.value = fields[selector];
-            }
-        });
-
-        $(modalElement)
-            .attr('data-record-id', rowData.id || id)
-            .attr('data-contract-id', rowData.contract_id || contractId || 0);
-
-        const title = modalElement.querySelector('.modal-title');
-
-        if (title) {
-            title.innerHTML =
-                contractId > 0
-                    ? '<i class="bi bi-paperclip me-2"></i>Replace Contract'
-                    : '<i class="bi bi-paperclip me-2"></i>Attach Contract';
-        }
-
-        bootstrap.Modal
-            .getOrCreateInstance(modalElement)
-            .show();
-    }
-);
-
-
-/* ======================================================
-   OPEN VIEW CONTRACT MODAL
-   SERVER-SIDE DATATABLES FIX
-   ====================================================== */
-
-$(document).on(
-    'click',
-    '.dt-view-contract',
-    function (event) {
-
-        event.preventDefault();
-
-        const button = $(this);
-        const id = Number(button.attr('data-id'));
-        const contractId = Number(button.attr('data-contract-id') || 0);
-
-        if (!id) {
-            console.error('View Contract: Invalid record ID.');
-            return;
-        }
-
-        const dataTable = $('#clinicRecordsTable').DataTable();
-        const rowData = dataTable.row(button.closest('tr')).data();
-
-        if (!rowData) {
-            console.error('View Contract: Could not retrieve DataTables row.', id);
-            alert('Unable to load this machine record. Please try again.');
-            return;
-        }
-
-        const modalElement = document.getElementById('viewContractModal');
-
-        if (!modalElement) {
-            console.error('Reusable view contract modal not found: #viewContractModal');
-            alert('The View Contract modal is missing from the page.');
-            return;
-        }
-
-        const fields = {
-            '#view_contract_id': rowData.id || id,
-            '#view_contract_contract_id': rowData.contract_id || contractId || '',
-            '#view_contract_clinic': rowData.Clinic_name || '',
-            '#view_contract_address': rowData.Address || '',
-            '#view_contract_machine': rowData.Machine || '',
-            '#view_contract_model': rowData.Model || '',
-            '#view_contract_sn': rowData.SN || ''
-        };
-
-        Object.keys(fields).forEach(function (selector) {
-            const element = document.querySelector(selector);
-            if (element) {
-                element.value = fields[selector];
-            }
-        });
-
-        $(modalElement)
-            .attr('data-record-id', rowData.id || id)
-            .attr('data-contract-id', rowData.contract_id || contractId || 0);
-
-        bootstrap.Modal
-            .getOrCreateInstance(modalElement)
-            .show();
-    }
-);
-
-
-/* ======================================================
-   END CONTRACT HANDLERS
-   ====================================================== */
-
-/* ======================================================
-   OPEN VIEW CONTRACT MODAL
-   ====================================================== */
-
-$(document).on(
-    'click',
-    '.dt-view-contract',
-    function (event) {
-
-        event.preventDefault();
 
         const id = Number(
-            $(this).data('id')
+            button.attr('data-id') || 0
+        );
+
+        const contractId = Number(
+            button.attr('data-contract-id') || 0
         );
 
         if (!id) {
-            console.error('View Contract: Invalid record ID.');
+
+            showSwalError(
+                'Invalid Record',
+                'The machine record ID is missing.'
+            );
+
             return;
         }
 
-        const modalElement =
-            document.getElementById(
-                'viewContractModal' + id
+
+        /* ==================================================
+           GET DATATABLE ROW
+           ================================================== */
+
+        const dataTable =
+            $('#clinicRecordsTable').DataTable();
+
+        const rowData =
+            dataTable
+                .row(button.closest('tr'))
+                .data();
+
+        if (!rowData) {
+
+            showSwalError(
+                'Unable to Load',
+                'Unable to load this machine record. Please try again.'
             );
+
+            return;
+        }
+
+
+        /* ==================================================
+           GET MODAL
+           ================================================== */
+
+        const modalElement =
+            document.getElementById('contractModal');
 
         if (!modalElement) {
 
-            console.error(
-                'View contract modal not found:',
-                'viewContractModal' + id
-            );
-
-            alert(
-                'View contract modal for this record was not found.'
+            showSwalError(
+                'Contract Modal Missing',
+                'The Contract modal is missing from the page.'
             );
 
             return;
         }
 
-        const modal =
-            bootstrap.Modal.getOrCreateInstance(
-                modalElement
+
+        /* ==================================================
+           RECORD ID
+           ================================================== */
+
+        $('#contract_id').val(
+            rowData.id || id
+        );
+
+
+        /* ==================================================
+           FILL MACHINE INFORMATION
+           ================================================== */
+
+        $('#contract_clinic').val(
+            rowData.Clinic_name || ''
+        );
+
+        $('#contract_address').val(
+            rowData.Address || ''
+        );
+
+        $('#contract_machine').val(
+            rowData.Machine || ''
+        );
+
+        $('#contract_model').val(
+            rowData.Model || ''
+        );
+
+        $('#contract_sn').val(
+            rowData.SN || ''
+        );
+
+
+        /* ==================================================
+           RESET FILE INPUT
+           ================================================== */
+
+        $('#contract_file').val('');
+
+
+        /* ==================================================
+           CONTRACT STATUS
+           ================================================== */
+
+        const hasContract =
+            contractId > 0 ||
+            Number(rowData.contract_id || 0) > 0;
+
+
+        if (hasContract) {
+
+            $('#contractExistingAlert')
+                .removeClass('d-none');
+
+            $('#contractNoExistingAlert')
+                .addClass('d-none');
+
+        } else {
+
+            $('#contractExistingAlert')
+                .addClass('d-none');
+
+            $('#contractNoExistingAlert')
+                .removeClass('d-none');
+
+        }
+
+
+        /* ==================================================
+           UPDATE TITLE
+           ================================================== */
+
+        $('#contractModalLabel').html(
+            hasContract
+                ? '<i class="bi bi-arrow-repeat me-2"></i>Replace Contract'
+                : '<i class="bi bi-paperclip me-2"></i>Attach Contract'
+        );
+
+
+        /* ==================================================
+           UPDATE SUBMIT BUTTON
+           ================================================== */
+
+        $('#contractSubmitText').text(
+            hasContract
+                ? 'Replace Contract'
+                : 'Upload Contract'
+        );
+
+
+        /* ==================================================
+           STORE DATA ON MODAL
+           ================================================== */
+
+        $(modalElement)
+            .attr(
+                'data-record-id',
+                rowData.id || id
+            )
+            .attr(
+                'data-contract-id',
+                rowData.contract_id || contractId || 0
             );
 
-        modal.show();
+
+        /* ==================================================
+           SHOW MODAL
+           ================================================== */
+
+        bootstrap.Modal
+            .getOrCreateInstance(modalElement)
+            .show();
 
     }
 );
 
+
+
+/* ======================================================
+   CONTRACT FORM SUBMIT
+   SWEETALERT + AJAX UPLOAD
+   ====================================================== */
+
+$(document).on(
+    'submit',
+    '#contractForm',
+    function (event) {
+
+        event.preventDefault();
+
+        const form =
+            document.getElementById('contractForm');
+
+        const $form =
+            $(form);
+
+        const submitButton =
+            $form.find('button[type="submit"]');
+
+        const fileInput =
+            document.getElementById('contract_file');
+
+        const id =
+            $('#contract_id').val();
+
+        const contractModal =
+            document.getElementById('contractModal');
+
+        const existingContract =
+            Number(
+                $(contractModal)
+                    .attr('data-contract-id') || 0
+            ) > 0;
+
+
+        /* ==================================================
+           VALIDATE RECORD ID
+           ================================================== */
+
+        if (!id) {
+
+            showSwalError(
+                'Invalid Record',
+                'The machine record ID is missing.'
+            );
+
+            return;
+        }
+
+
+        /* ==================================================
+           VALIDATE FILE
+           ================================================== */
+
+        if (
+            !fileInput ||
+            !fileInput.files ||
+            !fileInput.files.length
+        ) {
+
+            showSwalError(
+                'Contract File Required',
+                'Please select a contract file.'
+            );
+
+            return;
+        }
+
+
+        const file =
+            fileInput.files[0];
+
+
+        /* ==================================================
+           VALIDATE FILE TYPE
+           ================================================== */
+
+        const allowedTypes = [
+            'application/pdf',
+            'image/jpeg',
+            'image/png'
+        ];
+
+        const allowedExtensions = [
+            'pdf',
+            'jpg',
+            'jpeg',
+            'png'
+        ];
+
+        const fileName =
+            file.name.toLowerCase();
+
+        const extension =
+            fileName
+                .split('.')
+                .pop();
+
+
+        if (
+            !allowedExtensions.includes(extension) &&
+            !allowedTypes.includes(file.type)
+        ) {
+
+            showSwalError(
+                'Invalid File',
+                'Only PDF, JPG, JPEG, and PNG files are allowed.'
+            );
+
+            return;
+        }
+
+
+        /* ==================================================
+           FILE SIZE
+           5 MB MAXIMUM
+           ================================================== */
+
+        const maxSize =
+            5 * 1024 * 1024;
+
+
+        if (file.size > maxSize) {
+
+            showSwalError(
+                'File Too Large',
+                'The contract file must not exceed 5 MB.'
+            );
+
+            return;
+        }
+
+
+        /* ==================================================
+           CONFIRMATION
+           ================================================== */
+
+        const actionText =
+            existingContract
+                ? 'replace the existing contract'
+                : 'attach this contract';
+
+
+        Swal.fire({
+
+            icon:
+                existingContract
+                    ? 'warning'
+                    : 'question',
+
+            title:
+                existingContract
+                    ? 'Replace Contract?'
+                    : 'Attach Contract?',
+
+            html:
+                `
+                <div class="text-muted">
+                    Are you sure you want to ${actionText}?
+                </div>
+
+                <div class="mt-3">
+                    <strong>${escapeHtml(file.name)}</strong>
+                </div>
+
+                ${
+                    existingContract
+                        ? `
+                            <div class="text-danger small mt-3">
+                                <i class="bi bi-exclamation-triangle me-1"></i>
+                                The current contract will be replaced.
+                            </div>
+                        `
+                        : ''
+                }
+                `,
+
+            showCancelButton:
+                true,
+
+            confirmButtonText:
+                existingContract
+                    ? '<i class="bi bi-arrow-repeat me-1"></i> Yes, Replace'
+                    : '<i class="bi bi-paperclip me-1"></i> Yes, Attach',
+
+            cancelButtonText:
+                '<i class="bi bi-x-circle me-1"></i> Cancel',
+
+            confirmButtonColor:
+                existingContract
+                    ? '#fd7e14'
+                    : '#198754',
+
+            cancelButtonColor:
+                '#6c757d',
+
+            reverseButtons:
+                true,
+
+            focusCancel:
+                true
+
+        }).then(
+            function (result) {
+
+                if (!result.isConfirmed) {
+
+                    return;
+                }
+
+
+                /* ==================================================
+                   BUTTON LOADING
+                   ================================================== */
+
+                const originalButtonHtml =
+                    submitButton.html();
+
+                submitButton
+                    .prop(
+                        'disabled',
+                        true
+                    )
+                    .html(
+                        '<span class="spinner-border spinner-border-sm me-1"></span> Uploading...'
+                    );
+
+
+                /* ==================================================
+                   SWEETALERT LOADING
+                   ================================================== */
+
+                Swal.fire({
+
+                    title:
+                        existingContract
+                            ? 'Replacing Contract...'
+                            : 'Attaching Contract...',
+
+                    text:
+                        'Please wait while the contract is being uploaded.',
+
+                    allowOutsideClick:
+                        false,
+
+                    allowEscapeKey:
+                        false,
+
+                    showConfirmButton:
+                        false,
+
+                    didOpen:
+                        function () {
+
+                            Swal.showLoading();
+
+                        }
+
+                });
+
+
+                /* ==================================================
+                   FORM DATA
+                   ================================================== */
+
+                const formData =
+                    new FormData(form);
+
+
+                /* ==================================================
+                   AJAX UPLOAD
+                   ================================================== */
+
+                $.ajax({
+
+                    url:
+                        $form.attr('action'),
+
+                    type:
+                        'POST',
+
+                    data:
+                        formData,
+
+                    processData:
+                        false,
+
+                    contentType:
+                        false,
+
+                    dataType:
+                        'html',
+
+
+                    /* ==============================================
+                       SUCCESS
+                       ============================================== */
+
+                    success:
+                        function (response) {
+
+                            console.log(
+                                'Contract upload response:',
+                                response
+                            );
+
+
+                            /*
+                             * We treat a successful HTTP response
+                             * as a successful upload.
+                             *
+                             * The controller should redirect or
+                             * return normally after saving.
+                             */
+
+
+                            /* ======================================
+                               CLOSE MODAL
+                               ====================================== */
+
+                            const modal =
+                                bootstrap.Modal
+                                    .getInstance(
+                                        contractModal
+                                    );
+
+                            if (modal) {
+
+                                modal.hide();
+
+                            }
+
+
+                            /* ======================================
+                               SUCCESS ALERT
+                               ====================================== */
+
+                            Swal.fire({
+
+                                icon:
+                                    'success',
+
+                                title:
+                                    existingContract
+                                        ? 'Contract Replaced!'
+                                        : 'Contract Attached!',
+
+                                text:
+                                    existingContract
+                                        ? 'The contract has been replaced successfully.'
+                                        : 'The contract has been attached successfully.',
+
+                                timer:
+                                    1800,
+
+                                showConfirmButton:
+                                    false,
+
+                                timerProgressBar:
+                                    true
+
+                            });
+
+
+                            /* ======================================
+                               RESET FORM
+                               ====================================== */
+
+                            form.reset();
+
+
+                            $('#contractExistingAlert')
+                                .addClass('d-none');
+
+                            $('#contractNoExistingAlert')
+                                .addClass('d-none');
+
+
+                            /* ======================================
+                               RELOAD DATATABLE
+                               ====================================== */
+
+                            setTimeout(
+                                function () {
+
+                                    table.ajax.reload(
+                                        null,
+                                        false
+                                    );
+
+                                },
+                                300
+                            );
+
+                        },
+
+
+                    /* ==============================================
+                       ERROR
+                       ============================================== */
+
+                    error:
+                        function (xhr) {
+
+                            console.error(
+                                'Contract upload error:',
+                                xhr.responseText
+                            );
+
+
+                            let errorMessage =
+                                'Unable to upload the contract. Please try again.';
+
+
+                            /*
+                             * Try to extract JSON error message
+                             * if the controller returns JSON.
+                             */
+
+                            if (
+                                xhr.responseJSON &&
+                                xhr.responseJSON.message
+                            ) {
+
+                                errorMessage =
+                                    xhr.responseJSON.message;
+
+                            }
+
+
+                            Swal.fire({
+
+                                icon:
+                                    'error',
+
+                                title:
+                                    'Contract Upload Failed',
+
+                                text:
+                                    errorMessage,
+
+                                confirmButtonText:
+                                    'OK'
+
+                            });
+
+                        },
+
+
+                    /* ==============================================
+                       COMPLETE
+                       ============================================== */
+
+                    complete:
+                        function () {
+
+                            submitButton
+                                .prop(
+                                    'disabled',
+                                    false
+                                )
+                                .html(
+                                    originalButtonHtml
+                                );
+
+                        }
+
+                });
+
+            }
+        );
+
+    }
+);
+
+
+
+/* ======================================================
+   OPEN VIEW CONTRACT MODAL
+   ====================================================== */
+
+$(document).on(
+    'click',
+    '.dt-view-contract',
+    function (event) {
+
+        event.preventDefault();
+        event.stopPropagation();
+
+        const button = $(this);
+
+        /* ==================================================
+           IMPORTANT ID DIFFERENCE
+           
+           id           = tb_data.id
+           contractId   = tb_contract.id
+           
+           viewContract() expects tb_data.id
+           ================================================== */
+
+        const id = Number(
+            button.attr('data-id') || 0
+        );
+
+        const contractId = Number(
+            button.attr('data-contract-id') || 0
+        );
+
+
+        /* ==================================================
+           DEBUG
+           ================================================== */
+
+        console.log('VIEW CONTRACT');
+        console.log('Machine / tb_data ID:', id);
+        console.log('Contract / tb_contract ID:', contractId);
+
+
+        /* ==================================================
+           VALIDATE MACHINE ID
+           ================================================== */
+
+        if (!id) {
+
+            showSwalError(
+                'Invalid Record',
+                'The machine record ID is missing.'
+            );
+
+            return;
+        }
+
+
+        /* ==================================================
+           VALIDATE CONTRACT ID
+           ================================================== */
+
+        if (!contractId) {
+
+            showSwalError(
+                'No Contract',
+                'There is no contract attached to this machine.'
+            );
+
+            return;
+        }
+
+
+        /* ==================================================
+           GET DATATABLE ROW
+           ================================================== */
+
+        const dataTable =
+            $('#clinicRecordsTable').DataTable();
+
+        const rowData =
+            dataTable
+                .row(button.closest('tr'))
+                .data();
+
+
+        if (!rowData) {
+
+            showSwalError(
+                'Unable to Load',
+                'Unable to load this machine record. Please try again.'
+            );
+
+            return;
+        }
+
+
+        console.log(
+            'View contract row:',
+            rowData
+        );
+
+
+        /* ==================================================
+           GET VIEW CONTRACT MODAL
+           ================================================== */
+
+        const modalElement =
+            document.getElementById(
+                'viewContractModal'
+            );
+
+
+        if (!modalElement) {
+
+            showSwalError(
+                'View Contract Modal Missing',
+                'The View Contract modal is missing from the page.'
+            );
+
+            return;
+        }
+
+
+        /* ==================================================
+           GET CONTENT
+           ================================================== */
+
+        const content =
+            document.getElementById(
+                'viewContractContent'
+            );
+
+
+        if (!content) {
+
+            showSwalError(
+                'Preview Area Missing',
+                'The contract preview area is missing from the page.'
+            );
+
+            return;
+        }
+
+
+        /* ==================================================
+           OPEN LINK
+           ================================================== */
+
+        const openLink =
+            $('#viewContractOpenLink');
+
+
+        /* ==================================================
+           STORE IDs ON MODAL
+           ================================================== */
+
+        $(modalElement)
+            .attr(
+                'data-record-id',
+                id
+            )
+            .attr(
+                'data-contract-id',
+                contractId
+            );
+
+
+        /* ==================================================
+           RESET CONTENT
+           ================================================== */
+
+        content.innerHTML = `
+            <div class="p-5 text-center">
+
+                <div
+                    class="spinner-border text-primary mb-3"
+                    role="status">
+                </div>
+
+                <div>
+                    Loading contract...
+                </div>
+
+            </div>
+        `;
+
+
+        /* ==================================================
+           RESET OPEN BUTTON
+           ================================================== */
+
+        if (openLink.length) {
+
+            openLink
+                .attr('href', '#')
+                .addClass('d-none');
+
+        }
+
+
+        /* ==================================================
+           SHOW MODAL
+           ================================================== */
+
+        bootstrap.Modal
+            .getOrCreateInstance(
+                modalElement
+            )
+            .show();
+
+
+        /* ==================================================
+           IMPORTANT:
+           SEND tb_data.id TO viewContract()
+           
+           NOT contractId
+           ================================================== */
+
+        const contractUrl =
+            "<?= site_url('dashboard/view-contract') ?>/" +
+            encodeURIComponent(id);
+
+
+        console.log(
+            'View Contract URL:',
+            contractUrl
+        );
+
+
+        /* ==================================================
+           LOAD CONTRACT
+           ================================================== */
+
+        $.ajax({
+
+            url:
+                contractUrl,
+
+            type:
+                'GET',
+
+            dataType:
+                'json',
+
+
+            /* ==================================================
+               SUCCESS
+               ================================================== */
+
+            success:
+                function (response) {
+
+                    console.log(
+                        'Contract view response:',
+                        response
+                    );
+
+
+                    /* ------------------------------------------
+                       CHECK RESPONSE
+                       ------------------------------------------ */
+
+                    if (
+                        !response ||
+                        response.success === false
+                    ) {
+
+                        content.innerHTML = `
+                            <div class="p-5 text-center text-danger">
+
+                                <i
+                                    class="bi bi-exclamation-triangle fs-1">
+                                </i>
+
+                                <div class="mt-3 fw-semibold">
+                                    Unable to load contract.
+                                </div>
+
+                                <div class="small text-muted mt-2">
+                                    ${escapeHtml(
+                                        response?.message ||
+                                        'The contract file could not be found.'
+                                    )}
+                                </div>
+
+                            </div>
+                        `;
+
+                        return;
+                    }
+
+
+                    /* ------------------------------------------
+                       GET FILE URL
+                       ------------------------------------------ */
+
+                    const fileUrl =
+                        response.url ||
+                        response.file_url ||
+                        response.contract_url ||
+                        '';
+
+
+                    if (!fileUrl) {
+
+                        content.innerHTML = `
+                            <div class="p-5 text-center text-danger">
+
+                                <i
+                                    class="bi bi-file-earmark-x fs-1">
+                                </i>
+
+                                <div class="mt-3 fw-semibold">
+                                    Contract file URL is missing.
+                                </div>
+
+                            </div>
+                        `;
+
+                        return;
+                    }
+
+
+                    /* ------------------------------------------
+                       SET OPEN LINK
+                       ------------------------------------------ */
+
+                    if (openLink.length) {
+
+                        openLink
+                            .attr(
+                                'href',
+                                fileUrl
+                            )
+                            .attr(
+                                'target',
+                                '_blank'
+                            )
+                            .attr(
+                                'rel',
+                                'noopener noreferrer'
+                            )
+                            .removeClass('d-none');
+
+                    }
+
+
+                    /* ------------------------------------------
+                       FILE TYPE
+                       ------------------------------------------ */
+
+                    const responseType =
+                        String(
+                            response.type || ''
+                        ).toLowerCase();
+
+
+                    const lowerUrl =
+                        String(fileUrl)
+                            .toLowerCase();
+
+
+                    const isPdf =
+                        responseType.includes('pdf') ||
+                        /\.pdf(\?|$)/i.test(
+                            lowerUrl
+                        );
+
+
+                    const isImage =
+                        responseType.includes('image') ||
+                        /\.(jpg|jpeg|png|webp)(\?|$)/i.test(
+                            lowerUrl
+                        );
+
+
+                    /* ==================================================
+                       PDF PREVIEW
+                       ================================================== */
+
+                    if (isPdf) {
+
+                        content.innerHTML = `
+                            <iframe
+                                src="${escapeHtml(fileUrl)}"
+                                style="
+                                    width:100%;
+                                    height:75vh;
+                                    min-height:600px;
+                                    border:0;
+                                "
+                                title="Contract PDF">
+                            </iframe>
+                        `;
+
+                        return;
+                    }
+
+
+                    /* ==================================================
+                       IMAGE PREVIEW
+                       ================================================== */
+
+                    if (isImage) {
+
+                        content.innerHTML = `
+                            <div
+                                class="p-3 text-center"
+                                style="
+                                    background:#f8f9fa;
+                                    min-height:300px;
+                                ">
+
+                                <img
+                                    src="${escapeHtml(fileUrl)}"
+                                    alt="Contract"
+                                    class="img-fluid"
+                                    style="
+                                        max-width:100%;
+                                        max-height:75vh;
+                                        object-fit:contain;
+                                    "
+                                >
+
+                            </div>
+                        `;
+
+                        return;
+                    }
+
+
+                    /* ==================================================
+                       OTHER FILE TYPE
+                       ================================================== */
+
+                    content.innerHTML = `
+                        <div class="p-5 text-center">
+
+                            <i
+                                class="bi bi-file-earmark fs-1 text-primary">
+                            </i>
+
+                            <div class="mt-3 fw-semibold">
+                                Contract file loaded.
+                            </div>
+
+                            <div class="mt-3">
+
+                                <a
+                                    href="${escapeHtml(fileUrl)}"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    class="btn btn-primary">
+
+                                    <i
+                                        class="bi bi-box-arrow-up-right me-1">
+                                    </i>
+
+                                    Open Contract
+
+                                </a>
+
+                            </div>
+
+                        </div>
+                    `;
+
+                },
+
+
+            /* ==================================================
+               AJAX ERROR
+               ================================================== */
+
+            error:
+                function (xhr) {
+
+                    console.error(
+                        'Contract view AJAX error:',
+                        xhr.status,
+                        xhr.responseText
+                    );
+
+
+                    let message =
+                        'Unable to load the contract.';
+
+
+                    if (
+                        xhr.responseJSON &&
+                        xhr.responseJSON.message
+                    ) {
+
+                        message =
+                            xhr.responseJSON.message;
+
+                    }
+
+
+                    content.innerHTML = `
+                        <div class="p-5 text-center text-danger">
+
+                            <i
+                                class="bi bi-exclamation-triangle fs-1">
+                            </i>
+
+                            <div class="mt-3 fw-semibold">
+                                Unable to load contract.
+                            </div>
+
+                            <div class="small text-muted mt-2">
+                                ${escapeHtml(message)}
+                            </div>
+
+                        </div>
+                    `;
+
+                }
+
+        });
+
+    }
+);
+
+
+    /* ======================================================
+       END DATATABLE READY
+       ====================================================== */
+
 });
+
 
 /* ==========================================================
    SUPPORT ANALYTICS CHARTS
    ========================================================== */
 
-if (typeof ApexCharts !== 'undefined') {
-    const monthlySupport = <?= json_encode($monthly_support ?? [], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
-    const pulloutTimeline = <?= json_encode($pullout_timeline ?? [], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
-   <?php
-        /*
-        |--------------------------------------------------------------------------
-        | NORMALIZE MACHINE YEARLY DATA
-        |--------------------------------------------------------------------------
-        */
+if (
+    typeof ApexCharts !== 'undefined'
+) {
 
-        $machineYearlyGrouped = [];
-
-        foreach ($machine_yearly ?? [] as $row) {
-
-            $rawMachine = strtolower(trim((string) ($row['machine'] ?? '')));
-            $year = (string) ($row['year'] ?? '');
-            $total = (int) ($row['total'] ?? 0);
-
-            switch ($rawMachine) {
-
-                case 'vu10':
-                    $machineLabel = 'Urine Analyzer';
-                    break;
-
-                case 'utz':
-                    $machineLabel = 'Ultrasound';
-                    break;
-
-                 case 'vet monitor':
-                case 'x-ray':
-                case 'xray':
-                    $machineLabel = 'X-Ray';
-                    break;
-
-                default:
-                    $machineLabel = trim((string) ($row['machine'] ?? ''));
-                    break;
-            }
-
-            if ($machineLabel === '' || $year === '') {
-                continue;
-            }
-
-            $key = $year . '|' . $machineLabel;
-
-            if (!isset($machineYearlyGrouped[$key])) {
-                $machineYearlyGrouped[$key] = [
-                    'year' => $year,
-                    'machine' => $machineLabel,
-                    'total' => 0
-                ];
-            }
-
-            $machineYearlyGrouped[$key]['total'] += $total;
-        }
-
-        $machineYearly = array_values($machineYearlyGrouped);
-
-        /*
-        |--------------------------------------------------------------------------
-        | Sort by year and machine name
-        |--------------------------------------------------------------------------
-        */
-
-        usort($machineYearly, function ($a, $b) {
-
-            if ($a['year'] === $b['year']) {
-                return strcmp($a['machine'], $b['machine']);
-            }
-
-            return strcmp($a['year'], $b['year']);
-        });
-        ?>
-
-        const machineYearly = <?= json_encode(
-            $machineYearly,
-            JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP
+    const monthlySupport =
+        <?= json_encode(
+            $monthly_support ?? [],
+            JSON_HEX_TAG |
+            JSON_HEX_APOS |
+            JSON_HEX_QUOT |
+            JSON_HEX_AMP
         ) ?>;
 
-    function chartCategories(rows) {
-        return rows.map(function (row) {
-            return row.period || '';
-        });
+
+    const pulloutTimeline =
+        <?= json_encode(
+            $pullout_timeline ?? [],
+            JSON_HEX_TAG |
+            JSON_HEX_APOS |
+            JSON_HEX_QUOT |
+            JSON_HEX_AMP
+        ) ?>;
+
+
+    <?php
+
+    /* ======================================================
+       NORMALIZE MACHINE YEARLY DATA
+       ====================================================== */
+
+    $machineYearlyGrouped = [];
+
+
+    foreach (
+        $machine_yearly ?? [] as $row
+    ) {
+
+        $rawMachine =
+            strtolower(
+                trim(
+                    (string) (
+                        $row['machine'] ?? ''
+                    )
+                )
+            );
+
+
+        $year =
+            (string) (
+                $row['year'] ?? ''
+            );
+
+
+        $total =
+            (int) (
+                $row['total'] ?? 0
+            );
+
+
+        switch ($rawMachine) {
+
+            case 'vu10':
+
+                $machineLabel =
+                    'Urine Analyzer';
+
+                break;
+
+
+            case 'utz':
+
+                $machineLabel =
+                    'Ultrasound';
+
+                break;
+
+
+            case 'vet monitor':
+            case 'x-ray':
+            case 'xray':
+
+                $machineLabel =
+                    'X-Ray';
+
+                break;
+
+
+            default:
+
+                $machineLabel =
+                    trim(
+                        (string) (
+                            $row['machine'] ?? ''
+                        )
+                    );
+
+                break;
+
+        }
+
+
+        if (
+            $machineLabel === '' ||
+            $year === ''
+        ) {
+
+            continue;
+
+        }
+
+
+        $key =
+            $year .
+            '|' .
+            $machineLabel;
+
+
+        if (
+            !isset(
+                $machineYearlyGrouped[$key]
+            )
+        ) {
+
+            $machineYearlyGrouped[$key] = [
+
+                'year' =>
+                    $year,
+
+                'machine' =>
+                    $machineLabel,
+
+                'total' =>
+                    0
+
+            ];
+
+        }
+
+
+        $machineYearlyGrouped[$key]['total']
+            += $total;
+
     }
+
+
+    $machineYearly =
+        array_values(
+            $machineYearlyGrouped
+        );
+
+
+    /* ======================================================
+       SORT BY YEAR AND MACHINE
+       ====================================================== */
+
+    usort(
+        $machineYearly,
+        function ($a, $b) {
+
+            if (
+                $a['year'] ===
+                $b['year']
+            ) {
+
+                return strcmp(
+                    $a['machine'],
+                    $b['machine']
+                );
+
+            }
+
+
+            return strcmp(
+                $a['year'],
+                $b['year']
+            );
+
+        }
+    );
+
+    ?>
+
+
+    const machineYearly =
+        <?= json_encode(
+            $machineYearly,
+            JSON_HEX_TAG |
+            JSON_HEX_APOS |
+            JSON_HEX_QUOT |
+            JSON_HEX_AMP
+        ) ?>;
+
+
+    /* ======================================================
+       CHART HELPERS
+       ====================================================== */
+
+    function chartCategories(rows) {
+
+        return rows.map(
+            function (row) {
+
+                return row.period || '';
+
+            }
+        );
+
+    }
+
 
     function chartValues(rows) {
-        return rows.map(function (row) {
-            return Number(row.total || 0);
-        });
+
+        return rows.map(
+            function (row) {
+
+                return Number(
+                    row.total || 0
+                );
+
+            }
+        );
+
     }
 
-    function renderEmptyChart(selector, message) {
-        const element = document.querySelector(selector);
+
+    function renderEmptyChart(
+        selector,
+        message
+    ) {
+
+        const element =
+            document.querySelector(
+                selector
+            );
+
+
         if (element) {
-            element.innerHTML = '<div class="text-center text-muted py-5">' + message + '</div>';
+
+            element.innerHTML =
+                '<div class="text-center text-muted py-5">' +
+                message +
+                '</div>';
+
         }
+
     }
 
-    if (monthlySupport.length) {
-        new ApexCharts(document.querySelector('#monthlySupportChart'), {
-            chart: { type: 'bar', height: 280, toolbar: { show: false } },
-            series: [{ name: 'Support Tickets', data: chartValues(monthlySupport) }],
-            xaxis: { categories: chartCategories(monthlySupport) },
-            colors: ['#0d6efd'],
-            plotOptions: { bar: { borderRadius: 4, columnWidth: '55%' } },
-            dataLabels: { enabled: false },
-            grid: { borderColor: '#e9ecef' }
-        }).render();
+
+    /* ======================================================
+       MONTHLY SUPPORT CHART
+       ====================================================== */
+
+    if (
+        monthlySupport.length
+    ) {
+
+        new ApexCharts(
+            document.querySelector(
+                '#monthlySupportChart'
+            ),
+            {
+
+                chart: {
+                    type: 'bar',
+                    height: 280,
+                    toolbar: {
+                        show: false
+                    }
+                },
+
+                series: [
+                    {
+                        name:
+                            'Support Tickets',
+
+                        data:
+                            chartValues(
+                                monthlySupport
+                            )
+                    }
+                ],
+
+                xaxis: {
+                    categories:
+                        chartCategories(
+                            monthlySupport
+                        )
+                },
+
+                colors: [
+                    '#0d6efd'
+                ],
+
+                plotOptions: {
+                    bar: {
+                        borderRadius: 4,
+                        columnWidth: '55%'
+                    }
+                },
+
+                dataLabels: {
+                    enabled: false
+                },
+
+                grid: {
+                    borderColor:
+                        '#e9ecef'
+                }
+
+            }
+        ).render();
+
     } else {
-        renderEmptyChart('#monthlySupportChart', 'No support data available.');
+
+        renderEmptyChart(
+            '#monthlySupportChart',
+            'No support data available.'
+        );
+
     }
 
-    if (pulloutTimeline.length) {
-        new ApexCharts(document.querySelector('#pulloutTimelineChart'), {
-            chart: { type: 'pie', height: 280, toolbar: { show: false } },
-            series: chartValues(pulloutTimeline),
-            labels: chartCategories(pulloutTimeline),
-            colors: ['#dc3545', '#fd7e14', '#ffc107', '#198754', '#0d6efd', '#6f42c1'],
-            legend: { position: 'bottom' },
-            dataLabels: { enabled: true }
-        }).render();
+
+    /* ======================================================
+       PULLOUT TIMELINE CHART
+       ====================================================== */
+
+    if (
+        pulloutTimeline.length
+    ) {
+
+        new ApexCharts(
+            document.querySelector(
+                '#pulloutTimelineChart'
+            ),
+            {
+
+                chart: {
+                    type: 'pie',
+                    height: 280,
+                    toolbar: {
+                        show: false
+                    }
+                },
+
+                series:
+                    chartValues(
+                        pulloutTimeline
+                    ),
+
+                labels:
+                    chartCategories(
+                        pulloutTimeline
+                    ),
+
+                colors: [
+                    '#dc3545',
+                    '#fd7e14',
+                    '#ffc107',
+                    '#198754',
+                    '#0d6efd',
+                    '#6f42c1'
+                ],
+
+                legend: {
+                    position:
+                        'bottom'
+                },
+
+                dataLabels: {
+                    enabled: true
+                }
+
+            }
+        ).render();
+
     } else {
-        renderEmptyChart('#pulloutTimelineChart', 'No pullout data available.');
+
+        renderEmptyChart(
+            '#pulloutTimelineChart',
+            'No pullout data available.'
+        );
+
     }
 
-    if (machineYearly.length) {
-        const years = [...new Set(machineYearly.map(function (row) { return String(row.year); }))];
-        const machineNames = [...new Set(machineYearly.map(function (row) { return row.machine; }))];
-        const machineSeries = machineNames.map(function (machine) {
-            return {
-                name: machine,
-                data: years.map(function (year) {
-                    const row = machineYearly.find(function (item) {
-                        return String(item.year) === year && item.machine === machine;
-                    });
-                    return Number(row?.total || 0);
-                })
-            };
-        });
 
-        new ApexCharts(document.querySelector('#machineYearlyChart'), {
-            chart: { type: 'line', height: 280, toolbar: { show: false } },
-            series: machineSeries,
-            xaxis: { categories: years },
-            stroke: { curve: 'smooth', width: 3 },
-            dataLabels: { enabled: false },
-            legend: { position: 'bottom' },
-            grid: { borderColor: '#e9ecef' }
-        }).render();
+    /* ======================================================
+       MACHINE YEARLY CHART
+       ====================================================== */
+
+    if (
+        machineYearly.length
+    ) {
+
+        const years =
+            [
+                ...new Set(
+                    machineYearly.map(
+                        function (row) {
+
+                            return String(
+                                row.year
+                            );
+
+                        }
+                    )
+                )
+            ];
+
+
+        const machineNames =
+            [
+                ...new Set(
+                    machineYearly.map(
+                        function (row) {
+
+                            return row.machine;
+
+                        }
+                    )
+                )
+            ];
+
+
+        const machineSeries =
+            machineNames.map(
+                function (machine) {
+
+                    return {
+
+                        name:
+                            machine,
+
+                        data:
+                            years.map(
+                                function (year) {
+
+                                    const row =
+                                        machineYearly.find(
+                                            function (item) {
+
+                                                return (
+                                                    String(
+                                                        item.year
+                                                    ) === year &&
+                                                    item.machine === machine
+                                                );
+
+                                            }
+                                        );
+
+
+                                    return Number(
+                                        row?.total || 0
+                                    );
+
+                                }
+                            )
+
+                    };
+
+                }
+            );
+
+
+        new ApexCharts(
+            document.querySelector(
+                '#machineYearlyChart'
+            ),
+            {
+
+                chart: {
+                    type: 'line',
+                    height: 280,
+                    toolbar: {
+                        show: false
+                    }
+                },
+
+                series:
+                    machineSeries,
+
+                xaxis: {
+                    categories:
+                        years
+                },
+
+                stroke: {
+                    curve:
+                        'smooth',
+
+                    width:
+                        3
+                },
+
+                dataLabels: {
+                    enabled:
+                        false
+                },
+
+                legend: {
+                    position:
+                        'bottom'
+                },
+
+                grid: {
+                    borderColor:
+                        '#e9ecef'
+                }
+
+            }
+        ).render();
+
     } else {
-        renderEmptyChart('#machineYearlyChart', 'No machine data available.');
+
+        renderEmptyChart(
+            '#machineYearlyChart',
+            'No machine data available.'
+        );
+
     }
+
 }
 
 </script>

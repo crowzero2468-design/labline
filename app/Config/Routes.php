@@ -23,6 +23,7 @@ $routes->get('dashboard/users', 'UserController::index');
 $routes->get('dashboard/support', 'SupportController::index');
 $routes->get('dashboard/history', 'SupportController::history');
 $routes->get('dashboard/history/export', 'SupportController::exportHistory');
+$routes->get('dashboard/view-contract/(:num)', 'Dashboard::viewContract/$1');
 
 $routes->post('dashboard/history/update', 'SupportController::update');
 $routes->post('dashboard/history/delete', 'SupportController::delete');

@@ -49,6 +49,25 @@
     .action-buttons {
         white-space: nowrap;
     }
+    .action-cell {
+    position: relative;
+    z-index: 50;
+    white-space: nowrap;
+    }
+
+    .action-buttons {
+        position: relative;
+        z-index: 51;
+        display: flex;
+        gap: 4px;
+    }
+
+    .action-buttons button {
+        position: relative;
+        z-index: 52;
+        pointer-events: auto !important;
+        cursor: pointer !important;
+    }
 </style>
 
 <body>
@@ -534,74 +553,51 @@
                                                  ACTION
                                             ================================================== -->
 
-                                            <td onclick="event.stopPropagation();">
+                                            <td class="action-cell">
 
-                                                <div class="d-flex gap-1 action-buttons">
+                                              <div class="d-flex gap-1 action-buttons">
 
+                                                  <!-- EDIT -->
+                                                  <button
+                                                      type="button"
+                                                      class="btn btn-sm btn-outline-primary"
+                                                      onclick="openEditTicket(this); event.stopPropagation();"
+                                                      data-id="<?= esc($ticket['id'] ?? '') ?>"
+                                                      data-ticket="<?= esc($ticket['ticket_number'] ?? '') ?>"
+                                                      data-clinic="<?= esc($ticket['clinic_name'] ?? '') ?>"
+                                                      data-province="<?= esc($ticket['province'] ?? '') ?>"
+                                                      data-address="<?= esc($ticket['address'] ?? '') ?>"
+                                                      data-date="<?= esc($ticket['support_date'] ?? '') ?>"
+                                                      data-concern="<?= esc($ticket['concern'] ?? '') ?>"
+                                                      data-machine-status="<?= esc($ticket['machine_status'] ?? '') ?>"
+                                                      data-service-engr="<?= esc(
+                                                          $ticket['service_engr']
+                                                          ?? ($ticket['technician'] ?? '')
+                                                      ) ?>"
+                                                      data-status="<?= esc($status) ?>"
+                                                      title="Edit">
 
-                                                    <!-- EDIT -->
+                                                      <i class="bi bi-pencil"></i>
 
-                                                    <button type="button"
-
-                                                            class="btn btn-sm btn-outline-primary btn-edit-ticket"
-
-                                                            data-id="<?= esc($ticket['id'] ?? '') ?>"
-
-                                                            data-ticket="<?= esc($ticket['ticket_number'] ?? '') ?>"
-
-                                                            data-clinic="<?= esc($ticket['clinic_name'] ?? '') ?>"
-
-                                                            data-province="<?= esc($ticket['province'] ?? '') ?>"
-
-                                                            data-address="<?= esc($ticket['address'] ?? '') ?>"
-
-                                                            data-date="<?= esc($ticket['support_date'] ?? '') ?>"
-
-                                                            data-concern="<?= esc($ticket['concern'] ?? '') ?>"
-
-                                                            data-machine-status="<?= esc($ticket['machine_status'] ?? '') ?>"
-
-                                                            data-service-engr="<?= esc(
-                                                                $ticket['service_engr']
-                                                                ?? (
-                                                                    $ticket['technician']
-                                                                    ?? ''
-                                                                )
-                                                            ) ?>"
-
-                                                            data-status="<?= esc($status) ?>"
-
-                                                            title="Edit">
+                                                  </button>
 
 
-                                                        <i class="bi bi-pencil"></i>
+                                                  <!-- DELETE -->
+                                                  <button
+                                                      type="button"
+                                                      class="btn btn-sm btn-outline-danger"
+                                                      onclick="deleteTicket(this); event.stopPropagation();"
+                                                      data-id="<?= esc($ticket['id'] ?? '') ?>"
+                                                      data-ticket="<?= esc($ticket['ticket_number'] ?? '') ?>"
+                                                      title="Delete">
 
+                                                      <i class="bi bi-trash"></i>
 
-                                                    </button>
+                                                  </button>
 
+                                              </div>
 
-                                                    <!-- DELETE -->
-
-                                                    <button type="button"
-
-                                                            class="btn btn-sm btn-outline-danger btn-delete-ticket"
-
-                                                            data-id="<?= esc($ticket['id'] ?? '') ?>"
-
-                                                            data-ticket="<?= esc($ticket['ticket_number'] ?? '') ?>"
-
-                                                            title="Delete">
-
-
-                                                        <i class="bi bi-trash"></i>
-
-
-                                                    </button>
-
-
-                                                </div>
-
-                                            </td>
+                                          </td>
 
 
                                         </tr>
@@ -1515,37 +1511,41 @@ $(document).ready(function () {
     // HISTORY ROW CLICK
     // ==========================================================
 
-    $('#historyTable tbody').on(
-        'click',
-        'tr.history-row',
-        function () {
+$('#historyTable tbody').on(
+    'click',
+    'tr.history-row',
+    function (e) {
 
-            const row =
-                $(this);
-
-
-            $('.history-row')
-                .removeClass(
-                    'table-primary'
-                );
-
-
-            row.addClass(
-                'table-primary'
-            );
-
-
-            $('.clinic-summary-row')
-                .removeClass(
-                    'table-primary'
-                );
-
-
-            showTicketTimeline(row);
-
+        /*
+         * Do NOT treat Edit/Delete as a row click.
+         */
+        if (
+            $(e.target).closest(
+                '.action-cell, button'
+            ).length
+        ) {
+            return;
         }
-    );
 
+
+        const row = $(this);
+
+
+        $('.history-row')
+            .removeClass('table-primary');
+
+
+        row.addClass('table-primary');
+
+
+        $('.clinic-summary-row')
+            .removeClass('table-primary');
+
+
+        showTicketTimeline(row);
+
+    }
+);
 
     // ==========================================================
     // CLINIC SUMMARY CLICK
@@ -1588,244 +1588,889 @@ $(document).ready(function () {
     );
 
 
-    // ==========================================================
-    // EDIT TICKET
-    // ==========================================================
 
-    $(document).on(
-        'click',
-        '.btn-edit-ticket',
-        function (e) {
+/* ==========================================================
+   SUPPORT HISTORY
+   EDIT / DELETE / SAVE
+   ========================================================== */
 
-            e.preventDefault();
+(function () {
 
-            e.stopPropagation();
+    'use strict';
 
 
-            const button =
-                $(this);
+    /* ==========================================================
+       DEBUG
+       ========================================================== */
+
+    console.log('======================================');
+    console.log('SUPPORT HISTORY JS LOADED');
+    console.log('======================================');
 
 
-            const id =
-                button.data('id');
+    /* ==========================================================
+       EDIT TICKET
+       ========================================================== */
+
+    window.openEditTicket = function (button) {
+
+        console.log('======================================');
+        console.log('EDIT BUTTON CLICKED');
+        console.log('======================================');
 
 
-            if (!id) {
+        if (!button) {
 
-                Swal.fire({
+            console.error('Edit button object is missing.');
 
-                    icon: 'error',
+            return;
 
-                    title: 'Invalid Record',
-
-                    text:
-                        'Ticket ID was not found.'
-
-                });
-
-                return;
-            }
+        }
 
 
-            $('#edit_id').val(id);
+        const id =
+            button.getAttribute('data-id') || '';
 
 
-            $('#edit_ticket_number').val(
-                button.data('ticket') || ''
+        console.log('EDIT ID:', id);
+
+
+        if (!id) {
+
+            alert('Ticket ID is missing.');
+
+            return;
+
+        }
+
+
+        /* ------------------------------------------------------
+           GET DATA FROM BUTTON
+           ------------------------------------------------------ */
+
+        const ticket =
+            button.getAttribute('data-ticket') || '';
+
+        const clinic =
+            button.getAttribute('data-clinic') || '';
+
+        const province =
+            button.getAttribute('data-province') || '';
+
+        const address =
+            button.getAttribute('data-address') || '';
+
+        const supportDate =
+            button.getAttribute('data-date') || '';
+
+        const concern =
+            button.getAttribute('data-concern') || '';
+
+        const machineStatus =
+            button.getAttribute('data-machine-status') || '';
+
+        const serviceEngr =
+            button.getAttribute('data-service-engr') || '';
+
+        const status =
+            button.getAttribute('data-status') || 'waiting';
+
+
+        console.log({
+            id: id,
+            ticket: ticket,
+            clinic: clinic,
+            province: province,
+            address: address,
+            supportDate: supportDate,
+            concern: concern,
+            machineStatus: machineStatus,
+            serviceEngr: serviceEngr,
+            status: status
+        });
+
+
+        /* ------------------------------------------------------
+           FILL FORM
+           ------------------------------------------------------ */
+
+        const editId =
+            document.getElementById('edit_id');
+
+        const editTicketNumber =
+            document.getElementById('edit_ticket_number');
+
+        const editClinic =
+            document.getElementById('edit_clinic_name');
+
+        const editProvince =
+            document.getElementById('edit_province');
+
+        const editAddress =
+            document.getElementById('edit_address');
+
+        const editSupportDate =
+            document.getElementById('edit_support_date');
+
+        const editConcern =
+            document.getElementById('edit_concern');
+
+        const editMachineStatus =
+            document.getElementById('edit_machine_status');
+
+        const editServiceEngr =
+            document.getElementById('edit_service_engr');
+
+        const editStatus =
+            document.getElementById('edit_status');
+
+
+        if (!editId) {
+
+            console.error(
+                'edit_id element was not found.'
+            );
+
+            alert(
+                'Edit form was not found on this page.'
+            );
+
+            return;
+
+        }
+
+
+        editId.value = id;
+
+
+        if (editTicketNumber) {
+            editTicketNumber.value = ticket;
+        }
+
+
+        if (editClinic) {
+            editClinic.value = clinic;
+        }
+
+
+        if (editProvince) {
+            editProvince.value = province;
+        }
+
+
+        if (editAddress) {
+            editAddress.value = address;
+        }
+
+
+        if (editSupportDate) {
+            editSupportDate.value = supportDate;
+        }
+
+
+        if (editConcern) {
+            editConcern.value = concern;
+        }
+
+
+        if (editMachineStatus) {
+            editMachineStatus.value = machineStatus;
+        }
+
+
+        if (editServiceEngr) {
+            editServiceEngr.value = serviceEngr;
+        }
+
+
+        if (editStatus) {
+            editStatus.value = status;
+        }
+
+
+        /* ------------------------------------------------------
+           FIND MODAL
+           ------------------------------------------------------ */
+
+        const modalElement =
+            document.getElementById(
+                'editTicketModal'
             );
 
 
-            $('#edit_clinic_name').val(
-                button.data('clinic') || ''
+        if (!modalElement) {
+
+            console.error(
+                'editTicketModal DOES NOT EXIST.'
             );
 
-
-            $('#edit_province').val(
-                button.data('province') || ''
+            alert(
+                'Edit Ticket modal was not found.'
             );
 
+            return;
 
-            $('#edit_address').val(
-                button.data('address') || ''
-            );
-
-
-            $('#edit_support_date').val(
-                button.data('date') || ''
-            );
+        }
 
 
-            $('#edit_concern').val(
-                button.data('concern') || ''
-            );
+        console.log(
+            'Edit modal found:',
+            modalElement
+        );
 
 
-            $('#edit_machine_status').val(
-                button.data('machine-status') || ''
-            );
+        /* ------------------------------------------------------
+           OPEN BOOTSTRAP 5 MODAL
+           ------------------------------------------------------ */
 
+        if (
+            window.bootstrap &&
+            typeof bootstrap.Modal === 'function'
+        ) {
 
-            $('#edit_service_engr').val(
-                button.data('service-engr') || ''
-            );
-
-
-            $('#edit_status').val(
-                button.data('status') || 'waiting'
+            console.log(
+                'Bootstrap Modal detected.'
             );
 
 
             const modal =
-                new bootstrap.Modal(
-                    document.getElementById(
-                        'editTicketModal'
-                    )
+                bootstrap.Modal.getOrCreateInstance(
+                    modalElement
                 );
 
 
             modal.show();
 
+
+            console.log(
+                'Edit modal show() called.'
+            );
+
+
+        } else {
+
+            console.error(
+                'Bootstrap Modal JavaScript is NOT loaded.'
+            );
+
+
+            /*
+             * Emergency fallback
+             */
+
+            modalElement.style.display = 'block';
+
+            modalElement.classList.add('show');
+
+            modalElement.removeAttribute(
+                'aria-hidden'
+            );
+
+            modalElement.setAttribute(
+                'aria-modal',
+                'true'
+            );
+
+            modalElement.setAttribute(
+                'role',
+                'dialog'
+            );
+
+            document.body.classList.add(
+                'modal-open'
+            );
+
+
+            let backdrop =
+                document.getElementById(
+                    'editTicketBackdrop'
+                );
+
+
+            if (!backdrop) {
+
+                backdrop =
+                    document.createElement('div');
+
+                backdrop.id =
+                    'editTicketBackdrop';
+
+                backdrop.className =
+                    'modal-backdrop fade show';
+
+                document.body.appendChild(
+                    backdrop
+                );
+
+            }
+
         }
-    );
+
+    };
 
 
-    // ==========================================================
-    // SAVE EDITED TICKET
-    // ==========================================================
+    /* ==========================================================
+       DELETE TICKET
+       ========================================================== */
 
-    $('#editTicketForm').on(
+    window.deleteTicket = function (button) {
+
+        console.log('======================================');
+        console.log('DELETE BUTTON CLICKED');
+        console.log('======================================');
+
+
+        if (!button) {
+
+            console.error(
+                'Delete button object is missing.'
+            );
+
+            return;
+
+        }
+
+
+        const id =
+            button.getAttribute('data-id') || '';
+
+
+        const ticket =
+            button.getAttribute('data-ticket') || '-';
+
+
+        console.log('DELETE ID:', id);
+        console.log('DELETE TICKET:', ticket);
+
+
+        if (!id) {
+
+            alert(
+                'Ticket ID is missing.'
+            );
+
+            return;
+
+        }
+
+
+        /* ------------------------------------------------------
+           CONFIRM
+           ------------------------------------------------------ */
+
+        if (
+            window.Swal &&
+            typeof Swal.fire === 'function'
+        ) {
+
+            Swal.fire({
+
+                title: 'Delete this ticket?',
+
+                html:
+                    'Ticket Number: <strong>' +
+                    escapeHtml(ticket) +
+                    '</strong><br><br>' +
+                    '<small>This action cannot be undone.</small>',
+
+                icon: 'warning',
+
+                showCancelButton: true,
+
+                confirmButtonText:
+                    '<i class="bi bi-trash me-1"></i> Yes, Delete',
+
+                cancelButtonText:
+                    'Cancel',
+
+                confirmButtonColor:
+                    '#dc3545',
+
+                cancelButtonColor:
+                    '#6c757d'
+
+            }).then(function (result) {
+
+                if (
+                    result.isConfirmed
+                ) {
+
+                    sendDeleteRequest(id);
+
+                }
+
+            });
+
+        } else {
+
+            const confirmed =
+                confirm(
+                    'Delete ticket ' +
+                    ticket +
+                    '?\n\nThis action cannot be undone.'
+                );
+
+
+            if (confirmed) {
+
+                sendDeleteRequest(id);
+
+            }
+
+        }
+
+    };
+
+
+    /* ==========================================================
+       HTML ESCAPE
+       ========================================================== */
+
+    function escapeHtml(value) {
+
+        const div =
+            document.createElement('div');
+
+        div.textContent =
+            value;
+
+        return div.innerHTML;
+
+    }
+
+
+    /* ==========================================================
+       DELETE AJAX
+       ========================================================== */
+
+    function sendDeleteRequest(id) {
+
+        console.log(
+            'Sending DELETE request for ID:',
+            id
+        );
+
+
+        const url =
+            '<?= site_url('dashboard/history/delete') ?>';
+
+
+        const body =
+            new URLSearchParams();
+
+
+        body.append(
+            'id',
+            id
+        );
+
+
+        fetch(
+            url,
+            {
+                method: 'POST',
+
+                headers: {
+
+                    'Content-Type':
+                        'application/x-www-form-urlencoded; charset=UTF-8',
+
+                    'X-Requested-With':
+                        'XMLHttpRequest'
+
+                },
+
+                body:
+                    body.toString()
+
+            }
+        )
+
+        .then(function (response) {
+
+            console.log(
+                'DELETE HTTP STATUS:',
+                response.status
+            );
+
+
+            return response.text();
+
+        })
+
+        .then(function (text) {
+
+            console.log(
+                'DELETE SERVER RESPONSE:',
+                text
+            );
+
+
+            let result;
+
+
+            try {
+
+                result =
+                    JSON.parse(text);
+
+            } catch (error) {
+
+                console.error(
+                    'DELETE RESPONSE IS NOT JSON:',
+                    text
+                );
+
+
+                alert(
+                    'Server returned an invalid response:\n\n' +
+                    text.substring(0, 500)
+                );
+
+
+                return;
+
+            }
+
+
+            if (result.success) {
+
+                if (
+                    window.Swal &&
+                    typeof Swal.fire === 'function'
+                ) {
+
+                    Swal.fire({
+
+                        icon: 'success',
+
+                        title: 'Deleted',
+
+                        text:
+                            result.message ||
+                            'Support ticket deleted successfully.',
+
+                        timer: 1500,
+
+                        showConfirmButton: false
+
+                    }).then(function () {
+
+                        window.location.reload();
+
+                    });
+
+                } else {
+
+                    alert(
+                        result.message ||
+                        'Support ticket deleted successfully.'
+                    );
+
+
+                    window.location.reload();
+
+                }
+
+            } else {
+
+                const message =
+                    result.message ||
+                    'Unable to delete ticket.';
+
+
+                if (
+                    window.Swal &&
+                    typeof Swal.fire === 'function'
+                ) {
+
+                    Swal.fire({
+
+                        icon: 'error',
+
+                        title: 'Delete Failed',
+
+                        text: message
+
+                    });
+
+                } else {
+
+                    alert(message);
+
+                }
+
+            }
+
+        })
+
+        .catch(function (error) {
+
+            console.error(
+                'DELETE REQUEST ERROR:',
+                error
+            );
+
+
+            alert(
+                'Unable to connect to the server.'
+            );
+
+        });
+
+    }
+
+
+    /* ==========================================================
+       SAVE EDITED TICKET
+       ========================================================== */
+
+    document.addEventListener(
         'submit',
         function (e) {
+
+
+            if (
+                e.target.id !==
+                'editTicketForm'
+            ) {
+
+                return;
+
+            }
+
 
             e.preventDefault();
 
 
+            console.log(
+                '======================================'
+            );
+
+            console.log(
+                'EDIT FORM SUBMITTED'
+            );
+
+            console.log(
+                '======================================'
+            );
+
+
             const form =
-                this;
+                e.target;
 
 
             const saveButton =
-                $('#btnSaveTicket');
-
-
-            saveButton
-                .prop(
-                    'disabled',
-                    true
-                )
-                .html(
-                    '<span class="spinner-border spinner-border-sm me-1"></span> Saving...'
+                document.getElementById(
+                    'btnSaveTicket'
                 );
 
 
-            $.ajax({
-
-                url:
-                    '<?= site_url('dashboard/history/update') ?>',
-
-                type:
-                    'POST',
-
-                data:
-                    $(form).serialize(),
-
-                dataType:
-                    'json',
+            const id =
+                document.getElementById(
+                    'edit_id'
+                )?.value;
 
 
-                success:
-                    function (response) {
+            console.log(
+                'UPDATE ID:',
+                id
+            );
 
 
-                        if (response.success) {
+            if (!id) {
+
+                alert(
+                    'Ticket ID is missing.'
+                );
+
+                return;
+
+            }
 
 
-                            Swal.fire({
+            if (saveButton) {
 
-                                icon:
-                                    'success',
-
-                                title:
-                                    'Updated',
-
-                                text:
-                                    response.message ||
-                                    'Ticket updated successfully.',
-
-                                timer:
-                                    1500,
-
-                                showConfirmButton:
-                                    false
-
-                            }).then(
-                                function () {
-
-                                    location.reload();
-
-                                }
-                            );
+                saveButton.disabled =
+                    true;
 
 
-                        } else {
+                saveButton.innerHTML =
+                    '<span class="spinner-border spinner-border-sm me-1"></span> Saving...';
+
+            }
 
 
-                            Swal.fire({
+            const formData =
+                new FormData(form);
 
-                                icon:
-                                    'error',
 
-                                title:
-                                    'Update Failed',
+            const url =
+                '<?= site_url('dashboard/history/update') ?>';
 
-                                text:
-                                    response.message ||
-                                    'Unable to update ticket.'
 
-                            });
+            fetch(
+                url,
+                {
+                    method: 'POST',
 
-                        }
+                    headers: {
+
+                        'X-Requested-With':
+                            'XMLHttpRequest'
 
                     },
 
+                    body:
+                        formData
 
-                error:
-                    function (xhr) {
+                }
+            )
 
-                        console.error(
-                            xhr.responseText
-                        );
+            .then(function (response) {
 
+                console.log(
+                    'UPDATE HTTP STATUS:',
+                    response.status
+                );
+
+
+                return response.text();
+
+            })
+
+            .then(function (text) {
+
+                console.log(
+                    'UPDATE SERVER RESPONSE:',
+                    text
+                );
+
+
+                let result;
+
+
+                try {
+
+                    result =
+                        JSON.parse(text);
+
+                } catch (error) {
+
+                    console.error(
+                        'UPDATE RESPONSE IS NOT JSON:',
+                        text
+                    );
+
+
+                    alert(
+                        'Server returned an invalid response:\n\n' +
+                        text.substring(0, 500)
+                    );
+
+
+                    return;
+
+                }
+
+
+                if (result.success) {
+
+                    if (
+                        window.Swal &&
+                        typeof Swal.fire === 'function'
+                    ) {
 
                         Swal.fire({
 
-                            icon:
-                                'error',
+                            icon: 'success',
 
-                            title:
-                                'Error',
+                            title: 'Updated',
 
                             text:
-                                'Something went wrong while updating the ticket.'
+                                result.message ||
+                                'Support ticket updated successfully.',
+
+                            timer: 1500,
+
+                            showConfirmButton: false
+
+                        }).then(function () {
+
+                            window.location.reload();
 
                         });
 
-                    },
+                    } else {
+
+                        alert(
+                            result.message ||
+                            'Support ticket updated successfully.'
+                        );
 
 
-                complete:
-                    function () {
-
-                        saveButton
-                            .prop(
-                                'disabled',
-                                false
-                            )
-                            .html(
-                                '<i class="bi bi-check-lg me-1"></i> Save Changes'
-                            );
+                        window.location.reload();
 
                     }
+
+                } else {
+
+                    const message =
+                        result.message ||
+                        'Unable to update ticket.';
+
+
+                    if (
+                        window.Swal &&
+                        typeof Swal.fire === 'function'
+                    ) {
+
+                        Swal.fire({
+
+                            icon: 'error',
+
+                            title: 'Update Failed',
+
+                            text: message
+
+                        });
+
+                    } else {
+
+                        alert(message);
+
+                    }
+
+                }
+
+            })
+
+            .catch(function (error) {
+
+                console.error(
+                    'UPDATE REQUEST ERROR:',
+                    error
+                );
+
+
+                alert(
+                    'Unable to connect to the server.'
+                );
+
+            })
+
+            .finally(function () {
+
+                if (saveButton) {
+
+                    saveButton.disabled =
+                        false;
+
+
+                    saveButton.innerHTML =
+                        '<i class="bi bi-check-lg me-1"></i> Save Changes';
+
+                }
 
             });
 
@@ -1833,209 +2478,7 @@ $(document).ready(function () {
     );
 
 
-    // ==========================================================
-    // DELETE TICKET
-    // ==========================================================
-
-    $(document).on(
-        'click',
-        '.btn-delete-ticket',
-        function (e) {
-
-            e.preventDefault();
-
-            e.stopPropagation();
-
-
-            const button =
-                $(this);
-
-
-            const id =
-                button.data('id');
-
-
-            const ticket =
-                button.data('ticket');
-
-
-            if (!id) {
-
-                Swal.fire({
-
-                    icon:
-                        'error',
-
-                    title:
-                        'Invalid Record',
-
-                    text:
-                        'Ticket ID was not found.'
-
-                });
-
-                return;
-            }
-
-
-            Swal.fire({
-
-                title:
-                    'Delete this ticket?',
-
-
-                html:
-                    'Ticket Number: <strong>' +
-
-                    $('<div>')
-                        .text(ticket)
-                        .html() +
-
-                    '</strong><br>' +
-
-                    '<small>' +
-                    'This action cannot be undone.' +
-                    '</small>',
-
-
-                icon:
-                    'warning',
-
-
-                showCancelButton:
-                    true,
-
-
-                confirmButtonColor:
-                    '#dc3545',
-
-
-                cancelButtonColor:
-                    '#6c757d',
-
-
-                confirmButtonText:
-                    '<i class="bi bi-trash me-1"></i> Yes, Delete',
-
-
-                cancelButtonText:
-                    'Cancel'
-
-            }).then(
-                function (result) {
-
-
-                    if (
-                        !result.isConfirmed
-                    ) {
-                        return;
-                    }
-
-
-                    $.ajax({
-
-                        url:
-                            '<?= site_url('dashboard/history/delete') ?>',
-
-                        type:
-                            'POST',
-
-                        data: {
-                            id: id
-                        },
-
-                        dataType:
-                            'json',
-
-
-                        success:
-                            function (response) {
-
-
-                                if (
-                                    response.success
-                                ) {
-
-
-                                    Swal.fire({
-
-                                        icon:
-                                            'success',
-
-                                        title:
-                                            'Deleted',
-
-                                        text:
-                                            response.message ||
-                                            'Ticket deleted successfully.',
-
-                                        timer:
-                                            1500,
-
-                                        showConfirmButton:
-                                            false
-
-                                    }).then(
-                                        function () {
-
-                                            location.reload();
-
-                                        }
-                                    );
-
-
-                                } else {
-
-
-                                    Swal.fire({
-
-                                        icon:
-                                            'error',
-
-                                        title:
-                                            'Delete Failed',
-
-                                        text:
-                                            response.message ||
-                                            'Unable to delete ticket.'
-
-                                    });
-
-                                }
-
-                            },
-
-
-                        error:
-                            function (xhr) {
-
-                                console.error(
-                                    xhr.responseText
-                                );
-
-
-                                Swal.fire({
-
-                                    icon:
-                                        'error',
-
-                                    title:
-                                        'Error',
-
-                                    text:
-                                        'Something went wrong while deleting the ticket.'
-
-                                });
-
-                            }
-
-                    });
-
-                }
-            );
-
-        }
-    );
+})();
 
 
     // ==========================================================
@@ -2077,6 +2520,10 @@ $(document).ready(function () {
 
 });
 </script>
+
+
+
+
 
 </body>
 </html>
