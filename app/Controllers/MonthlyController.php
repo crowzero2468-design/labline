@@ -7,8 +7,17 @@ use CodeIgniter\HTTP\ResponseInterface;
 
 class MonthlyController extends BaseController
 {
-    
     public function index()
+    {
+        return view('dashboard/monitoring', $this->getMonitoringData());
+    }
+
+    public function printReport()
+    {
+        return view('dashboard/monitoring_print', $this->getMonitoringData());
+    }
+
+    private function getMonitoringData(): array
     {
         $db = \Config\Database::connect();
 
@@ -209,7 +218,7 @@ class MonthlyController extends BaseController
         ];
 
         
-        return view('dashboard/monitoring', $data);
+        return $data;
     }
 
 }

@@ -116,7 +116,15 @@ class SupportController extends BaseController
     $province = trim((string) $this->request->getPost('province'));
     $address = trim((string) $this->request->getPost('address'));
     $machine = trim((string) $this->request->getPost('machine'));
-    $serviceEngr = trim((string) ($this->request->getPost('service_engr') ?? $this->request->getPost('technician')));
+    $serviceEngrInput = $this->request->getPost('service_engr') ?? $this->request->getPost('technician');
+    $serviceEngineers = is_array($serviceEngrInput)
+        ? array_values(array_unique(array_filter(array_map(
+            static fn ($name): string => trim((string) $name),
+            $serviceEngrInput
+        ))))
+        : [trim((string) $serviceEngrInput)];
+    $serviceEngr = implode(', ', $serviceEngineers);
+    $assisting = trim((string) $this->request->getPost('assisting'));
     $machineStatus = trim((string) $this->request->getPost('machine_status'));
     $serviceStatus = trim((string) $this->request->getPost('service_status'));
     $concern = trim((string) $this->request->getPost('concern'));
@@ -210,6 +218,7 @@ class SupportController extends BaseController
         'machine'        => $machine,
         'technician'     => $serviceEngr,
         'service_engr'   => $serviceEngr,
+        'assisting'      => $assisting,
         'machine_status' => $machineStatus,
         'service_status' => $serviceStatus,
         'concern'        => $concern,
@@ -399,10 +408,21 @@ class SupportController extends BaseController
             ->get()
             ->getResultArray();
 
+        $clinics = $database->table('tb_data')
+            ->select('Clinic_name, Province, Address')
+            ->where('Clinic_name !=', '')
+            ->where('Clinic_name IS NOT NULL', null, false)
+            ->where('status', 'A')
+            ->orderBy('Clinic_name', 'ASC')
+            ->orderBy('Address', 'ASC')
+            ->get()
+            ->getResultArray();
+
         return view('dashboard/history', [
             'user' => session()->get('user'),
             'tickets' => $tickets,
             'clinic_counts' => $clinicCounts,
+            'clinics' => $clinics,
             'search' => $search,
             'date_from' => $dateFrom,
             'date_to' => $dateTo,
@@ -531,6 +551,7 @@ class SupportController extends BaseController
                 address VARCHAR(500) NULL,
                 machine VARCHAR(255) NULL,
                 technician VARCHAR(255) NULL,
+                assisting VARCHAR(255) NULL,
                 concern TEXT NULL,
                 machine_status VARCHAR(50) NULL,
                 service_status VARCHAR(50) NULL,
@@ -558,6 +579,7 @@ class SupportController extends BaseController
             'machine_status' => "ALTER TABLE tb_support ADD COLUMN machine_status VARCHAR(50) NULL AFTER concern",
             'service_status' => "ALTER TABLE tb_support ADD COLUMN service_status VARCHAR(50) NULL AFTER machine_status",
             'service_engr' => "ALTER TABLE tb_support ADD COLUMN service_engr VARCHAR(255) NULL AFTER technician",
+            'assisting' => "ALTER TABLE tb_support ADD COLUMN assisting VARCHAR(255) NULL AFTER service_engr",
         ];
 
         foreach ($supportFields as $field => $alterQuery) {
