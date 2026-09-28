@@ -15,6 +15,41 @@
     .input-group .input-group-text {
         border-radius: 0.375rem 0 0 0.375rem;
     }
+
+    #edit_clinic_name + .select2-container {
+        width: 100% !important;
+    }
+
+    #edit_clinic_name + .select2-container .select2-selection--single {
+        box-sizing: border-box !important;
+        width: 100% !important;
+        height: 38px !important;
+        min-height: 38px !important;
+        border: 1px solid #dee2e6 !important;
+        border-radius: 0.375rem !important;
+        background-color: var(--bs-body-bg) !important;
+        display: flex !important;
+        align-items: center !important;
+    }
+
+    #edit_clinic_name + .select2-container .select2-selection__rendered {
+        color: #212529 !important;
+        line-height: 36px !important;
+        padding-left: 12px !important;
+        padding-right: 40px !important;
+    }
+
+    #edit_clinic_name + .select2-container .select2-selection__arrow {
+        height: 36px !important;
+        width: 35px !important;
+        top: 1px !important;
+        right: 2px !important;
+    }
+
+    #edit_clinic_name + .select2-container--focus .select2-selection--single {
+        border-color: #86b7fe !important;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25) !important;
+    }
 </style>
 
 <body>
@@ -1071,13 +1106,35 @@
                                         Clinic Name
                                     </label>
 
-                                    <input
-                                        type="text"
+                                    <select
                                         name="clinic_name"
                                         id="edit_clinic_name"
-                                        class="form-control"
+                                        class="form-select"
                                         required
                                     >
+                                        <option value="">-- Select Clinic --</option>
+                                        <?php
+                                            $editModelsByClinic = [];
+                                            foreach ($accounts ?? [] as $account) {
+                                                $accountClinic = trim((string) ($account['clinic_name'] ?? ''));
+                                                $accountModel = trim((string) ($account['model'] ?? ''));
+                                                if ($accountClinic !== '' && $accountModel !== '') {
+                                                    $editModelsByClinic[$accountClinic][$accountModel] = true;
+                                                }
+                                            }
+                                        ?>
+                                        <?php foreach ($clinicMap as $clinicName => $info): ?>
+                                            <?php $modelsJson = htmlspecialchars(json_encode(array_keys($editModelsByClinic[$clinicName] ?? [])), ENT_QUOTES, 'UTF-8'); ?>
+                                            <option
+                                                value="<?= esc($clinicName) ?>"
+                                                data-address="<?= esc($info['address']) ?>"
+                                                data-model="<?= esc($info['model']) ?>"
+                                                data-models="<?= $modelsJson ?>"
+                                            >
+                                                <?= esc($clinicName) ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
 
                                 </div>
 
@@ -1098,6 +1155,7 @@
                                         name="address"
                                         id="edit_address"
                                         class="form-control"
+                                        readonly
                                         required
                                     >
 
@@ -1115,13 +1173,14 @@
                                         Model
                                     </label>
 
-                                    <input
-                                        type="text"
+                                    <select
                                         name="model"
                                         id="edit_model"
-                                        class="form-control"
-                                        readonly
+                                        class="form-select"
+                                        required
                                     >
+                                        <option value="">-- Select Model --</option>
+                                    </select>
 
                                 </div>
 
@@ -1478,6 +1537,43 @@ document.addEventListener('DOMContentLoaded', function () {
 
     }
 
+    const editClinicSelect = $('#edit_clinic_name');
+
+    if (editClinicSelect.length && typeof $.fn.select2 !== 'undefined') {
+        editClinicSelect.select2({
+            dropdownParent: $('#editRotorModal'),
+            placeholder: '-- Select Clinic --',
+            allowClear: true,
+            width: '100%'
+        });
+
+        editClinicSelect.on('change', function () {
+            const selectedOption = this.options[this.selectedIndex];
+            $('#edit_address').val(selectedOption?.dataset.address || '');
+
+            const modelSelect = $('#edit_model');
+            const selectedModel = modelSelect.attr('data-selected-model') || '';
+            let models = [];
+
+            try {
+                models = JSON.parse(selectedOption?.dataset.models || '[]');
+            } catch (error) {
+                models = [];
+            }
+
+            modelSelect.empty().append(new Option('-- Select Model --', ''));
+            models.forEach(function (model) {
+                modelSelect.append(new Option(model, model));
+            });
+
+            if (selectedModel && !models.includes(selectedModel)) {
+                modelSelect.append(new Option(selectedModel, selectedModel));
+            }
+
+            modelSelect.val(selectedModel || (models.length === 1 ? models[0] : ''));
+        });
+    }
+
 
     /* ==========================================================
        CLINIC AUTO-FILL
@@ -1746,6 +1842,23 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 };
 
+                const clinicSelect = document.getElementById('edit_clinic_name');
+                let clinicOption = Array.from(clinicSelect.options).find(function (option) {
+                    return option.value === values.clinic;
+                });
+
+                if (!clinicOption && values.clinic) {
+                    clinicOption = new Option(values.clinic, values.clinic);
+                    clinicOption.dataset.address = values.address;
+                    clinicOption.dataset.model = values.model;
+                    clinicOption.dataset.models = JSON.stringify(values.model ? [values.model] : []);
+                    clinicSelect.add(clinicOption);
+                }
+
+                $('#edit_model').attr('data-selected-model', values.model);
+                $(clinicSelect).val(values.clinic).trigger('change');
+                $('#edit_model').removeAttr('data-selected-model');
+
 
                 /*
                  * Set edit form values.
@@ -1754,12 +1867,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 const fieldMap = {
 
                     edit_id: values.id,
-
-                    edit_clinic_name: values.clinic,
-
-                    edit_address: values.address,
-
-                    edit_model: values.model,
 
                     edit_rotor: values.rotor,
 

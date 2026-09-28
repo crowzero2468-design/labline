@@ -13,6 +13,18 @@
         overflow: visible;
     }
 
+    #clinicRecordsTable tbody td:nth-child(2),
+    #clinicRecordsTable tbody td:nth-child(3),
+    #clinicRecordsTable tbody td:nth-child(4),
+    #clinicRecordsTable tbody td:nth-child(5),
+    #clinicRecordsTable tbody td:nth-child(6),
+    #clinicRecordsTable tbody td:nth-child(8),
+    #clinicRecordsTable tbody td:nth-child(9) {
+        white-space: normal !important;
+        overflow-wrap: anywhere;
+        word-break: normal;
+    }
+
     #btn-more-model + .machine-count-menu {
         height: 150px !important;
         max-height: 150px !important;
@@ -54,6 +66,72 @@
     #clinicRecordsTable_wrapper .dataTables_paginate {
         margin: 0 !important;
         text-align: right !important;
+    }
+
+    #installedDateFilterContainer {
+        max-width: 100%;
+    }
+
+    @media (max-width: 767.98px) {
+        .main-wrapper {
+            padding: 1rem !important;
+        }
+
+        #installedDateFilterContainer {
+            width: 100%;
+            flex-direction: column;
+            align-items: stretch !important;
+        }
+
+        #installedDateFilterContainer > div,
+        #date-picker-trigger {
+            width: 100%;
+        }
+
+        #clinicRecordsToolbar {
+            width: 100%;
+            align-items: stretch !important;
+        }
+
+        #clinicRecordsToolbar > button,
+        #clinicRecordsToolbar form,
+        #clinicRecordsToolbar form .btn {
+            width: 100%;
+        }
+
+        #clinicRecordsToolbar .dashboard-import-form {
+            display: grid !important;
+            grid-template-columns: minmax(0, 1fr);
+        }
+
+        #clinicRecordsToolbar .dashboard-import-form .form-control {
+            min-width: 0;
+        }
+
+        #clinicRecordsToolbar #clinicRecordsSearchForm {
+            max-width: none !important;
+        }
+
+        #clinicRecordsTable_wrapper .dataTables_length,
+        #clinicRecordsTable_wrapper .dataTables_filter {
+            float: none !important;
+            width: 100%;
+            margin: 0.5rem 0;
+            text-align: left !important;
+        }
+
+        #clinicRecordsTable_wrapper .dataTables_info,
+        #clinicRecordsTable_wrapper .dataTables_paginate {
+            float: none !important;
+            width: 100%;
+            margin: 0.5rem 0 !important;
+            text-align: center !important;
+        }
+
+        #clinicRecordsTable_wrapper .dataTables_paginate .pagination {
+            justify-content: center;
+            flex-wrap: wrap;
+        }
     }
 </style>
 
@@ -638,6 +716,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
                     <div
+                        id="clinicRecordsToolbar"
                         class="d-flex flex-column flex-md-row gap-2 w-100 w-md-auto align-items-md-center justify-content-md-end">
 
 
@@ -680,7 +759,7 @@ document.addEventListener('DOMContentLoaded', function () {
                                 method="post" 
                                 action="<?= site_url('dashboard/import') ?>" 
                                 enctype="multipart/form-data" 
-                                class="d-flex gap-2 align-items-center">
+                                class="d-flex gap-2 align-items-center dashboard-import-form">
 
                                 <?= csrf_field() ?>
 
