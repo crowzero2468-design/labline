@@ -9,14 +9,18 @@
 </head>
 <body>
     <div style="position: fixed; top: 12px; left: 50%; transform: translateX(-50%); z-index: 1000; width: min(90vw, 520px);">
-        <?php if (session()->getFlashdata('error')): ?>
+        <?php $loginError = session()->getFlashdata('login_error') ?: session()->getFlashdata('error'); ?>
+        <?php $loginSuccess = session()->getFlashdata('login_success') ?: session()->getFlashdata('success'); ?>
+
+        <?php if ($loginError): ?>
             <div style="background: #ffe4e6; color: #991b1b; border: 1px solid #fecdd3; padding: 12px 16px; border-radius: 10px; margin-bottom: 12px; font-weight: 600;">
-                <?= esc(session()->getFlashdata('error')) ?>
+                <?= esc($loginError) ?>
             </div>
         <?php endif; ?>
-        <?php if (session()->getFlashdata('success')): ?>
+
+        <?php if ($loginSuccess): ?>
             <div style="background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; padding: 12px 16px; border-radius: 10px; margin-bottom: 12px; font-weight: 600;">
-                <?= esc(session()->getFlashdata('success')) ?>
+                <?= esc($loginSuccess) ?>
             </div>
         <?php endif; ?>
     </div>

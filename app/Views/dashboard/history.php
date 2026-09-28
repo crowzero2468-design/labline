@@ -68,40 +68,45 @@
         pointer-events: auto !important;
         cursor: pointer !important;
     }
+
+    #edit_clinic_name + .select2-container .select2-selection--single {
+        box-sizing: border-box !important;
+        width: 100% !important;
+        height: 38px !important;
+        min-height: 38px !important;
+        background-color: var(--bs-body-bg) !important;
+    }
+
+    #edit_clinic_name + .select2-container {
+        width: 100% !important;
+    }
 </style>
 
 <body>
 
-<?php if (session()->getFlashdata('error')): ?>
+<?php
+    $historyError = session()->getFlashdata('error');
+    $historySuccess = session()->getFlashdata('success');
+?>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const errorMessage = <?= json_encode((string) ($historyError ?? ''), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
+    const successMessage = <?= json_encode((string) ($historySuccess ?? ''), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
 
-    <div class="flash-message"
-         style="position: fixed; top: 12px; left: 50%; transform: translateX(-50%); z-index: 1200; width: min(90vw, 520px); opacity: 1; transition: opacity 0.5s ease;">
-
-        <div style="background: #ffe4e6; color: #991b1b; border: 1px solid #fecdd3; padding: 12px 16px; border-radius: 10px; font-weight: 600;">
-
-            <?= esc(session()->getFlashdata('error')) ?>
-
-        </div>
-
-    </div>
-
-<?php endif; ?>
-
-
-<?php if (session()->getFlashdata('success')): ?>
-
-    <div class="flash-message"
-         style="position: fixed; top: 12px; left: 50%; transform: translateX(-50%); z-index: 1200; width: min(90vw, 520px); opacity: 1; transition: opacity 0.5s ease;">
-
-        <div style="background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; padding: 12px 16px; border-radius: 10px; font-weight: 600;">
-
-            <?= esc(session()->getFlashdata('success')) ?>
-
-        </div>
-
-    </div>
-
-<?php endif; ?>
+    if (errorMessage && window.Swal) {
+        Swal.fire({ icon: 'error', title: 'Update Failed', text: errorMessage });
+    } else if (successMessage && window.Swal) {
+        Swal.fire({
+            icon: 'success',
+            title: 'Updated',
+            text: successMessage,
+            timer: 3000,
+            timerProgressBar: true,
+            showConfirmButton: false
+        });
+    }
+});
+</script>
 
 
 <?= view('dashboard/layout/sidebar') ?>
@@ -371,6 +376,10 @@
                                         </th>
 
                                         <th>
+                                            Assisting Person
+                                        </th>
+
+                                        <th>
                                             Service Status
                                         </th>
 
@@ -539,6 +548,11 @@
 
 
                                             <td>
+                                                <?= esc($ticket['assisting'] ?? '-') ?>
+                                            </td>
+
+
+                                            <td>
 
                                                 <span class="badge bg-<?= esc($statusInfo['class']) ?> text-uppercase">
 
@@ -615,6 +629,7 @@
                                             No records
                                         </td>
 
+                                        <td></td>
                                         <td></td>
                                         <td></td>
                                         <td></td>
@@ -879,7 +894,12 @@
                 </div>
 
 
-                <form id="editTicketForm">
+                                <form id="editTicketForm"
+                                            method="post"
+                                            action="<?= site_url('dashboard/history/update') ?>"
+                                            data-ajax="false">
+
+                                        <?= csrf_field() ?>
 
 
                     <div class="modal-body">
@@ -918,10 +938,27 @@
                                     Clinic Name
                                 </label>
 
-                                <input type="text"
-                                       class="form-control"
-                                       name="clinic_name"
-                                       id="edit_clinic_name">
+                                <select class="form-select"
+                                        id="edit_clinic_name"
+                                        required>
+                                    <option value="">Select clinic</option>
+                                    <?php foreach (($clinics ?? []) as $clinicOption): ?>
+                                        <?php
+                                            $clinicName = trim((string) ($clinicOption['Clinic_name'] ?? ''));
+                                            $clinicAddress = trim((string) ($clinicOption['Address'] ?? ''));
+                                            $clinicOptionValue = hash('sha256', $clinicName . '|' . $clinicAddress);
+                                        ?>
+                                        <?php if ($clinicName !== ''): ?>
+                                            <option value="<?= esc($clinicOptionValue) ?>"
+                                                    data-clinic="<?= esc($clinicName) ?>"
+                                                    data-province="<?= esc($clinicOption['Province'] ?? '') ?>"
+                                                    data-address="<?= esc($clinicAddress) ?>">
+                                                <?= esc($clinicName) ?> | <?= esc($clinicAddress) ?>
+                                            </option>
+                                        <?php endif; ?>
+                                    <?php endforeach; ?>
+                                </select>
+                                <input type="hidden" name="clinic_name" id="edit_clinic_value">
 
                             </div>
 
@@ -937,8 +974,8 @@
                                 <input type="text"
                                        class="form-control"
                                        name="province"
-                                       id="edit_province">
-
+                                        id="edit_province"
+                                        readonly>
                             </div>
 
 
@@ -953,7 +990,8 @@
                                 <input type="text"
                                        class="form-control"
                                        name="address"
-                                       id="edit_address">
+                                        id="edit_address"
+                                        readonly>
 
                             </div>
 
@@ -1124,6 +1162,24 @@
 <script>
 
 $(document).ready(function () {
+
+    const editClinicSelect = $('#edit_clinic_name');
+    if (editClinicSelect.length) {
+        editClinicSelect.select2({
+            placeholder: 'Select clinic',
+            allowClear: true,
+            width: '100%',
+            minimumResultsForSearch: 0,
+            dropdownParent: $('#editTicketModal')
+        });
+
+        editClinicSelect.on('change', function () {
+            const selectedOption = this.options[this.selectedIndex];
+            $('#edit_clinic_value').val(selectedOption?.dataset.clinic || '');
+            $('#edit_province').val(selectedOption?.dataset.province || '');
+            $('#edit_address').val(selectedOption?.dataset.address || '');
+        });
+    }
 
 
     // ==========================================================
@@ -1469,7 +1525,7 @@ $(document).ready(function () {
             columnDefs: [
 
                 {
-                    targets: 9,
+                    targets: 10,
                     orderable: false,
                     searchable: false
                 }
@@ -1703,6 +1759,9 @@ $('#historyTable tbody').on(
         const editClinic =
             document.getElementById('edit_clinic_name');
 
+        const editClinicValue =
+            document.getElementById('edit_clinic_value');
+
         const editProvince =
             document.getElementById('edit_province');
 
@@ -1740,6 +1799,26 @@ $('#historyTable tbody').on(
         }
 
 
+        if (editClinic) {
+            let clinicOption = Array.from(editClinic.options).find(function (option) {
+                return option.dataset.clinic === clinic && option.dataset.address === address;
+            });
+
+            if (!clinicOption && clinic) {
+                clinicOption = new Option(
+                    clinic + (address ? ' | ' + address : ''),
+                    'legacy-' + id
+                );
+                clinicOption.dataset.clinic = clinic;
+                clinicOption.dataset.province = province;
+                clinicOption.dataset.address = address;
+                editClinic.add(clinicOption);
+            }
+
+            editClinic.value = clinicOption ? clinicOption.value : '';
+            $(editClinic).trigger('change');
+        }
+
         editId.value = id;
 
 
@@ -1749,17 +1828,33 @@ $('#historyTable tbody').on(
 
 
         if (editClinic) {
-            editClinic.value = clinic;
-        }
+            let clinicOption = Array.from(editClinic.options).find(function (option) {
+                return option.dataset.clinic === clinic && option.dataset.address === address;
+            });
 
+            if (!clinicOption && clinic) {
+                clinicOption = new Option(
+                    clinic + (address ? ' | ' + address : ''),
+                    'legacy-' + id
+                );
+                clinicOption.dataset.clinic = clinic;
+                clinicOption.dataset.province = province;
+                clinicOption.dataset.address = address;
+                editClinic.add(clinicOption);
+            }
 
-        if (editProvince) {
-            editProvince.value = province;
-        }
-
-
-        if (editAddress) {
-            editAddress.value = address;
+            editClinic.value = clinicOption ? clinicOption.value : '';
+            $(editClinic).trigger('change');
+        } else {
+            if (editClinicValue) {
+                editClinicValue.value = clinic;
+            }
+            if (editProvince) {
+                editProvince.value = province;
+            }
+            if (editAddress) {
+                editAddress.value = address;
+            }
         }
 
 
@@ -2231,8 +2326,8 @@ $('#historyTable tbody').on(
 
 
             if (
-                e.target.id !==
-                'editTicketForm'
+                e.target.id !== 'editTicketForm' ||
+                e.target.dataset.ajax === 'false'
             ) {
 
                 return;
@@ -2376,11 +2471,16 @@ $('#historyTable tbody').on(
 
                 if (result.success) {
 
-                    if (
-                        window.Swal &&
-                        typeof Swal.fire === 'function'
-                    ) {
+                    const editModal = document.getElementById('editTicketModal');
+                    const modalInstance = window.bootstrap && editModal
+                        ? bootstrap.Modal.getInstance(editModal)
+                        : null;
 
+                    if (modalInstance && editModal.classList.contains('show')) {
+                        modalInstance.hide();
+                    }
+
+                    if (window.Swal && typeof Swal.fire === 'function') {
                         Swal.fire({
 
                             icon: 'success',
@@ -2391,9 +2491,18 @@ $('#historyTable tbody').on(
                                 result.message ||
                                 'Support ticket updated successfully.',
 
-                            timer: 1500,
+                            timer: 3000,
 
-                            showConfirmButton: false
+                            timerProgressBar: true,
+
+                            showConfirmButton: false,
+
+                            didOpen: function () {
+                                const alertContainer = document.querySelector('.swal2-container');
+                                if (alertContainer) {
+                                    alertContainer.style.zIndex = '2000';
+                                }
+                            }
 
                         }).then(function () {
 

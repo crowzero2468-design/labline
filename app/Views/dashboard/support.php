@@ -1,5 +1,4 @@
-
-  <?= view('dashboard/layout/head') ?>
+<?= view('dashboard/layout/head') ?>
 <style>
   /* ==========================================
    SELECT2 - BOOTSTRAP STYLE
@@ -140,9 +139,98 @@
     font-size: 18px !important;
     margin-right: 8px !important;
 }
+
+#clinic_name + .select2-container .select2-selection--single,
+#service_engr + .select2-container .select2-selection--multiple {
+  background-color: var(--bs-body-bg) !important;
+  border: 1px solid #dee2e6 !important;
+  border-radius: 0.375rem !important;
+}
+
+#clinic_name + .select2-container .select2-selection--single:focus-within,
+#service_engr + .select2-container .select2-selection--multiple:focus-within {
+  border-color: #86b7fe !important;
+  box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25) !important;
+}
+
+#service_engr + .select2-container .select2-selection--multiple {
+  position: relative;
+  min-height: 38px !important;
+  padding: 3px 32px 3px 6px !important;
+  cursor: pointer;
+}
+
+#service_engr + .select2-container .select2-selection--multiple::after {
+  position: absolute;
+  top: 50%;
+  right: 14px;
+  width: 8px;
+  height: 8px;
+  border-right: 1.5px solid #6c757d;
+  border-bottom: 1.5px solid #6c757d;
+  content: '';
+  pointer-events: none;
+  transform: translateY(-70%) rotate(45deg);
+}
+
+#service_engr + .select2-container--open .select2-selection--multiple::after {
+  transform: translateY(-25%) rotate(225deg);
+}
+
+#service_engr + .select2-container .select2-selection__rendered {
+  display: flex !important;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 0 !important;
+}
+
+#service_engr + .select2-container .select2-selection__choice {
+  position: relative;
+  margin: 2px 0 !important;
+  padding: 2px 8px 2px 24px !important;
+  border: 1px solid #b6d4fe !important;
+  border-radius: 0.25rem !important;
+  background-color: #e7f1ff !important;
+  color: #084298 !important;
+}
+
+#service_engr + .select2-container .select2-selection__choice__remove {
+  position: absolute;
+  top: 50%;
+  left: 5px;
+  margin: 0 !important;
+  padding: 0 3px !important;
+  border-right: 0 !important;
+  color: #084298 !important;
+  line-height: 1;
+  transform: translateY(-50%);
+}
   </style>
 
 <body>
+
+  <?php
+    $ticketError = session()->getFlashdata('support_ticket_error');
+    $ticketSuccess = session()->getFlashdata('support_ticket_success');
+  ?>
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const ticketError = <?= json_encode((string) ($ticketError ?? ''), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
+      const ticketSuccess = <?= json_encode((string) ($ticketSuccess ?? ''), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
+      const message = ticketError || ticketSuccess;
+
+      if (message && typeof Swal !== 'undefined') {
+        Swal.fire({
+          icon: ticketError ? 'error' : 'success',
+          title: ticketError ? 'Error' : 'Success',
+          text: message,
+          timer: 3000,
+          timerProgressBar: true,
+          showConfirmButton: false
+        });
+      }
+    });
+  </script>
 
   <?php if (session()->getFlashdata('error')): ?>
     <div class="flash-message" style="position: fixed; top: 12px; left: 50%; transform: translateX(-50%); z-index: 1200; width: min(90vw, 520px); opacity: 1; transition: opacity 0.5s ease;">
@@ -196,6 +284,7 @@
                   <th>Clinic</th>
                   <th>Machine</th>
                   <th>Technician</th>
+                  <th>Assisting Person</th>
                   <th>Concern</th>
                   <th>Action Taken</th>
                   <th>Machine Status</th>
@@ -233,6 +322,8 @@
                               <td><?= esc($ticket['machine'] ?? '-') ?></td>
 
                               <td><?= esc($ticket['technician'] ?? '-') ?></td>
+
+                              <td><?= esc($ticket['assisting'] ?? '-') ?></td>
 
                               <td><?= esc($ticket['concern'] ?? '-') ?></td>
 
@@ -447,8 +538,7 @@
 
             <div class="col-md-6">
               <label class="form-label">Service Engr</label>
-              <select class="form-select" name="service_engr" required>
-                <option value="">Select service engineer</option>
+                <select class="form-select" name="service_engr[]" id="service_engr" multiple required>
                 <?php foreach ($techs as $tech): ?>
                   <?php $techName = trim((($tech['fname'] ?? '') . ' ' . ($tech['lname'] ?? ''))); ?>
                   <?php if ($techName !== ''): ?>
@@ -456,6 +546,11 @@
                   <?php endif; ?>
                 <?php endforeach; ?>
               </select>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label">Assisting Support</label>
+              <input type="text" class="form-control" name="assisting" placeholder="Name of assisting support staff">
             </div>
 
             <div class="col-md-6">
@@ -511,7 +606,7 @@ $(document).ready(function () {
 
         columnDefs: [
             {
-                targets: 7,
+            targets: 9,
                 orderable: false,
                 searchable: false
             }
@@ -559,6 +654,14 @@ $(document).ready(function () {
         minimumResultsForSearch: 0,
         dropdownParent: $('#supportTicketModal')
     });
+
+      $('#service_engr').select2({
+        placeholder: 'Enter service engineer(s)',
+        allowClear: true,
+        width: '100%',
+        minimumResultsForSearch: 0,
+        dropdownParent: $('#supportTicketModal')
+      });
 
     function updateClinicFields() {
       const clinicSelect = document.getElementById('clinic_name');

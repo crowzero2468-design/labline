@@ -15,76 +15,68 @@
     .input-group .input-group-text {
         border-radius: 0.375rem 0 0 0.375rem;
     }
+
+    #edit_clinic_name + .select2-container {
+        width: 100% !important;
+    }
+
+    #edit_clinic_name + .select2-container .select2-selection--single {
+        box-sizing: border-box !important;
+        width: 100% !important;
+        height: 38px !important;
+        min-height: 38px !important;
+        border: 1px solid #dee2e6 !important;
+        border-radius: 0.375rem !important;
+        background-color: var(--bs-body-bg) !important;
+        display: flex !important;
+        align-items: center !important;
+    }
+
+    #edit_clinic_name + .select2-container .select2-selection__rendered {
+        color: #212529 !important;
+        line-height: 36px !important;
+        padding-left: 12px !important;
+        padding-right: 40px !important;
+    }
+
+    #edit_clinic_name + .select2-container .select2-selection__arrow {
+        height: 36px !important;
+        width: 35px !important;
+        top: 1px !important;
+        right: 2px !important;
+    }
+
+    #edit_clinic_name + .select2-container--focus .select2-selection--single {
+        border-color: #86b7fe !important;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25) !important;
+    }
 </style>
 
 <body>
 
-    <!-- ==========================================================
-         FLASH MESSAGES
-         ========================================================== -->
+    <?php
+        $replacementError = session()->getFlashdata('error');
+        $replacementSuccess = session()->getFlashdata('success');
+    ?>
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const errorMessage = <?= json_encode((string) ($replacementError ?? ''), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
+        const successMessage = <?= json_encode((string) ($replacementSuccess ?? ''), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
 
-    <?php if (session()->getFlashdata('error')): ?>
-
-        <div
-            class="flash-message"
-            style="
-                position: fixed;
-                top: 12px;
-                left: 50%;
-                transform: translateX(-50%);
-                z-index: 1200;
-                width: min(90vw, 520px);
-                opacity: 1;
-                transition: opacity 0.5s ease;
-            "
-        >
-            <div
-                style="
-                    background: #ffe4e6;
-                    color: #991b1b;
-                    border: 1px solid #fecdd3;
-                    padding: 12px 16px;
-                    border-radius: 10px;
-                    font-weight: 600;
-                "
-            >
-                <?= esc(session()->getFlashdata('error')) ?>
-            </div>
-        </div>
-
-    <?php endif; ?>
-
-
-    <?php if (session()->getFlashdata('success')): ?>
-
-        <div
-            class="flash-message"
-            style="
-                position: fixed;
-                top: 12px;
-                left: 50%;
-                transform: translateX(-50%);
-                z-index: 1200;
-                width: min(90vw, 520px);
-                opacity: 1;
-                transition: opacity 0.5s ease;
-            "
-        >
-            <div
-                style="
-                    background: #dcfce7;
-                    color: #166534;
-                    border: 1px solid #bbf7d0;
-                    padding: 12px 16px;
-                    border-radius: 10px;
-                    font-weight: 600;
-                "
-            >
-                <?= esc(session()->getFlashdata('success')) ?>
-            </div>
-        </div>
-
-    <?php endif; ?>
+        if (errorMessage && window.Swal) {
+            Swal.fire({ icon: 'error', title: 'Action Failed', text: errorMessage });
+        } else if (successMessage && window.Swal) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Success',
+                text: successMessage,
+                timer: 3000,
+                timerProgressBar: true,
+                showConfirmButton: false
+            });
+        }
+    });
+    </script>
 
 
     <!-- ==========================================================
@@ -535,8 +527,7 @@
                                                 <form
                                                     action="<?= site_url('rotor_replace/delete/' . ($record['id'] ?? '')) ?>"
                                                     method="post"
-                                                    class="d-inline"
-                                                    onsubmit="return confirm('Are you sure you want to delete this rotor replacement report?');"
+                                                    class="d-inline rotor-replacement-delete-form"
                                                 >
 
                                                     <?= csrf_field() ?>
@@ -1115,13 +1106,35 @@
                                         Clinic Name
                                     </label>
 
-                                    <input
-                                        type="text"
+                                    <select
                                         name="clinic_name"
                                         id="edit_clinic_name"
-                                        class="form-control"
+                                        class="form-select"
                                         required
                                     >
+                                        <option value="">-- Select Clinic --</option>
+                                        <?php
+                                            $editModelsByClinic = [];
+                                            foreach ($accounts ?? [] as $account) {
+                                                $accountClinic = trim((string) ($account['clinic_name'] ?? ''));
+                                                $accountModel = trim((string) ($account['model'] ?? ''));
+                                                if ($accountClinic !== '' && $accountModel !== '') {
+                                                    $editModelsByClinic[$accountClinic][$accountModel] = true;
+                                                }
+                                            }
+                                        ?>
+                                        <?php foreach ($clinicMap as $clinicName => $info): ?>
+                                            <?php $modelsJson = htmlspecialchars(json_encode(array_keys($editModelsByClinic[$clinicName] ?? [])), ENT_QUOTES, 'UTF-8'); ?>
+                                            <option
+                                                value="<?= esc($clinicName) ?>"
+                                                data-address="<?= esc($info['address']) ?>"
+                                                data-model="<?= esc($info['model']) ?>"
+                                                data-models="<?= $modelsJson ?>"
+                                            >
+                                                <?= esc($clinicName) ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
 
                                 </div>
 
@@ -1142,6 +1155,7 @@
                                         name="address"
                                         id="edit_address"
                                         class="form-control"
+                                        readonly
                                         required
                                     >
 
@@ -1159,13 +1173,14 @@
                                         Model
                                     </label>
 
-                                    <input
-                                        type="text"
+                                    <select
                                         name="model"
                                         id="edit_model"
-                                        class="form-control"
-                                        readonly
+                                        class="form-select"
+                                        required
                                     >
+                                        <option value="">-- Select Model --</option>
+                                    </select>
 
                                 </div>
 
@@ -1400,25 +1415,25 @@
 <script>
 document.addEventListener('DOMContentLoaded', function () {
 
-    /* ==========================================================
-       FLASH MESSAGE
-       ========================================================== */
+    document.querySelectorAll('.rotor-replacement-delete-form').forEach(function (form) {
+        form.addEventListener('submit', function (event) {
+            event.preventDefault();
 
-    setTimeout(function () {
-
-        document
-            .querySelectorAll('.flash-message')
-            .forEach(function (message) {
-
-                message.style.opacity = '0';
-
-                setTimeout(function () {
-                    message.remove();
-                }, 500);
-
+            Swal.fire({
+                icon: 'warning',
+                title: 'Delete replacement report?',
+                text: 'This action cannot be undone.',
+                showCancelButton: true,
+                confirmButtonText: 'Delete',
+                cancelButtonText: 'Cancel',
+                confirmButtonColor: '#dc3545'
+            }).then(function (result) {
+                if (result.isConfirmed) {
+                    form.submit();
+                }
             });
-
-    }, 5000);
+        });
+    });
 
 
     /* ==========================================================
@@ -1520,6 +1535,43 @@ document.addEventListener('DOMContentLoaded', function () {
 
         });
 
+    }
+
+    const editClinicSelect = $('#edit_clinic_name');
+
+    if (editClinicSelect.length && typeof $.fn.select2 !== 'undefined') {
+        editClinicSelect.select2({
+            dropdownParent: $('#editRotorModal'),
+            placeholder: '-- Select Clinic --',
+            allowClear: true,
+            width: '100%'
+        });
+
+        editClinicSelect.on('change', function () {
+            const selectedOption = this.options[this.selectedIndex];
+            $('#edit_address').val(selectedOption?.dataset.address || '');
+
+            const modelSelect = $('#edit_model');
+            const selectedModel = modelSelect.attr('data-selected-model') || '';
+            let models = [];
+
+            try {
+                models = JSON.parse(selectedOption?.dataset.models || '[]');
+            } catch (error) {
+                models = [];
+            }
+
+            modelSelect.empty().append(new Option('-- Select Model --', ''));
+            models.forEach(function (model) {
+                modelSelect.append(new Option(model, model));
+            });
+
+            if (selectedModel && !models.includes(selectedModel)) {
+                modelSelect.append(new Option(selectedModel, selectedModel));
+            }
+
+            modelSelect.val(selectedModel || (models.length === 1 ? models[0] : ''));
+        });
     }
 
 
@@ -1790,6 +1842,23 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 };
 
+                const clinicSelect = document.getElementById('edit_clinic_name');
+                let clinicOption = Array.from(clinicSelect.options).find(function (option) {
+                    return option.value === values.clinic;
+                });
+
+                if (!clinicOption && values.clinic) {
+                    clinicOption = new Option(values.clinic, values.clinic);
+                    clinicOption.dataset.address = values.address;
+                    clinicOption.dataset.model = values.model;
+                    clinicOption.dataset.models = JSON.stringify(values.model ? [values.model] : []);
+                    clinicSelect.add(clinicOption);
+                }
+
+                $('#edit_model').attr('data-selected-model', values.model);
+                $(clinicSelect).val(values.clinic).trigger('change');
+                $('#edit_model').removeAttr('data-selected-model');
+
 
                 /*
                  * Set edit form values.
@@ -1798,12 +1867,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 const fieldMap = {
 
                     edit_id: values.id,
-
-                    edit_clinic_name: values.clinic,
-
-                    edit_address: values.address,
-
-                    edit_model: values.model,
 
                     edit_rotor: values.rotor,
 

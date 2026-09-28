@@ -94,6 +94,7 @@ $routes->post('pms/import', 'Pms::importExcel');
 
 
 $routes->get('monitoring', 'MonthlyController::index');
+$routes->get('monitoring/print', 'MonthlyController::printReport');
 
 $routes->get('rotor_replace', 'RotorController::index');
 $routes->post('rotor_replace/save', 'RotorController::save');

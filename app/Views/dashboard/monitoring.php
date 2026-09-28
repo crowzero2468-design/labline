@@ -110,7 +110,7 @@
                                     </div>
 
 
-                                    <!-- MACHINE FILTER -->
+                                    <!-- MACHINE FILTER + PRINT -->
                                     <div class="col-md-4">
 
                                         <label for="machineFilter"
@@ -120,7 +120,8 @@
 
                                         </label>
 
-                                        <select id="machineFilter" class="form-select">
+                                        <div class="d-flex gap-2">
+                                        <select id="machineFilter" class="form-select flex-grow-1">
 
                                             <option value="">
                                                 All Machines
@@ -139,6 +140,12 @@
                                             <?php endforeach; ?>
 
                                         </select>
+                                        <button type="button"
+                                                class="btn btn-outline-primary text-nowrap"
+                                                id="btnPrintMonitoringReport">
+                                            <i class="bi bi-printer me-1"></i>Print
+                                        </button>
+                                        </div>
 
                                     </div>
 
@@ -498,6 +505,21 @@
 
             window.location.href = url;
 
+        });
+
+        $('#btnPrintMonitoringReport').on('click', function () {
+            const machine = $('#machineFilter').val();
+            const query = new URLSearchParams();
+
+            if (machine) {
+                query.set('machine', machine);
+            }
+
+            const queryString = query.toString();
+            const printUrl = '<?= site_url('monitoring/print') ?>' +
+                (queryString ? '?' + queryString : '');
+
+            window.open(printUrl, '_blank');
         });
 
     });

@@ -13,6 +13,18 @@
         overflow: visible;
     }
 
+    #clinicRecordsTable tbody td:nth-child(2),
+    #clinicRecordsTable tbody td:nth-child(3),
+    #clinicRecordsTable tbody td:nth-child(4),
+    #clinicRecordsTable tbody td:nth-child(5),
+    #clinicRecordsTable tbody td:nth-child(6),
+    #clinicRecordsTable tbody td:nth-child(8),
+    #clinicRecordsTable tbody td:nth-child(9) {
+        white-space: normal !important;
+        overflow-wrap: anywhere;
+        word-break: normal;
+    }
+
     #btn-more-model + .machine-count-menu {
         height: 150px !important;
         max-height: 150px !important;
@@ -55,61 +67,134 @@
         margin: 0 !important;
         text-align: right !important;
     }
+
+    #installedDateFilterContainer {
+        max-width: 100%;
+    }
+
+    @media (max-width: 767.98px) {
+        .main-wrapper {
+            padding: 1rem !important;
+        }
+
+        #installedDateFilterContainer {
+            width: 100%;
+            flex-direction: column;
+            align-items: stretch !important;
+        }
+
+        #installedDateFilterContainer > div,
+        #date-picker-trigger {
+            width: 100%;
+        }
+
+        #clinicRecordsToolbar {
+            width: 100%;
+            align-items: stretch !important;
+        }
+
+        #clinicRecordsToolbar > button,
+        #clinicRecordsToolbar form,
+        #clinicRecordsToolbar form .btn {
+            width: 100%;
+        }
+
+        #clinicRecordsToolbar .dashboard-import-form {
+            display: grid !important;
+            grid-template-columns: minmax(0, 1fr);
+        }
+
+        #clinicRecordsToolbar .dashboard-import-form .form-control {
+            min-width: 0;
+        }
+
+        #clinicRecordsToolbar #clinicRecordsSearchForm {
+            max-width: none !important;
+        }
+
+        #clinicRecordsTable_wrapper .dataTables_length,
+        #clinicRecordsTable_wrapper .dataTables_filter {
+            float: none !important;
+            width: 100%;
+            margin: 0.5rem 0;
+            text-align: left !important;
+        }
+
+        #clinicRecordsTable_wrapper .dataTables_info,
+        #clinicRecordsTable_wrapper .dataTables_paginate {
+            float: none !important;
+            width: 100%;
+            margin: 0.5rem 0 !important;
+            text-align: center !important;
+        }
+
+        #clinicRecordsTable_wrapper .dataTables_paginate .pagination {
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+    }
 </style>
 
 <body>
 
-<?php if (session()->getFlashdata('error')): ?>
-    <div class="flash-message"
-         style="
-            position: fixed;
-            top: 12px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 1200;
-            width: min(90vw, 520px);
-            opacity: 1;
-            transition: opacity 0.5s ease;
-         ">
-        <div style="
-            background: #ffe4e6;
-            color: #991b1b;
-            border: 1px solid #fecdd3;
-            padding: 12px 16px;
-            border-radius: 10px;
-            font-weight: 600;
-        ">
-            <?= esc(session()->getFlashdata('error')) ?>
-        </div>
+<?php
+    $flashError = session()->getFlashdata('error');
+    $flashSuccess = session()->getFlashdata('success');
+    $loginSuccess = session()->getFlashdata('login_success');
+?>
+
+<?php if ($loginSuccess): ?>
+    <div id="login-success-message" style="position: fixed; top: 12px; left: 50%; transform: translateX(-50%); z-index: 1200; width: min(90vw, 520px); background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; padding: 12px 16px; border-radius: 10px; font-weight: 600; opacity: 1; transition: opacity 0.5s ease;">
+        <?= esc($loginSuccess) ?>
     </div>
+    <script>
+        setTimeout(function () {
+            const message = document.getElementById('login-success-message');
+            if (message) {
+                message.style.opacity = '0';
+                setTimeout(function () { message.remove(); }, 500);
+            }
+        }, 3000);
+    </script>
 <?php endif; ?>
 
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const errorMessage = <?= json_encode((string) ($flashError ?? ''), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
+    const successMessage = <?= json_encode((string) ($flashSuccess ?? ''), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
 
-<?php if (session()->getFlashdata('success')): ?>
-    <div class="flash-message"
-         style="
-            position: fixed;
-            top: 12px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 1200;
-            width: min(90vw, 520px);
-            opacity: 1;
-            transition: opacity 0.5s ease;
-         ">
-        <div style="
-            background: #dcfce7;
-            color: #166534;
-            border: 1px solid #bbf7d0;
-            padding: 12px 16px;
-            border-radius: 10px;
-            font-weight: 600;
-        ">
-            <?= esc(session()->getFlashdata('success')) ?>
-        </div>
-    </div>
-<?php endif; ?>
+    if (errorMessage) {
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: errorMessage,
+                timer: 3000,
+                timerProgressBar: true,
+                showConfirmButton: false,
+                allowOutsideClick: false,
+                allowEscapeKey: false
+            });
+        }
+        return;
+    }
 
+    if (successMessage) {
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                icon: 'success',
+                title: 'Success',
+                text: successMessage,
+                timer: 3000,
+                timerProgressBar: true,
+                showConfirmButton: false,
+                allowOutsideClick: false,
+                allowEscapeKey: false
+            });
+        }
+    }
+});
+</script>
 
 <?= view('dashboard/layout/sidebar') ?>
 
@@ -631,6 +716,7 @@
 
 
                     <div
+                        id="clinicRecordsToolbar"
                         class="d-flex flex-column flex-md-row gap-2 w-100 w-md-auto align-items-md-center justify-content-md-end">
 
 
@@ -673,7 +759,7 @@
                                 method="post" 
                                 action="<?= site_url('dashboard/import') ?>" 
                                 enctype="multipart/form-data" 
-                                class="d-flex gap-2 align-items-center">
+                                class="d-flex gap-2 align-items-center dashboard-import-form">
 
                                 <?= csrf_field() ?>
 
