@@ -632,245 +632,606 @@ class Dashboard extends BaseController
     }
 
 
-    // ==============================================================
-    // ATTACH CONTRACT
-    // ==============================================================
 
-    public function attachContract(): RedirectResponse
-    {
-        if (!session()->get('logged_in')) {
+// ==============================================================
+// ATTACH CONTRACT
+// ==============================================================
 
-            return redirect()->to(site_url('login'))
-                ->with('error', 'Please login first.');
+public function attachContract(): RedirectResponse
+{
+    if (!session()->get('logged_in')) {
+
+        return redirect()->to(site_url('login'))
+            ->with('error', 'Please login first.');
+    }
+
+    $database = db_connect();
+
+    $id = (int) $this->request->getPost('id');
+
+    if ($id <= 0) {
+
+        return redirect()->to(site_url('dashboard'))
+            ->with('error', 'Invalid record selected.');
+    }
+
+    // ----------------------------------------------------------
+    // CHECK TB_DATA
+    // ----------------------------------------------------------
+
+    if (!$database->tableExists('tb_data')) {
+
+        return redirect()->to(site_url('dashboard'))
+            ->with('error', 'tb_data table does not exist.');
+    }
+
+    // ----------------------------------------------------------
+    // CHECK CONTRACT TABLE
+    // ----------------------------------------------------------
+
+    if (!$database->tableExists('tb_contract')) {
+
+        return redirect()->to(site_url('dashboard'))
+            ->with('error', 'tb_contract table does not exist.');
+    }
+
+    // ----------------------------------------------------------
+    // CHECK CONTRACT_ID COLUMN
+    // ----------------------------------------------------------
+
+    $dataColumns = $database
+        ->query('SHOW COLUMNS FROM tb_data')
+        ->getResultArray();
+
+    $hasContractId = false;
+
+    foreach ($dataColumns as $column) {
+
+        if (($column['Field'] ?? '') === 'contract_id') {
+            $hasContractId = true;
+            break;
         }
+    }
 
-        $database = db_connect();
+    if (!$hasContractId) {
 
-        $id = (int) $this->request->getPost('id');
+        return redirect()->to(site_url('dashboard'))
+            ->with(
+                'error',
+                'The contract_id column does not exist in tb_data.'
+            );
+    }
 
-        if ($id <= 0) {
+    // ----------------------------------------------------------
+    // GET MACHINE RECORD
+    // ----------------------------------------------------------
+
+    $record = $database->table('tb_data')
+        ->select('id, Clinic_name, Machine, Model, SN, contract_id')
+        ->where('id', $id)
+        ->get()
+        ->getRowArray();
+
+    if (!$record) {
+
+        return redirect()->to(site_url('dashboard'))
+            ->with('error', 'Machine record not found.');
+    }
+
+    // ----------------------------------------------------------
+    // GET FILE
+    // ----------------------------------------------------------
+
+    $file = $this->request->getFile('contract_file');
+
+    if ($file === null || !$file->isValid()) {
+
+        return redirect()->to(site_url('dashboard'))
+            ->with(
+                'error',
+                'Please select a valid contract file.'
+            );
+    }
+
+    // ----------------------------------------------------------
+    // ALLOWED EXTENSIONS
+    // ----------------------------------------------------------
+
+    $allowedExtensions = [
+        'pdf',
+        'jpg',
+        'jpeg',
+        'png',
+    ];
+
+    $extension = strtolower(
+        $file->getExtension()
+    );
+
+    if (!in_array($extension, $allowedExtensions, true)) {
+
+        return redirect()->to(site_url('dashboard'))
+            ->with(
+                'error',
+                'Only PDF, JPG, JPEG, and PNG files are allowed.'
+            );
+    }
+
+    // ----------------------------------------------------------
+    // ALLOWED MIME TYPES
+    // ----------------------------------------------------------
+
+    $allowedMimeTypes = [
+        'application/pdf',
+        'image/jpeg',
+        'image/png',
+    ];
+
+    if (!in_array($file->getMimeType(), $allowedMimeTypes, true)) {
+
+        return redirect()->to(site_url('dashboard'))
+            ->with(
+                'error',
+                'Invalid contract file type.'
+            );
+    }
+
+    // ----------------------------------------------------------
+    // UPLOAD DIRECTORY
+    // ----------------------------------------------------------
+
+    $targetDir =
+        FCPATH .
+        'upload' .
+        DIRECTORY_SEPARATOR .
+        'contract';
+
+    if (!is_dir($targetDir)) {
+
+        if (!mkdir($targetDir, 0775, true)) {
 
             return redirect()->to(site_url('dashboard'))
-                ->with('error', 'Invalid record selected.');
+                ->with(
+                    'error',
+                    'Unable to create contract upload directory.'
+                );
+        }
+    }
+
+    $database->transBegin();
+
+    $fullPath = null;
+    $contractId = 0;
+
+    try {
+
+        // ------------------------------------------------------
+        // IF MACHINE ALREADY HAS CONTRACT
+        // ------------------------------------------------------
+
+        $oldContractId = (int) (
+            $record['contract_id'] ?? 0
+        );
+
+        // ------------------------------------------------------
+        // CREATE NEW CONTRACT RECORD
+        // ------------------------------------------------------
+
+        $database->table('tb_contract')->insert([
+            'location' => '',
+        ]);
+
+        $contractId = (int) $database->insertID();
+
+        if ($contractId <= 0) {
+
+            throw new \RuntimeException(
+                'Unable to create contract record.'
+            );
         }
 
-        $record = $database->table('tb_data')
-            ->select('id, contract_id')
+        // ------------------------------------------------------
+        // CREATE FILE NAME
+        // ------------------------------------------------------
+
+        $fileName =
+            'contract_' .
+            $contractId .
+            '.' .
+            $extension;
+
+        $relativeLocation =
+            'upload/contract/' .
+            $fileName;
+
+        $fullPath =
+            $targetDir .
+            DIRECTORY_SEPARATOR .
+            $fileName;
+
+        // ------------------------------------------------------
+        // MOVE FILE
+        // ------------------------------------------------------
+
+        if (!$file->move(
+            $targetDir,
+            $fileName,
+            true
+        )) {
+
+            throw new \RuntimeException(
+                'Unable to save the contract file.'
+            );
+        }
+
+        if (!is_file($fullPath)) {
+
+            throw new \RuntimeException(
+                'Contract file was not saved.'
+            );
+        }
+
+        // ------------------------------------------------------
+        // UPDATE CONTRACT LOCATION
+        // ------------------------------------------------------
+
+        $database->table('tb_contract')
+            ->where('id', $contractId)
+            ->update([
+                'location' => $relativeLocation,
+            ]);
+
+        // ------------------------------------------------------
+        // UPDATE MACHINE
+        // ------------------------------------------------------
+
+        $database->table('tb_data')
+            ->where('id', $id)
+            ->update([
+                'contract_id' => $contractId,
+            ]);
+
+        // ------------------------------------------------------
+        // VERIFY TB_DATA UPDATE
+        // ------------------------------------------------------
+
+        $verify = $database->table('tb_data')
+            ->select('contract_id')
             ->where('id', $id)
             ->get()
             ->getRowArray();
 
-        if (!$record) {
-
-            return redirect()->to(site_url('dashboard'))
-                ->with('error', 'Record not found.');
-        }
-
-        $file = $this->request->getFile('contract_file');
-
-        if ($file === null || !$file->isValid()) {
-
-            return redirect()->to(site_url('dashboard'))
-                ->with(
-                    'error',
-                    'Please select a valid contract file.'
-                );
-        }
-
-        $allowedExtensions = [
-            'pdf',
-            'jpg',
-            'jpeg',
-            'png',
-        ];
-
-        $extension = strtolower(
-            $file->getExtension()
+        $savedContractId = (int) (
+            $verify['contract_id'] ?? 0
         );
 
-        if (!in_array($extension, $allowedExtensions, true)) {
+        if ($savedContractId !== $contractId) {
 
-            return redirect()->to(site_url('dashboard'))
-                ->with(
-                    'error',
-                    'Only PDF, JPG, JPEG, and PNG files are allowed.'
-                );
+            throw new \RuntimeException(
+                'Contract was uploaded, but tb_data.contract_id was not updated.'
+            );
         }
 
-        $allowedMimeTypes = [
-            'application/pdf',
-            'image/jpeg',
-            'image/png',
-        ];
+        // ------------------------------------------------------
+        // VERIFY CONTRACT RECORD
+        // ------------------------------------------------------
 
-        if (!in_array($file->getMimeType(), $allowedMimeTypes, true)) {
+        $verifyContract = $database->table('tb_contract')
+            ->select('id, location')
+            ->where('id', $contractId)
+            ->get()
+            ->getRowArray();
 
-            return redirect()->to(site_url('dashboard'))
-                ->with(
-                    'error',
-                    'Invalid contract file type.'
-                );
+        if (!$verifyContract) {
+
+            throw new \RuntimeException(
+                'Contract record could not be verified.'
+            );
         }
 
-        $targetDir =
-            FCPATH .
-            'upload' .
-            DIRECTORY_SEPARATOR .
-            'contract';
+        if (
+            trim(
+                (string) ($verifyContract['location'] ?? '')
+            ) === ''
+        ) {
 
-        if (!is_dir($targetDir)) {
-
-            if (!mkdir($targetDir, 0775, true)) {
-
-                return redirect()->to(site_url('dashboard'))
-                    ->with(
-                        'error',
-                        'Unable to create contract upload directory.'
-                    );
-            }
+            throw new \RuntimeException(
+                'Contract location was not saved.'
+            );
         }
 
-        $database->transBegin();
+        // ------------------------------------------------------
+        // TRANSACTION STATUS
+        // ------------------------------------------------------
 
-        $fullPath = null;
-        $contractId = 0;
+        if (!$database->transStatus()) {
 
-        try {
+            throw new \RuntimeException(
+                'Database transaction failed.'
+            );
+        }
 
-            // ------------------------------------------------------
-            // CREATE CONTRACT RECORD
-            // ------------------------------------------------------
+        $database->transCommit();
 
-            $database->table('tb_contract')->insert([
-                'location' => '',
-            ]);
+        // ------------------------------------------------------
+        // OPTIONAL: DELETE OLD CONTRACT FILE/RECORD
+        // ------------------------------------------------------
 
-            $contractId = (int) $database->insertID();
+        if ($oldContractId > 0) {
 
-            if ($contractId <= 0) {
+            // Get old location
+            $oldContract = $database->table('tb_contract')
+                ->select('location')
+                ->where('id', $oldContractId)
+                ->get()
+                ->getRowArray();
 
-                throw new \RuntimeException(
-                    'Unable to create contract record.'
-                );
-            }
-
-            // ------------------------------------------------------
-            // FILE NAME
-            // ------------------------------------------------------
-
-            $fileName =
-                'contract_' .
-                $contractId .
-                '.' .
-                $extension;
-
-            $relativeLocation =
-                'upload/contract/' .
-                $fileName;
-
-            $fullPath =
-                $targetDir .
-                DIRECTORY_SEPARATOR .
-                $fileName;
-
-            // ------------------------------------------------------
-            // SAVE FILE
-            // ------------------------------------------------------
-
-            if (!$file->move(
-                $targetDir,
-                $fileName,
-                true
-            )) {
-
-                throw new \RuntimeException(
-                    'Unable to save the contract file.'
-                );
-            }
-
-            if (!is_file($fullPath)) {
-
-                throw new \RuntimeException(
-                    'Contract file was not saved.'
-                );
-            }
-
-            // ------------------------------------------------------
-            // UPDATE CONTRACT LOCATION
-            // ------------------------------------------------------
-
-            $updatedContract =
-                $database->table('tb_contract')
-                    ->where('id', $contractId)
-                    ->update([
-                        'location' => $relativeLocation,
-                    ]);
-
-            if (!$updatedContract) {
-
-                throw new \RuntimeException(
-                    'Unable to update contract location.'
-                );
-            }
-
-            // ------------------------------------------------------
-            // UPDATE TB_DATA CONTRACT ID
-            // ------------------------------------------------------
-
-            $updatedData =
-                $database->table('tb_data')
-                    ->where('id', $id)
-                    ->update([
-                        'contract_id' => $contractId,
-                    ]);
-
-            if (!$updatedData) {
-
-                throw new \RuntimeException(
-                    'Unable to update tb_data contract_id.'
-                );
-            }
-
-            // ------------------------------------------------------
-            // CHECK TRANSACTION
-            // ------------------------------------------------------
-
-            if (!$database->transStatus()) {
-
-                throw new \RuntimeException(
-                    'Database transaction failed.'
-                );
-            }
-
-            $database->transCommit();
-
-            return redirect()
-                ->to(site_url('dashboard'))
-                ->with(
-                    'success',
-                    'Contract attached successfully.'
-                );
-
-        } catch (\Throwable $e) {
-
-            $database->transRollback();
-
+            // Do not delete if somehow the old and new IDs are equal
             if (
-                $fullPath !== null &&
-                is_file($fullPath)
+                $oldContract &&
+                $oldContractId !== $contractId
             ) {
-                @unlink($fullPath);
-            }
 
-            return redirect()
-                ->to(site_url('dashboard'))
-                ->with(
-                    'error',
-                    'Unable to save the contract: ' .
-                    $e->getMessage()
+                $oldLocation = trim(
+                    (string) ($oldContract['location'] ?? '')
                 );
+
+                if ($oldLocation !== '') {
+
+                    $oldPath = FCPATH . str_replace(
+                        ['/', '\\'],
+                        DIRECTORY_SEPARATOR,
+                        $oldLocation
+                    );
+
+                    if (is_file($oldPath)) {
+                        @unlink($oldPath);
+                    }
+                }
+
+                // Remove old contract record
+                $database->table('tb_contract')
+                    ->where('id', $oldContractId)
+                    ->delete();
+            }
         }
+
+        return redirect()
+            ->to(site_url('dashboard'))
+            ->with(
+                'success',
+                'Contract attached successfully.'
+            );
+
+    } catch (\Throwable $e) {
+
+        $database->transRollback();
+
+        if (
+            $fullPath !== null &&
+            is_file($fullPath)
+        ) {
+
+            @unlink($fullPath);
+        }
+
+        return redirect()
+            ->to(site_url('dashboard'))
+            ->with(
+                'error',
+                'Unable to save the contract: ' .
+                $e->getMessage()
+            );
     }
+}
+
+
+
+
+// ==============================================================
+// VIEW CONTRACT
+// ==============================================================
+
+public function viewContract($id)
+{
+    if (!session()->get('logged_in')) {
+
+        return $this->response
+            ->setStatusCode(401)
+            ->setJSON([
+                'success' => false,
+                'message' => 'Please login first.'
+            ]);
+    }
+
+    $id = (int) $id;
+
+    if ($id <= 0) {
+
+        return $this->response
+            ->setStatusCode(400)
+            ->setJSON([
+                'success' => false,
+                'message' => 'Invalid record ID.'
+            ]);
+    }
+
+    $database = db_connect();
+
+    // ----------------------------------------------------------
+    // CHECK TABLES
+    // ----------------------------------------------------------
+
+    if (!$database->tableExists('tb_data')) {
+
+        return $this->response
+            ->setStatusCode(500)
+            ->setJSON([
+                'success' => false,
+                'message' => 'tb_data table does not exist.'
+            ]);
+    }
+
+    if (!$database->tableExists('tb_contract')) {
+
+        return $this->response
+            ->setStatusCode(500)
+            ->setJSON([
+                'success' => false,
+                'message' => 'tb_contract table does not exist.'
+            ]);
+    }
+
+    // ----------------------------------------------------------
+    // GET MACHINE
+    // ----------------------------------------------------------
+
+    $record = $database->table('tb_data')
+        ->select(
+            'id, Clinic_name, Machine, Model, SN, contract_id'
+        )
+        ->where('id', $id)
+        ->get()
+        ->getRowArray();
+
+    if (!$record) {
+
+        return $this->response
+            ->setStatusCode(404)
+            ->setJSON([
+                'success' => false,
+                'message' => 'Machine record not found.'
+            ]);
+    }
+
+    // ----------------------------------------------------------
+    // GET CONTRACT ID
+    // ----------------------------------------------------------
+
+    $contractId = (int) (
+        $record['contract_id'] ?? 0
+    );
+
+    if ($contractId <= 0) {
+
+        return $this->response
+            ->setStatusCode(404)
+            ->setJSON([
+                'success' => false,
+                'message' => 'No contract is attached to this machine.',
+                'machine_id' => $id,
+                'contract_id' => $record['contract_id'] ?? null
+            ]);
+    }
+
+    // ----------------------------------------------------------
+    // GET CONTRACT
+    // ----------------------------------------------------------
+
+    $contract = $database->table('tb_contract')
+        ->select('id, location')
+        ->where('id', $contractId)
+        ->get()
+        ->getRowArray();
+
+    if (!$contract) {
+
+        return $this->response
+            ->setStatusCode(404)
+            ->setJSON([
+                'success' => false,
+                'message' => 'Contract record not found.',
+                'machine_id' => $id,
+                'contract_id' => $contractId
+            ]);
+    }
+
+    // ----------------------------------------------------------
+    // CONTRACT LOCATION
+    // ----------------------------------------------------------
+
+    $location = trim(
+        (string) ($contract['location'] ?? '')
+    );
+
+    if ($location === '') {
+
+        return $this->response
+            ->setStatusCode(404)
+            ->setJSON([
+                'success' => false,
+                'message' => 'Contract file location is empty.',
+                'machine_id' => $id,
+                'contract_id' => $contractId
+            ]);
+    }
+
+    // ----------------------------------------------------------
+    // NORMALIZE PATH
+    // ----------------------------------------------------------
+
+    $cleanLocation = ltrim(
+        str_replace('\\', '/', $location),
+        '/'
+    );
+
+    $filePath = FCPATH .
+        str_replace(
+            '/',
+            DIRECTORY_SEPARATOR,
+            $cleanLocation
+        );
+
+    // ----------------------------------------------------------
+    // CHECK FILE
+    // ----------------------------------------------------------
+
+    if (!is_file($filePath)) {
+
+        return $this->response
+            ->setStatusCode(404)
+            ->setJSON([
+                'success' => false,
+                'message' => 'Contract file could not be found.',
+                'machine_id' => $id,
+                'contract_id' => $contractId,
+                'location' => $location,
+                'file_path' => $filePath
+            ]);
+    }
+
+    // ----------------------------------------------------------
+    // RETURN
+    // ----------------------------------------------------------
+
+    return $this->response->setJSON([
+        'success' => true,
+
+        'machine_id' => $id,
+
+        'contract_id' => $contractId,
+
+        'clinic_name' =>
+            $record['Clinic_name'] ?? '',
+
+        'machine' =>
+            $record['Machine'] ?? '',
+
+        'model' =>
+            $record['Model'] ?? '',
+
+        'sn' =>
+            $record['SN'] ?? '',
+
+        'location' =>
+            $location,
+
+        'url' =>
+            base_url($cleanLocation)
+    ]);
+}
+
+
 
 
     // ==============================================================
