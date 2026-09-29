@@ -163,6 +163,52 @@ document.addEventListener('DOMContentLoaded', function () {
     const errorMessage = <?= json_encode((string) ($flashError ?? ''), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
     const successMessage = <?= json_encode((string) ($flashSuccess ?? ''), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
 
+    const accountSelect = document.getElementById('account');
+    const accountAddress = document.getElementById('account_address');
+    const accountMachineSelect = document.getElementById('cancelled_machine');
+    if (accountSelect && accountAddress) {
+        const updateAccountDetails = function () {
+            const selectedOption = accountSelect.options[accountSelect.selectedIndex];
+            accountAddress.value = selectedOption?.dataset.address || '';
+
+            if (!accountMachineSelect) return;
+
+            accountMachineSelect.replaceChildren(new Option('-- Select Machine --', ''));
+
+            let machines = [];
+            try {
+                machines = JSON.parse(selectedOption?.dataset.machines || '[]');
+            } catch (error) {
+                machines = [];
+            }
+
+            const addedMachines = new Set();
+            machines.forEach(function (machine) {
+                const machineName = String(machine.machine || '').trim();
+                const machineKey = machineName.toLowerCase();
+                if (!machineName || addedMachines.has(machineKey)) return;
+
+                addedMachines.add(machineKey);
+                const details = [
+                    machineName,
+                    machine.model ? 'Model: ' + machine.model : '',
+                    machine.sn ? 'SN: ' + machine.sn : ''
+                ].filter(Boolean);
+                accountMachineSelect.add(new Option(details.join(' | '), machineName));
+            });
+
+            accountMachineSelect.disabled = addedMachines.size === 0;
+            if (addedMachines.size === 0) {
+                accountMachineSelect.options[0].textContent = selectedOption?.value
+                    ? '-- No Machines Available --'
+                    : '-- Select Account First --';
+            }
+        };
+
+        accountSelect.addEventListener('change', updateAccountDetails);
+        updateAccountDetails();
+    }
+
     if (errorMessage) {
         if (typeof Swal !== 'undefined') {
             Swal.fire({
@@ -416,7 +462,7 @@ document.addEventListener('DOMContentLoaded', function () {
                                 <i class="bi bi-database"></i>
 
                                 <span>
-                                    Unique provinces in tb_data.Province
+                                    Provinces
                                 </span>
 
                             </div>
@@ -491,7 +537,7 @@ document.addEventListener('DOMContentLoaded', function () {
                                 <i class="bi bi-hospital"></i>
 
                                 <span>
-                                    Unique clinic names in tb_data.Clinic_name
+                                    Clinic Names
                                 </span>
 
                             </div>
@@ -630,7 +676,7 @@ document.addEventListener('DOMContentLoaded', function () {
                                 <i class="bi bi-gear"></i>
 
                                 <span>
-                                    Machine types in tb_data
+                                    Machine types
                                 </span>
 
                             </div>
@@ -731,6 +777,18 @@ document.addEventListener('DOMContentLoaded', function () {
                             data-bs-target="#canceledaccoun">
 
                             Cancel Account
+
+                        </button>
+
+                        <button
+                            type="button"
+                            class="btn btn-outline-danger btn-sm"
+                            id="clinicStatusFilter"
+                            data-status=""
+                            aria-pressed="false">
+
+                            <i class="bi bi-archive me-1"></i>
+                            Show Cancelled Accounts
 
                         </button>
 
@@ -1829,11 +1887,14 @@ document.addEventListener('DOMContentLoaded', function () {
                                                     ($info['province'] ?? '')
                                                 );
 
+                                            $isInactive = strtoupper(trim((string) ($info['status'] ?? ''))) === 'I';
+
                                             ?>
 
 
                                             <option
                                                 value="<?= esc($info['id'] ?? '') ?>"
+                                                style="<?= $isInactive ? 'color: #dc3545;' : '' ?>"
                                                 data-clinic="<?= esc($clinicName) ?>"
                                                 data-address="<?= esc($address) ?>"
                                                 data-province="<?= esc($province) ?>"
@@ -2102,6 +2163,40 @@ document.addEventListener('DOMContentLoaded', function () {
 
 </div>
 
+
+<div class="modal fade" id="cancelledReasonModal" tabindex="-1" aria-labelledby="cancelledReasonModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="cancelledReasonModalLabel">Canceled Account Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-4">Clinic</dt>
+                    <dd class="col-sm-8" id="cancelledReasonClinic"></dd>
+                    <dt class="col-sm-4">Address</dt>
+                    <dd class="col-sm-8" id="cancelledReasonAddress"></dd>
+                    <dt class="col-sm-4">Machine</dt>
+                    <dd class="col-sm-8" id="cancelledReasonMachine"></dd>
+                    <dt class="col-sm-4">Date Found Out</dt>
+                    <dd class="col-sm-8" id="cancelledReasonDateFoundOut"></dd>
+                    <dt class="col-sm-4">Date Confirmed</dt>
+                    <dd class="col-sm-8" id="cancelledReasonDateConfirmed"></dd>
+                    <dt class="col-sm-4">Personnel</dt>
+                    <dd class="col-sm-8" id="cancelledReasonPersonnel"></dd>
+                    <dt class="col-sm-4">Reason</dt>
+                    <dd class="col-sm-8 text-break" id="cancelledReasonText"></dd>
+                    <dt class="col-sm-4">Supplier</dt>
+                    <dd class="col-sm-8" id="cancelledReasonSupplier"></dd>
+                </dl>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <?= view('dashboard/layout/footer') ?>
 
@@ -2784,6 +2879,12 @@ $(document).ready(function () {
 
             pageLength: 10,
 
+            createdRow: function (row, data) {
+                if (String(data.status || '').toUpperCase() === 'I') {
+                    row.classList.add('table-danger');
+                }
+            },
+
             lengthMenu: [
                 [10, 25, 50, 100],
                 [10, 25, 50, 100]
@@ -2803,6 +2904,9 @@ $(document).ready(function () {
 
                     d.end_date =
                         $('#end_date').val() || '';
+
+                    d.status =
+                        $('#clinicStatusFilter').attr('data-status') || '';
 
                 },
 
@@ -2962,6 +3066,22 @@ $(document).ready(function () {
                             return `
                                 <div class="d-flex justify-content-center align-items-center gap-1 flex-wrap">
 
+                                    ${
+                                        String(row.status || '').toUpperCase() === 'I'
+                                        ? `
+                                            <button
+                                                type="button"
+                                                class="btn btn-outline-danger btn-sm dt-cancel-reason"
+                                                title="Show Canceled Reason">
+
+                                                <i class="bi bi-info-circle"></i>
+                                                Show Canceled Reason
+
+                                            </button>
+                                        `
+                                        : ''
+                                    }
+
                                     <!-- ==========================================
                                          VIEW CONTRACT
                                          ========================================== -->
@@ -3083,6 +3203,37 @@ $(document).ready(function () {
     /* ======================================================
        CUSTOM SEARCH FORM
        ====================================================== */
+
+    $('#clinicStatusFilter').on('click', function () {
+        const showingCancelled = this.dataset.status !== 'I';
+        this.dataset.status = showingCancelled ? 'I' : '';
+        this.setAttribute('aria-pressed', String(showingCancelled));
+        this.classList.toggle('btn-danger', showingCancelled);
+        this.classList.toggle('btn-outline-danger', !showingCancelled);
+        this.innerHTML = showingCancelled
+            ? '<i class="bi bi-list-ul me-1"></i> Show All Clinics'
+            : '<i class="bi bi-archive me-1"></i> Show Cancelled Accounts';
+
+        table.ajax.reload(null, true);
+    });
+
+    $(document).on('click', '.dt-cancel-reason', function () {
+        const row = table.row($(this).closest('tr')).data();
+        if (!row) return;
+
+        document.getElementById('cancelledReasonClinic').textContent = row.Clinic_name || '-';
+        document.getElementById('cancelledReasonAddress').textContent = row.Address || '-';
+        document.getElementById('cancelledReasonMachine').textContent = row.Machine || '-';
+        document.getElementById('cancelledReasonDateFoundOut').textContent = row.cancelled_date_found_out || '-';
+        document.getElementById('cancelledReasonDateConfirmed').textContent = row.cancelled_date_confirmed || '-';
+        document.getElementById('cancelledReasonPersonnel').textContent = row.cancelled_personnel || '-';
+        document.getElementById('cancelledReasonText').textContent = row.cancelled_reason || 'No cancellation reason was recorded.';
+        document.getElementById('cancelledReasonSupplier').textContent = row.cancelled_supplier || '-';
+
+        bootstrap.Modal
+            .getOrCreateInstance(document.getElementById('cancelledReasonModal'))
+            .show();
+    });
 
     $('#clinicRecordsSearchForm').on(
         'submit',

@@ -212,17 +212,22 @@
   <?php
     $ticketError = session()->getFlashdata('support_ticket_error');
     $ticketSuccess = session()->getFlashdata('support_ticket_success');
+    $statusError = session()->getFlashdata('error');
+    $statusSuccess = session()->getFlashdata('success');
   ?>
   <script>
     document.addEventListener('DOMContentLoaded', function () {
       const ticketError = <?= json_encode((string) ($ticketError ?? ''), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
       const ticketSuccess = <?= json_encode((string) ($ticketSuccess ?? ''), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
-      const message = ticketError || ticketSuccess;
+      const statusError = <?= json_encode((string) ($statusError ?? ''), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
+      const statusSuccess = <?= json_encode((string) ($statusSuccess ?? ''), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
+      const message = ticketError || statusError || ticketSuccess || statusSuccess;
 
       if (message && typeof Swal !== 'undefined') {
+        const isError = Boolean(ticketError || statusError);
         Swal.fire({
-          icon: ticketError ? 'error' : 'success',
-          title: ticketError ? 'Error' : 'Success',
+          icon: isError ? 'error' : 'success',
+          title: isError ? 'Error' : 'Success',
           text: message,
           timer: 3000,
           timerProgressBar: true,
@@ -231,21 +236,6 @@
       }
     });
   </script>
-
-  <?php if (session()->getFlashdata('error')): ?>
-    <div class="flash-message" style="position: fixed; top: 12px; left: 50%; transform: translateX(-50%); z-index: 1200; width: min(90vw, 520px); opacity: 1; transition: opacity 0.5s ease;">
-      <div style="background: #ffe4e6; color: #991b1b; border: 1px solid #fecdd3; padding: 12px 16px; border-radius: 10px; font-weight: 600;">
-        <?= esc(session()->getFlashdata('error')) ?>
-      </div>
-    </div>
-  <?php endif; ?>
-  <?php if (session()->getFlashdata('success')): ?>
-    <div class="flash-message" style="position: fixed; top: 12px; left: 50%; transform: translateX(-50%); z-index: 1200; width: min(90vw, 520px); opacity: 1; transition: opacity 0.5s ease;">
-      <div style="background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; padding: 12px 16px; border-radius: 10px; font-weight: 600;">
-        <?= esc(session()->getFlashdata('success')) ?>
-      </div>
-    </div>
-  <?php endif; ?>
 
   <?= view('dashboard/layout/sidebar') ?>
 
@@ -256,7 +246,6 @@
       <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
           <h2 class="mb-1 fw-bold text-dark">Support Tickets</h2>
-          <p class="text-muted mb-0">Assign technical support to clinics and machines.</p>
         </div>
         <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#supportTicketModal">
           <i class="bi bi-plus-lg me-1"></i> New Ticket
@@ -286,7 +275,7 @@
                   <th>Technician</th>
                   <th>Assisting Person</th>
                   <th>Concern</th>
-                  <th>Action Taken</th>
+                  <th>Action Taken/Remarks</th>
                   <th>Machine Status</th>
                   <th>Service Status</th>
                 </tr>
@@ -339,11 +328,13 @@
                                     <?php if ($status === 'waiting'): ?>
 
                                         <form method="post"
-                                              action="<?= site_url('dashboard/support/update-status') ?>">
+                                              action="<?= site_url('dashboard/support/update-status') ?>"
+                                              class="support-status-form">
 
                                             <input type="hidden"
                                                   name="id"
                                                   value="<?= (int) ($ticket['id'] ?? 0) ?>">
+                                                  <input type="hidden" name="scroll_position" class="support-scroll-position" value="0">
 
                                             <button type="submit"
                                                     name="status"
@@ -357,11 +348,13 @@
                                     <?php elseif ($status === 'on_hold'): ?>
 
                                       <form method="post"
-                                          action="<?= site_url('dashboard/support/update-status') ?>">
+                                          action="<?= site_url('dashboard/support/update-status') ?>"
+                                          class="support-status-form">
 
                                         <input type="hidden"
                                             name="id"
                                             value="<?= (int) ($ticket['id'] ?? 0) ?>">
+                                          <input type="hidden" name="scroll_position" class="support-scroll-position" value="0">
 
                                         <button type="submit"
                                             name="status"
@@ -377,12 +370,13 @@
 
                                         <form method="post"
                                               action="<?= site_url('dashboard/support/update-status') ?>"
-                                              class="d-flex flex-column gap-2"
+                                              class="d-flex flex-column gap-2 support-status-form"
                                               id="supportForm<?= (int) ($ticket['id'] ?? 0) ?>">
 
                                             <input type="hidden"
                                                   name="id"
                                                   value="<?= (int) ($ticket['id'] ?? 0) ?>">
+                                                  <input type="hidden" name="scroll_position" class="support-scroll-position" value="0">
 
                                             <div class="d-flex align-items-center gap-2">
 
@@ -420,11 +414,13 @@
                                     <?php elseif ($status === 'pullout' && ($ticket['returnstat'] ?? null) === null): ?>
 
                                         <form method="post"
-                                              action="<?= site_url('dashboard/support/update-status') ?>">
+                                              action="<?= site_url('dashboard/support/update-status') ?>"
+                                              class="support-status-form">
 
                                             <input type="hidden"
                                                   name="id"
                                                   value="<?= (int) ($ticket['id'] ?? 0) ?>">
+                                                  <input type="hidden" name="scroll_position" class="support-scroll-position" value="0">
 
                                             <input type="hidden"
                                                   name="returnstat"
@@ -550,7 +546,11 @@
 
             <div class="col-md-6">
               <label class="form-label">Assisting Support</label>
-              <input type="text" class="form-control" name="assisting" placeholder="Name of assisting support staff">
+              <select class="form-select" name="assisting[]" id="assisting" multiple>
+                <?php foreach (($assisting_names ?? []) as $assistingName): ?>
+                  <option value="<?= esc($assistingName) ?>"><?= esc($assistingName) ?></option>
+                <?php endforeach; ?>
+              </select>
             </div>
 
             <div class="col-md-6">
@@ -616,6 +616,13 @@ $(document).ready(function () {
 });
 
     document.addEventListener('DOMContentLoaded', function () {
+      document.querySelectorAll('.support-status-form').forEach(function (form) {
+        form.addEventListener('submit', function () {
+          const scrollInput = form.querySelector('.support-scroll-position');
+          if (scrollInput) scrollInput.value = String(window.scrollY);
+        });
+      });
+
       document.querySelectorAll('.support-status-select').forEach(function (select) {
         const ticketId = select.dataset.ticketId;
         const form = document.getElementById('supportForm' + ticketId);
@@ -635,17 +642,16 @@ $(document).ready(function () {
       });
     });
 
-    setTimeout(function () {
-      const messages = document.querySelectorAll('.flash-message');
-      messages.forEach(function (message) {
-        message.style.opacity = '0';
-        setTimeout(function () {
-          message.remove();
-        }, 500);
-      });
-    }, 5000);
-
     $(document).ready(function () {
+
+    const supportScrollPosition = <?= json_encode(session()->getFlashdata('support_scroll_position')) ?>;
+    if (supportScrollPosition !== null && supportScrollPosition !== '') {
+      window.addEventListener('load', function () {
+        window.requestAnimationFrame(function () {
+          window.scrollTo(0, Number(supportScrollPosition));
+        });
+      });
+    }
 
     $('#clinic_name').select2({
         placeholder: 'Select clinic',
@@ -657,6 +663,16 @@ $(document).ready(function () {
 
       $('#service_engr').select2({
         placeholder: 'Enter service engineer(s)',
+        allowClear: true,
+        width: '100%',
+        minimumResultsForSearch: 0,
+        dropdownParent: $('#supportTicketModal')
+      });
+
+      $('#assisting').select2({
+        placeholder: 'Select or type assisting staff',
+        tags: true,
+        tokenSeparators: [','],
         allowClear: true,
         width: '100%',
         minimumResultsForSearch: 0,

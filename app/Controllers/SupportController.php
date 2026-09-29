@@ -95,12 +95,15 @@ class SupportController extends BaseController
             ->get()
             ->getResultArray();
 
+        $assistingNames = $this->getAssistingNames();
+
         return view('dashboard/support', [
             'user' => session()->get('user'),
             'tickets' => $tickets,
             'clinics' => $clinics,
             'machines' => $machines,
             'techs' => $techs,
+            'assisting_names' => $assistingNames,
             'search' => $search,
         ]);
     }
@@ -124,7 +127,7 @@ class SupportController extends BaseController
         ))))
         : [trim((string) $serviceEngrInput)];
     $serviceEngr = implode(', ', $serviceEngineers);
-    $assisting = trim((string) $this->request->getPost('assisting'));
+    $assisting = $this->normalizeAssistingNames($this->request->getPost('assisting') ?? []);
     $machineStatus = trim((string) $this->request->getPost('machine_status'));
     $serviceStatus = trim((string) $this->request->getPost('service_status'));
     $concern = trim((string) $this->request->getPost('concern'));
@@ -242,6 +245,7 @@ class SupportController extends BaseController
     }
 
     $id = (int) $this->request->getPost('id');
+    $scrollPosition = max(0, (int) $this->request->getPost('scroll_position'));
 
     $status = strtolower(
         trim((string) $this->request->getPost('status'))
@@ -270,7 +274,8 @@ class SupportController extends BaseController
         !in_array($status, $allowedStatuses, true)
     ) {
         return redirect()->to(site_url('dashboard/support'))
-            ->with('error', 'Invalid support status update.');
+            ->with('error', 'Invalid support status update.')
+            ->with('support_scroll_position', $scrollPosition);
     }
 
     /*
@@ -296,7 +301,8 @@ class SupportController extends BaseController
             ->with(
                 'success',
                 'Support ticket marked as returned.'
-            );
+            )
+            ->with('support_scroll_position', $scrollPosition);
     }
 
     /*
@@ -317,7 +323,8 @@ class SupportController extends BaseController
             ->with(
                 'error',
                 'Please add remarks before marking this ticket as Completed or Unservicable.'
-            );
+            )
+            ->with('support_scroll_position', $scrollPosition);
     }
 
     /*
@@ -348,8 +355,45 @@ class SupportController extends BaseController
         ->with(
             'success',
             'Support status updated to ' . $status . '.'
-        );
+        )
+        ->with('support_scroll_position', $scrollPosition);
 }
+
+    private function getAssistingNames(): array
+    {
+        $rows = db_connect()->table('tb_support')
+            ->select('assisting')
+            ->get()
+            ->getResultArray();
+
+        $names = [];
+        foreach ($rows as $row) {
+            foreach (explode(',', (string) ($row['assisting'] ?? '')) as $name) {
+                $name = trim($name);
+                if ($name !== '') {
+                    $names[strtolower($name)] ??= $name;
+                }
+            }
+        }
+
+        return array_values($names);
+    }
+
+    private function normalizeAssistingNames($input): string
+    {
+        $values = is_array($input) ? $input : explode(',', (string) $input);
+        $names = [];
+
+        foreach ($values as $value) {
+            $name = trim((string) $value);
+            $key = strtolower($name);
+            if ($name !== '' && !isset($names[$key])) {
+                $names[$key] = $name;
+            }
+        }
+
+        return implode(', ', array_values($names));
+    }
 
     public function history(): string|RedirectResponse
     {
@@ -418,11 +462,23 @@ class SupportController extends BaseController
             ->get()
             ->getResultArray();
 
+        $techs = $database->table('tb_user')
+            ->select('id, fname, lname, uname, role')
+            ->where('uname !=', 'admin')
+            ->orderBy('fname', 'ASC')
+            ->orderBy('lname', 'ASC')
+            ->get()
+            ->getResultArray();
+
+        $assistingNames = $this->getAssistingNames();
+
         return view('dashboard/history', [
             'user' => session()->get('user'),
             'tickets' => $tickets,
             'clinic_counts' => $clinicCounts,
             'clinics' => $clinics,
+            'techs' => $techs,
+            'assisting_names' => $assistingNames,
             'search' => $search,
             'date_from' => $dateFrom,
             'date_to' => $dateTo,
@@ -612,14 +668,23 @@ class SupportController extends BaseController
                 ->with('error', 'Please login first.');
         }
 
+        $scrollPosition = max(0, (int) $this->request->getPost('scroll_position'));
         $id = (int) $this->request->getPost('id');
 
         if ($id <= 0) {
             return redirect()->to(site_url('dashboard/history'))
-                ->with('error', 'Invalid ticket ID.');
+                ->with('error', 'Invalid ticket ID.')
+                ->with('history_scroll_position', $scrollPosition);
         }
 
-        $serviceEngineer = trim((string) $this->request->getPost('service_engr'));
+        $serviceEngineerInput = $this->request->getPost('service_engr') ?? [];
+        $serviceEngineers = is_array($serviceEngineerInput)
+            ? $serviceEngineerInput
+            : explode(',', (string) $serviceEngineerInput);
+        $serviceEngineer = implode(', ', array_filter(array_map(
+            static fn ($engineer): string => trim((string) $engineer),
+            $serviceEngineers
+        ), static fn (string $engineer): bool => $engineer !== ''));
         $serviceStatus = (string) $this->request->getPost('status');
 
         $data = [
@@ -628,6 +693,8 @@ class SupportController extends BaseController
             'address'        => trim((string) $this->request->getPost('address')),
             'support_date'   => $this->request->getPost('support_date'),
             'concern'        => trim((string) $this->request->getPost('concern')),
+            'remarks'        => trim((string) $this->request->getPost('remarks')),
+            'assisting'      => $this->normalizeAssistingNames($this->request->getPost('assisting') ?? []),
             'machine_status' => trim((string) $this->request->getPost('machine_status')),
             'service_engr'   => $serviceEngineer,
             'technician'     => $serviceEngineer,
@@ -640,7 +707,8 @@ class SupportController extends BaseController
 
         if (!$builder->where('id', $id)->countAllResults()) {
             return redirect()->to(site_url('dashboard/history'))
-                ->with('error', 'Ticket not found.');
+                ->with('error', 'Ticket not found.')
+                ->with('history_scroll_position', $scrollPosition);
         }
 
         try {
@@ -653,7 +721,8 @@ class SupportController extends BaseController
             ]);
 
             return redirect()->to(site_url('dashboard/history'))
-                ->with('error', 'Unable to save the support ticket changes.');
+                ->with('error', 'Unable to save the support ticket changes.')
+                ->with('history_scroll_position', $scrollPosition);
         }
 
         if (!$updated) {
@@ -663,11 +732,13 @@ class SupportController extends BaseController
             ]);
 
             return redirect()->to(site_url('dashboard/history'))
-                ->with('error', 'Unable to save the support ticket changes.');
+                ->with('error', 'Unable to save the support ticket changes.')
+                ->with('history_scroll_position', $scrollPosition);
         }
 
         return redirect()->to(site_url('dashboard/history'))
-            ->with('success', 'Support ticket updated successfully.');
+            ->with('success', 'Support ticket updated successfully.')
+            ->with('history_scroll_position', $scrollPosition);
     }
 
 public function delete()
