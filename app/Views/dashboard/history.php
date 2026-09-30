@@ -87,11 +87,27 @@
 <?php
     $historyError = session()->getFlashdata('error');
     $historySuccess = session()->getFlashdata('success');
+    $historyScrollPosition = session()->getFlashdata('history_scroll_position');
 ?>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const errorMessage = <?= json_encode((string) ($historyError ?? ''), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
     const successMessage = <?= json_encode((string) ($historySuccess ?? ''), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
+    const scrollPosition = <?= json_encode($historyScrollPosition) ?>;
+
+    const editForm = document.getElementById('editTicketForm');
+    const scrollPositionField = document.getElementById('edit_scroll_position');
+    if (editForm && scrollPositionField) {
+        editForm.addEventListener('submit', function () {
+            scrollPositionField.value = window.scrollY;
+        });
+    }
+
+    if (scrollPosition !== null && scrollPosition !== '') {
+        requestAnimationFrame(function () {
+            window.scrollTo(0, Number(scrollPosition));
+        });
+    }
 
     if (errorMessage && window.Swal) {
         Swal.fire({ icon: 'error', title: 'Update Failed', text: errorMessage });
@@ -131,11 +147,12 @@ document.addEventListener('DOMContentLoaded', function () {
                     Support History
                 </h1>
 
-                <p class="page-subtitle">
-                    All records from tb_support
-                </p>
-
             </div>
+
+
+                                            <td>
+                                                <?= esc($ticket['remarks'] ?? '-') ?>
+                                            </td>
 
 
             <div class="d-flex gap-2 flex-wrap align-items-center">
@@ -368,6 +385,10 @@ document.addEventListener('DOMContentLoaded', function () {
                                         </th>
 
                                         <th>
+                                            Remarks
+                                        </th>
+
+                                        <th>
                                             Machine Status
                                         </th>
 
@@ -532,6 +553,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
                                             <td>
+                                                <?= esc($ticket['remarks'] ?? '-') ?>
+                                            </td>
+
+
+                                            <td>
                                                 <?= esc($ticket['machine_status'] ?? '-') ?>
                                             </td>
 
@@ -583,11 +609,13 @@ document.addEventListener('DOMContentLoaded', function () {
                                                       data-address="<?= esc($ticket['address'] ?? '') ?>"
                                                       data-date="<?= esc($ticket['support_date'] ?? '') ?>"
                                                       data-concern="<?= esc($ticket['concern'] ?? '') ?>"
+                                                      data-remarks="<?= esc($ticket['remarks'] ?? '') ?>"
                                                       data-machine-status="<?= esc($ticket['machine_status'] ?? '') ?>"
                                                       data-service-engr="<?= esc(
                                                           $ticket['service_engr']
                                                           ?? ($ticket['technician'] ?? '')
                                                       ) ?>"
+                                                      data-assisting="<?= esc($ticket['assisting'] ?? '') ?>"
                                                       data-status="<?= esc($status) ?>"
                                                       title="Edit">
 
@@ -629,6 +657,7 @@ document.addEventListener('DOMContentLoaded', function () {
                                             No records
                                         </td>
 
+                                        <td></td>
                                         <td></td>
                                         <td></td>
                                         <td></td>
@@ -901,6 +930,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
                                         <?= csrf_field() ?>
 
+                                             <input type="hidden"
+                                                 name="scroll_position"
+                                                 id="edit_scroll_position"
+                                                 value="0">
+
 
                     <div class="modal-body">
 
@@ -1044,6 +1078,22 @@ document.addEventListener('DOMContentLoaded', function () {
                             </div>
 
 
+                            <!-- Remarks -->
+
+                            <div class="col-12">
+
+                                <label class="form-label">
+                                    Remarks
+                                </label>
+
+                                <textarea class="form-control"
+                                          name="remarks"
+                                          id="edit_remarks"
+                                          rows="3"></textarea>
+
+                            </div>
+
+
                             <!-- Service Engineer -->
 
                             <div class="col-md-6">
@@ -1052,10 +1102,35 @@ document.addEventListener('DOMContentLoaded', function () {
                                     Service Engineer
                                 </label>
 
-                                <input type="text"
-                                       class="form-control"
-                                       name="service_engr"
-                                       id="edit_service_engr">
+                                <select class="form-select"
+                                        name="service_engr[]"
+                                        id="edit_service_engr"
+                                        multiple>
+                                    <?php foreach (($techs ?? []) as $tech): ?>
+                                        <?php $techName = trim((($tech['fname'] ?? '') . ' ' . ($tech['lname'] ?? ''))); ?>
+                                        <?php if ($techName !== ''): ?>
+                                            <option value="<?= esc($techName) ?>"><?= esc($techName) ?></option>
+                                        <?php endif; ?>
+                                    <?php endforeach; ?>
+                                </select>
+
+                            </div>
+
+
+                            <div class="col-md-6">
+
+                                <label class="form-label">
+                                    Assisting Support
+                                </label>
+
+                                <select class="form-select"
+                                        name="assisting[]"
+                                        id="edit_assisting"
+                                        multiple>
+                                    <?php foreach (($assisting_names ?? []) as $assistingName): ?>
+                                        <option value="<?= esc($assistingName) ?>"><?= esc($assistingName) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
 
                             </div>
 
@@ -1178,6 +1253,30 @@ $(document).ready(function () {
             $('#edit_clinic_value').val(selectedOption?.dataset.clinic || '');
             $('#edit_province').val(selectedOption?.dataset.province || '');
             $('#edit_address').val(selectedOption?.dataset.address || '');
+        });
+    }
+
+    const editServiceEngineerSelect = $('#edit_service_engr');
+    if (editServiceEngineerSelect.length) {
+        editServiceEngineerSelect.select2({
+            placeholder: 'Enter service engineer(s)',
+            allowClear: true,
+            width: '100%',
+            minimumResultsForSearch: 0,
+            dropdownParent: $('#editTicketModal')
+        });
+    }
+
+    const editAssistingSelect = $('#edit_assisting');
+    if (editAssistingSelect.length) {
+        editAssistingSelect.select2({
+            placeholder: 'Select or type assisting staff',
+            tags: true,
+            tokenSeparators: [','],
+            allowClear: true,
+            width: '100%',
+            minimumResultsForSearch: 0,
+            dropdownParent: $('#editTicketModal')
         });
     }
 
@@ -1722,11 +1821,22 @@ $('#historyTable tbody').on(
         const concern =
             button.getAttribute('data-concern') || '';
 
+        const remarks =
+            button.getAttribute('data-remarks') || '';
+
         const machineStatus =
             button.getAttribute('data-machine-status') || '';
 
         const serviceEngr =
             button.getAttribute('data-service-engr') || '';
+
+        const assisting =
+            button.getAttribute('data-assisting') || '';
+
+        const serviceEngineers = serviceEngr
+            .split(',')
+            .map(function (engineer) { return engineer.trim(); })
+            .filter(Boolean);
 
         const status =
             button.getAttribute('data-status') || 'waiting';
@@ -1774,11 +1884,17 @@ $('#historyTable tbody').on(
         const editConcern =
             document.getElementById('edit_concern');
 
+        const editRemarks =
+            document.getElementById('edit_remarks');
+
         const editMachineStatus =
             document.getElementById('edit_machine_status');
 
         const editServiceEngr =
             document.getElementById('edit_service_engr');
+
+        const editAssisting =
+            document.getElementById('edit_assisting');
 
         const editStatus =
             document.getElementById('edit_status');
@@ -1868,13 +1984,48 @@ $('#historyTable tbody').on(
         }
 
 
+        if (editRemarks) {
+            editRemarks.value = remarks;
+        }
+
+
         if (editMachineStatus) {
             editMachineStatus.value = machineStatus;
         }
 
 
         if (editServiceEngr) {
-            editServiceEngr.value = serviceEngr;
+            serviceEngineers.forEach(function (engineer) {
+                const exists = Array.from(editServiceEngr.options).some(function (option) {
+                    return option.value === engineer;
+                });
+
+                if (!exists) {
+                    editServiceEngr.add(new Option(engineer, engineer));
+                }
+            });
+
+            $(editServiceEngr).val(serviceEngineers).trigger('change');
+        }
+
+
+        if (editAssisting) {
+            const assistingNames = assisting
+                .split(',')
+                .map(function (name) { return name.trim(); })
+                .filter(Boolean);
+
+            assistingNames.forEach(function (name) {
+                const exists = Array.from(editAssisting.options).some(function (option) {
+                    return option.value.toLowerCase() === name.toLowerCase();
+                });
+
+                if (!exists) {
+                    editAssisting.add(new Option(name, name));
+                }
+            });
+
+            $(editAssisting).val(assistingNames).trigger('change');
         }
 
 

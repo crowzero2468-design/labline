@@ -323,7 +323,7 @@ class Dashboard extends BaseController
 
             $clinicRecords = $database->table('tb_data')
                 ->select(
-                    'id, Clinic_name, Address, Province, Machine, Model, SN'
+                    'id, Clinic_name, Address, Province, Machine, Model, SN, status'
                 )
                 ->where('Clinic_name IS NOT NULL')
                 ->where("TRIM(Clinic_name) !=", '')
@@ -353,6 +353,7 @@ class Dashboard extends BaseController
                         'id'       => $row['id'] ?? '',
                         'address'  => $row['Address'] ?? '',
                         'province' => $row['Province'] ?? '',
+                        'status'   => $row['status'] ?? '',
                         'machines' => [],
                     ];
                 }
@@ -2568,8 +2569,7 @@ public function viewContract($id)
     |--------------------------------------------------------------------------
     */
 
-    $totalBuilder = $db->table('tb_data')
-        ->where('status', 'A');
+    $totalBuilder = $db->table('tb_data');
 
     $recordsTotal = $totalBuilder->countAllResults();
 
@@ -2580,9 +2580,12 @@ public function viewContract($id)
     |--------------------------------------------------------------------------
     */
 
-    $builder = $db->table('tb_data')
-        ->where('status', 'A');
+    $builder = $db->table('tb_data');
 
+    $statusFilter = strtoupper(trim((string) ($request->getGet('status') ?? '')));
+    if ($statusFilter === 'I') {
+        $builder->where('status', 'I');
+    }
 
     /*
     |--------------------------------------------------------------------------
@@ -2668,8 +2671,50 @@ public function viewContract($id)
             'Installed_date',
             'SN',
             'DR_Number',
-            'contract_id'
+            'contract_id',
+            'status'
         ])
+        ->select(
+            "(SELECT cancelled.Reason
+                FROM tb_cancelledaccount AS cancelled
+                WHERE cancelled.Clinic = tb_data.Clinic_name
+                  AND cancelled.Address = tb_data.Address
+                  AND cancelled.machine = tb_data.Machine
+                ORDER BY cancelled.id DESC
+                LIMIT 1) AS cancelled_reason",
+            false
+        )
+                ->select(
+                        "(SELECT cancelled.Date_Found_out
+                                FROM tb_cancelledaccount AS cancelled
+                                WHERE cancelled.Clinic = tb_data.Clinic_name
+                                    AND cancelled.Address = tb_data.Address
+                                    AND cancelled.machine = tb_data.Machine
+                                ORDER BY cancelled.id DESC
+                                LIMIT 1) AS cancelled_date_found_out,
+                            (SELECT cancelled.Date_confirmed
+                                FROM tb_cancelledaccount AS cancelled
+                                WHERE cancelled.Clinic = tb_data.Clinic_name
+                                    AND cancelled.Address = tb_data.Address
+                                    AND cancelled.machine = tb_data.Machine
+                                ORDER BY cancelled.id DESC
+                                LIMIT 1) AS cancelled_date_confirmed,
+                            (SELECT cancelled.Personnel
+                                FROM tb_cancelledaccount AS cancelled
+                                WHERE cancelled.Clinic = tb_data.Clinic_name
+                                    AND cancelled.Address = tb_data.Address
+                                    AND cancelled.machine = tb_data.Machine
+                                ORDER BY cancelled.id DESC
+                                LIMIT 1) AS cancelled_personnel,
+                            (SELECT cancelled.Supplier
+                                FROM tb_cancelledaccount AS cancelled
+                                WHERE cancelled.Clinic = tb_data.Clinic_name
+                                    AND cancelled.Address = tb_data.Address
+                                    AND cancelled.machine = tb_data.Machine
+                                ORDER BY cancelled.id DESC
+                                LIMIT 1) AS cancelled_supplier",
+                        false
+                )
         ->orderBy('Clinic_name', 'ASC')
         ->orderBy('id', 'DESC')
         ->limit($length, $start)
