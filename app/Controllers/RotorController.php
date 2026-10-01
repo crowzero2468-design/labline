@@ -127,12 +127,14 @@ class RotorController extends BaseController
         |--------------------------------------------------------------------------
         | VALIDATE REQUIRED FIELDS
         |--------------------------------------------------------------------------
+        | A blank status is allowed for records that have not been assigned yet.
+        |--------------------------------------------------------------------------
         */
         if (
             empty($clinicName) ||
             empty($model) ||
             empty($date) ||
-            !in_array($status, $this->statusOptions(), true)
+            ($status !== '' && !in_array($status, $this->statusOptions(), true))
         ) {
             return redirect()
                 ->back()
@@ -159,7 +161,7 @@ class RotorController extends BaseController
             'date'         => $date,
             'replaceable'  => $replaceable,
             'reason'       => $reason,
-            'status'       => $status,
+            'status'       => $status !== '' ? $status : null,
         ];
 
         /*
@@ -227,6 +229,8 @@ class RotorController extends BaseController
         | GET POST DATA
         |--------------------------------------------------------------------------
         */
+        $status = trim((string) $this->request->getPost('status'));
+
         $data = [
             'clinic_name'  => trim($this->request->getPost('clinic_name')),
             'address'      => trim($this->request->getPost('address')),
@@ -238,19 +242,21 @@ class RotorController extends BaseController
             'date'         => $this->request->getPost('date'),
             'replaceable'  => $this->request->getPost('replaceable'),
             'reason'       => trim($this->request->getPost('reason')),
-            'status'       => trim((string) $this->request->getPost('status')),
+            'status'       => $status !== '' ? $status : null,
         ];
 
         /*
         |--------------------------------------------------------------------------
         | VALIDATE REQUIRED FIELDS
         |--------------------------------------------------------------------------
+        | A blank status is allowed for records that have not been assigned yet.
+        |--------------------------------------------------------------------------
         */
         if (
             empty($data['clinic_name']) ||
             empty($data['model']) ||
             empty($data['date']) ||
-            !in_array($data['status'], $this->statusOptions(), true)
+            ($status !== '' && !in_array($status, $this->statusOptions(), true))
         ) {
             return redirect()
                 ->back()
@@ -360,12 +366,13 @@ class RotorController extends BaseController
     public function advanceStatus()
     {
         $id = (int) $this->request->getPost('id');
+        $selectedStatus = trim((string) $this->request->getPost('status'));
 
-        $nextStatuses = [
-            'Report by Clinic' => 'Report to Manufacture',
-            'Report to Manufacture' => 'Order',
-            'Order' => 'Delivered',
-        ];
+        if ($id <= 0) {
+            return redirect()
+                ->back()
+                ->with('error', 'Invalid replacement report.');
+        }
 
         $record = $this->db
             ->table($this->table)
@@ -374,22 +381,47 @@ class RotorController extends BaseController
             ->get()
             ->getRowArray();
 
-        $currentStatus = $record['status'] ?? 'Report by Clinic';
+        $currentStatus = trim((string) ($record['status'] ?? ''));
+        $allowedStatuses = [
+            'Report by Clinic',
+            'Report to Manufacture',
+            'Order',
+            'Delivered',
+        ];
 
-        if ($id <= 0 || !isset($nextStatuses[$currentStatus])) {
+        $nextStatuses = [
+            'Report by Clinic' => 'Report to Manufacture',
+            'Report to Manufacture' => 'Order',
+            'Order' => 'Delivered',
+        ];
+
+        if ($selectedStatus !== '' && in_array($selectedStatus, $allowedStatuses, true)) {
+            $this->db
+                ->table($this->table)
+                ->where('id', $id)
+                ->update(['status' => $selectedStatus]);
+
+            return redirect()
+                ->back()
+                ->with('success', 'Replacement status updated to ' . $selectedStatus . '.');
+        }
+
+        if (!isset($nextStatuses[$currentStatus])) {
             return redirect()
                 ->back()
                 ->with('error', 'This replacement report cannot advance to another status.');
         }
 
+        $newStatus = $nextStatuses[$currentStatus];
+
         $this->db
             ->table($this->table)
             ->where('id', $id)
-            ->update(['status' => $nextStatuses[$currentStatus]]);
+            ->update(['status' => $newStatus]);
 
         return redirect()
             ->back()
-            ->with('success', 'Replacement status updated to ' . $nextStatuses[$currentStatus] . '.');
+            ->with('success', 'Replacement status updated to ' . $newStatus . '.');
     }
 
     /**

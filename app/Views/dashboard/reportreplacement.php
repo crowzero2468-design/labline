@@ -261,7 +261,7 @@
                                 <label for="status_filter" class="form-label">Status</label>
 
                                 <select name="status" id="status_filter" class="form-select">
-                                    <option value="">All Statuses</option>
+                                    <option value="" <?= (empty($status ?? '')) ? 'selected' : '' ?>>All Statuses</option>
                                     <?php foreach (['Report by Clinic', 'Report to Manufacture', 'Order', 'Delivered'] as $statusOption): ?>
                                         <option value="<?= esc($statusOption) ?>" <?= ($status ?? '') === $statusOption ? 'selected' : '' ?>>
                                             <?= esc($statusOption) ?>
@@ -482,10 +482,24 @@
 
                                             <td>
                                                 <?php
-                                                $recordStatus = $record['status'] ?? 'Report by Clinic';
+                                                $recordStatus = trim((string) ($record['status'] ?? ''));
                                                 $statusClass = $recordStatus === 'Delivered' ? 'success' : ($recordStatus === 'Order' ? 'primary' : ($recordStatus === 'Report to Manufacture' ? 'warning text-dark' : 'secondary'));
                                                 ?>
-                                                <?php if ($recordStatus !== 'Delivered'): ?>
+                                                <?php if ($recordStatus === ''): ?>
+                                                    <form method="post" action="<?= site_url('rotor_replace/advance-status') ?>" class="d-flex align-items-center gap-2">
+                                                        <?= csrf_field() ?>
+                                                        <input type="hidden" name="id" value="<?= esc($record['id'] ?? '') ?>">
+                                                        <select name="status" class="form-select form-select-sm rotor-status-select" aria-label="Select status" style="min-width: 160px;">
+                                                            <option value="">Select status</option>
+                                                            <?php foreach (['Report by Clinic', 'Report to Manufacture', 'Order', 'Delivered'] as $statusOption): ?>
+                                                                <option value="<?= esc($statusOption) ?>"><?= esc($statusOption) ?></option>
+                                                            <?php endforeach; ?>
+                                                        </select>
+                                                        <button type="submit" class="btn btn-sm btn-outline-primary">
+                                                            Apply
+                                                        </button>
+                                                    </form>
+                                                <?php elseif ($recordStatus !== 'Delivered'): ?>
                                                     <form method="post" action="<?= site_url('rotor_replace/advance-status') ?>" class="d-inline">
                                                         <?= csrf_field() ?>
                                                         <input type="hidden" name="id" value="<?= esc($record['id'] ?? '') ?>">
@@ -996,7 +1010,8 @@
 
                                 <div class="col-12 col-md-6">
                                     <label for="status" class="form-label">Status</label>
-                                    <select name="status" id="status" class="form-select" required>
+                                    <select name="status" id="status" class="form-select">
+                                        <option value="">No Status</option>
                                         <?php foreach (['Report by Clinic', 'Report to Manufacture', 'Order', 'Delivered'] as $statusOption): ?>
                                             <option value="<?= esc($statusOption) ?>" <?= $statusOption === 'Report by Clinic' ? 'selected' : '' ?>>
                                                 <?= esc($statusOption) ?>
@@ -1365,6 +1380,7 @@
                                 <div class="col-12 col-md-6">
                                     <label for="edit_status" class="form-label">Status</label>
                                     <select name="status" id="edit_status" class="form-select" required>
+                                        <option value="">No Status</option>
                                         <?php foreach (['Report by Clinic', 'Report to Manufacture', 'Order', 'Delivered'] as $statusOption): ?>
                                             <option value="<?= esc($statusOption) ?>"><?= esc($statusOption) ?></option>
                                         <?php endforeach; ?>
