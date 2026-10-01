@@ -54,8 +54,10 @@ class RotorController extends BaseController
         |--------------------------------------------------------------------------
         | ORDER
         |--------------------------------------------------------------------------
+        | Use earliest dates first so the table starts at January.
+        |--------------------------------------------------------------------------
         */
-        $builder->orderBy('date', 'DESC');
+        $builder->orderBy('date', 'ASC');
 
         $records = $builder
             ->get()
@@ -424,8 +426,10 @@ class RotorController extends BaseController
         |--------------------------------------------------------------------------
         | ORDER
         |--------------------------------------------------------------------------
+        | Use earliest dates first so the print report starts at January.
+        |--------------------------------------------------------------------------
         */
-        $builder->orderBy('date', 'DESC');
+        $builder->orderBy('date', 'ASC');
 
         $records = $builder
             ->get()

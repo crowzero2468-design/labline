@@ -423,7 +423,10 @@
                                                 <?= esc($record['concern'] ?? '') ?>
                                             </td>
 
-                                            <td class="text-nowrap">
+                                            <td
+                                                class="text-nowrap"
+                                                data-order="<?= esc($record['date'] ?? '') ?>"
+                                            >
 
                                                 <?php if (!empty($record['date'])): ?>
 
@@ -926,8 +929,6 @@
                                         <option value="Equipment failure">Equipment failure</option>
                                         <option value="Insufficient sample or coagulation">Insufficient sample or coagulation</option>
                                         <option value="Machine error">Machine error</option>
-                                        <option value="Disk Error">Disk Error</option>
-                                        <option value="Machine Lags">Machine Lags</option>
                                     </select>
 
                                 </div>
@@ -1295,8 +1296,6 @@
                                         <option value="Equipment failure">Equipment failure</option>
                                         <option value="Insufficient sample or coagulation">Insufficient sample or coagulation</option>
                                         <option value="Machine error">Machine error</option>
-                                        <option value="Disk Error">Disk Error</option>
-                                        <option value="Machine Lags">Machine Lags</option>
                                     </select>
 
                                 </div>
