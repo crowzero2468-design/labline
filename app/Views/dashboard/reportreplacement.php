@@ -945,6 +945,10 @@
                                         <option value="Machine error">Machine error</option>
                                         <option value="Disk Error">Disk Error</option>
                                         <option value="Machine Lags">Machine Lags</option>
+                                        <option value="No Foil Strips">No Foil Strips</option>
+                                        <option value="Incorrect used of anticoagulant">Incorrect used of anticoagulant</option>
+                                        <option value="QR can't be used">QR can't be used</option>
+                                        <option value="Already pulled out">Already pulled out</option>
 
                                     </select>
 
@@ -1316,6 +1320,10 @@
                                         <option value="Machine error">Machine error</option>
                                         <option value="Disk Error">Disk Error</option>
                                         <option value="Machine Lags">Machine Lags</option>
+                                        <option value="No Foil Strips">No Foil Strips</option>
+                                        <option value="Incorrect used of anticoagulant">Incorrect used of anticoagulant</option>
+                                        <option value="QR can't be used">QR can't be used</option>
+                                        <option value="Already pulled out">Already pulled out</option>
                                     </select>
 
                                 </div>
