@@ -30,6 +30,7 @@ class UserController extends BaseController
         }
 
         $users = $builder
+            ->where('id !=', session()->get('user')['id'])
             ->orderBy('id', 'DESC')
             ->get()
             ->getResultArray();
