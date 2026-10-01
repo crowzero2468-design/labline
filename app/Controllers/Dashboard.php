@@ -237,21 +237,33 @@ class Dashboard extends BaseController
         $ongoingTicketCount = 0;
         $pulloutTicketCount = 0;
         $onHoldTicketCount = 0;
+        $returnedTicketCount = 0;
+        $completedTicketCount = 0;
 
         if ($database->tableExists('tb_support')) {
-            $ongoingTicketCount = (int) $database->table('tb_support')
+            $supportTable = $database->table('tb_support');
+
+            $ongoingTicketCount = (int) $supportTable
                 ->where('status', 'ongoing')
                 ->countAllResults();
 
-            $pulloutTicketCount = (int) $database->table('tb_support')
+            $pulloutTicketCount = (int) $supportTable
                 ->where('status', 'pullout')
                 ->countAllResults();
 
-            $onHoldTicketCount = (int) $database->table('tb_support')
+            $onHoldTicketCount = (int) $supportTable
                 ->groupStart()
                 ->where('status', 'on_hold')
                 ->orWhere('status', 'waiting')
                 ->groupEnd()
+                ->countAllResults();
+
+            $returnedTicketCount = (int) $supportTable
+                ->where('returnstat', 'return')
+                ->countAllResults();
+
+            $completedTicketCount = (int) $supportTable
+                ->where('status', 'done')
                 ->countAllResults();
         }
 
@@ -416,6 +428,8 @@ class Dashboard extends BaseController
             'ongoing_ticket_count' => $ongoingTicketCount,
             'pullout_ticket_count' => $pulloutTicketCount,
             'on_hold_ticket_count' => $onHoldTicketCount,
+            'returned_ticket_count' => $returnedTicketCount,
+            'completed_ticket_count' => $completedTicketCount,
             'machine_counts' => $machineCounts,
             'monthly_support' => $monthlySupport,
             'pullout_timeline' => $pulloutTimeline,

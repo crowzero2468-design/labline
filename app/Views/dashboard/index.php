@@ -562,7 +562,7 @@ document.addEventListener('DOMContentLoaded', function () {
                             <div class="card-header">
 
                                 <span class="stat-label">
-                                    Total Ongoing, Pull Out, On Hold Tickets
+                                    Total Tickets
                                 </span>
 
                                 <div class="dropdown">
@@ -602,7 +602,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
                             <div class="stat-value">
 
-                                <?= number_format((int) ($ongoing_ticket_count ?? 0) + (int) ($pullout_ticket_count ?? 0) + (int) ($on_hold_ticket_count ?? 0)) ?>
+                                <?= number_format(
+                                    (int) ($ongoing_ticket_count ?? 0)
+                                    + (int) ($pullout_ticket_count ?? 0)
+                                    + (int) ($on_hold_ticket_count ?? 0)
+                                    + (int) ($returned_ticket_count ?? 0)
+                                    + (int) ($completed_ticket_count ?? 0)
+                                ) ?>
 
                             </div>
 
@@ -618,6 +624,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
                                 <span class="badge bg-secondary-subtle text-secondary-emphasis px-2 py-1 rounded-pill">
                                     On Hold: <?= number_format((int) ($on_hold_ticket_count ?? 0)) ?>
+                                </span>
+
+                                <span class="badge bg-success-subtle text-success-emphasis px-2 py-1 rounded-pill">
+                                    Returned: <?= number_format((int) ($returned_ticket_count ?? 0)) ?>
+                                </span>
+
+                                <span class="badge bg-info-subtle text-info-emphasis px-2 py-1 rounded-pill">
+                                    Completed: <?= number_format((int) ($completed_ticket_count ?? 0)) ?>
                                 </span>
 
                             </div>
