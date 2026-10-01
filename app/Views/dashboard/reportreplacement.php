@@ -1375,7 +1375,7 @@
 
                                 <div class="col-12 col-md-6">
                                     <label for="edit_status" class="form-label">Status</label>
-                                    <select name="status" id="edit_status" class="form-select" required>
+                                    <select name="status" id="edit_status" class="form-select">
                                         <option value="">No Status</option>
                                         <?php foreach (['Report by Clinic', 'Report to Manufacture', 'Order', 'Delivered'] as $statusOption): ?>
                                             <option value="<?= esc($statusOption) ?>"><?= esc($statusOption) ?></option>
