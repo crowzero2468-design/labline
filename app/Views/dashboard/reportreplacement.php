@@ -1455,7 +1455,7 @@ document.addEventListener('DOMContentLoaded', function () {
             ],
 
             order: [
-                [8, 'desc']
+                [8, 'asc']
             ],
 
             responsive: false,
