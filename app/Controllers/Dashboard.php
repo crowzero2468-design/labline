@@ -234,6 +234,27 @@ class Dashboard extends BaseController
                 ->getResultArray();
         }
 
+        $ongoingTicketCount = 0;
+        $pulloutTicketCount = 0;
+        $onHoldTicketCount = 0;
+
+        if ($database->tableExists('tb_support')) {
+            $ongoingTicketCount = (int) $database->table('tb_support')
+                ->where('status', 'ongoing')
+                ->countAllResults();
+
+            $pulloutTicketCount = (int) $database->table('tb_support')
+                ->where('status', 'pullout')
+                ->countAllResults();
+
+            $onHoldTicketCount = (int) $database->table('tb_support')
+                ->groupStart()
+                ->where('status', 'on_hold')
+                ->orWhere('status', 'waiting')
+                ->groupEnd()
+                ->countAllResults();
+        }
+
                 $monthlySupport = [];
                 $pulloutTimeline = [];
                 $machineYearly = [];
@@ -392,6 +413,9 @@ class Dashboard extends BaseController
 
             'total_data'     => $totalData,
             'total_machine'  => $totalMachine,
+            'ongoing_ticket_count' => $ongoingTicketCount,
+            'pullout_ticket_count' => $pulloutTicketCount,
+            'on_hold_ticket_count' => $onHoldTicketCount,
             'machine_counts' => $machineCounts,
             'monthly_support' => $monthlySupport,
             'pullout_timeline' => $pulloutTimeline,

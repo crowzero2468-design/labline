@@ -403,7 +403,7 @@ document.addEventListener('DOMContentLoaded', function () {
                      TOTAL PROVINCE
                      ========================================== -->
 
-                <div class="col-md-4">
+                <div class="col-md-3">
 
                     <div class="card card-stat d-flex flex-column justify-content-between">
 
@@ -478,7 +478,7 @@ document.addEventListener('DOMContentLoaded', function () {
                      TOTAL CLINICS
                      ========================================== -->
 
-                <div class="col-md-4">
+                <div class="col-md-3">
 
                     <div class="card card-stat d-flex flex-column justify-content-between">
 
@@ -553,7 +553,93 @@ document.addEventListener('DOMContentLoaded', function () {
                      MACHINE
                      ========================================== -->
 
-                <div class="col-md-4">
+                <div class="col-md-3">
+
+                    <div class="card card-stat d-flex flex-column justify-content-between">
+
+                        <div>
+
+                            <div class="card-header">
+
+                                <span class="stat-label">
+                                    Total Ongoing, Pull Out, On Hold Tickets
+                                </span>
+
+                                <div class="dropdown">
+
+                                    <button
+                                        class="card-more-btn"
+                                        type="button"
+                                        data-bs-toggle="dropdown"
+                                        aria-expanded="false"
+                                        aria-label="More Options"
+                                        id="btn-more-ongoing-ticket">
+
+                                        <i class="bi bi-three-dots"></i>
+
+                                    </button>
+
+                                    <ul class="dropdown-menu dropdown-menu-end dropdown-menu-custom">
+
+                                        <li>
+
+                                            <a class="dropdown-item"
+                                               href="#">
+
+                                                <i class="bi bi-arrow-repeat"></i>
+                                                Refresh
+
+                                            </a>
+
+                                        </li>
+
+                                    </ul>
+
+                                </div>
+
+                            </div>
+
+
+                            <div class="stat-value">
+
+                                <?= number_format((int) ($ongoing_ticket_count ?? 0) + (int) ($pullout_ticket_count ?? 0) + (int) ($on_hold_ticket_count ?? 0)) ?>
+
+                            </div>
+
+                            <div class="mt-3 d-flex flex-wrap gap-2 justify-content-center">
+
+                                <span class="badge bg-primary-subtle text-primary-emphasis px-2 py-1 rounded-pill">
+                                    Ongoing: <?= number_format((int) ($ongoing_ticket_count ?? 0)) ?>
+                                </span>
+
+                                <span class="badge bg-danger-subtle text-danger-emphasis px-2 py-1 rounded-pill">
+                                    Pull Out: <?= number_format((int) ($pullout_ticket_count ?? 0)) ?>
+                                </span>
+
+                                <span class="badge bg-secondary-subtle text-secondary-emphasis px-2 py-1 rounded-pill">
+                                    On Hold: <?= number_format((int) ($on_hold_ticket_count ?? 0)) ?>
+                                </span>
+
+                            </div>
+
+
+                            <div class="trend-badge trend-up mt-3">
+
+                                <i class="bi bi-ticket-perforated"></i>
+
+                                <span>
+                                    Active support tickets
+                                </span>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <div class="col-md-3">
 
                     <div class="card card-stat d-flex flex-column justify-content-between">
 

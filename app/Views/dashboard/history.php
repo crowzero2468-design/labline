@@ -80,6 +80,16 @@
     #edit_clinic_name + .select2-container {
         width: 100% !important;
     }
+
+    #historyTimeline .card-body {
+        max-height: 520px;
+        overflow-y: auto;
+    }
+
+    #clinicHistory .table-responsive {
+        max-height: 320px;
+        overflow-y: auto;
+    }
 </style>
 
 <body>
@@ -1481,79 +1491,71 @@ $(document).ready(function () {
     // SHOW CLINIC HISTORY
     // ==========================================================
 
+    function normalizeClinicName(value) {
+        return String(value ?? '')
+            .trim()
+            .replace(/\s+/g, ' ')
+            .toLowerCase();
+    }
+
     function showClinicHistory(clinic) {
+        const normalizedClinic = normalizeClinicName(clinic);
+        const historyRows = [];
 
-        const matchingRows =
-            $('.history-row').filter(
-                function () {
+        if (typeof historyTable !== 'undefined') {
+            historyTable.rows().every(function () {
+                const rowNode = this.node();
+                const $row = $(rowNode);
+                const rowClinic = $row.data('clinic') || '-';
 
-                    return (
-                        $(this).data('clinic') ||
-                        '-'
-                    ) === clinic;
-
+                if (normalizeClinicName(rowClinic) !== normalizedClinic) {
+                    return;
                 }
-            );
 
-
-        const historyRows =
-            matchingRows.map(
-                function () {
-
-                    const row =
-                        $(this);
-
-
-                    const durationEnd =
-                        row.data('returned') ||
-                        (
-                            row.data('status') === 'Completed'
-                                ? row.data('updated')
-                                : ''
-                        );
-
-
-                    return (
-
-                        '<tr>' +
-
-                        '<td>' +
-                        formatTimelineDate(
-                            row.data('inputed')
-                        ) +
-                        '</td>' +
-
-                        '<td>' +
-                        $('<div>')
-                            .text(
-                                row.data('concern') || '-'
-                            )
-                            .html() +
-                        '</td>' +
-
-                        '<td>' +
-                        $('<span>')
-                            .text(
-                                row.data('status') || '-'
-                            )
-                            .html() +
-                        '</td>' +
-
-                        '<td>' +
-                        formatDuration(
-                            row.data('inputed'),
-                            durationEnd
-                        ) +
-                        '</td>' +
-
-                        '</tr>'
-
+                const durationEnd =
+                    $row.data('returned') ||
+                    (
+                        $row.data('status') === 'Completed'
+                            ? $row.data('updated')
+                            : ''
                     );
 
-                }
-            )
-            .get()
-            .join('');
+                historyRows.push(
+                    '<tr>' +
+                    '<td>' + formatTimelineDate($row.data('inputed')) + '</td>' +
+                    '<td>' + $('<div>').text($row.data('concern') || '-').html() + '</td>' +
+                    '<td>' + $('<span>').text($row.data('status') || '-').html() + '</td>' +
+                    '<td>' + formatDuration($row.data('inputed'), durationEnd) + '</td>' +
+                    '</tr>'
+                );
+            });
+        }
+
+        if (!historyRows.length) {
+            const fallbackRows = $('.history-row').filter(function () {
+                return normalizeClinicName($(this).data('clinic') || '-') === normalizedClinic;
+            });
+
+            fallbackRows.each(function () {
+                const $row = $(this);
+                const durationEnd =
+                    $row.data('returned') ||
+                    (
+                        $row.data('status') === 'Completed'
+                            ? $row.data('updated')
+                            : ''
+                    );
+
+                historyRows.push(
+                    '<tr>' +
+                    '<td>' + formatTimelineDate($row.data('inputed')) + '</td>' +
+                    '<td>' + $('<div>').text($row.data('concern') || '-').html() + '</td>' +
+                    '<td>' + $('<span>').text($row.data('status') || '-').html() + '</td>' +
+                    '<td>' + formatDuration($row.data('inputed'), durationEnd) + '</td>' +
+                    '</tr>'
+                );
+            });
+        }
 
 
         $('#historyTimeline .card-title')
