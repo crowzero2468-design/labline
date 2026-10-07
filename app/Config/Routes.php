@@ -64,6 +64,7 @@ $routes->post('dashboard/pms/save_fsr', 'Pms::save_fsr');
 
 $routes->get('mfs', 'Mfs::index');
 $routes->post('mfs/save', 'Mfs::save');
+$routes->post('mfs/import', 'Mfs::importExcel');
 $routes->get('mfs/export', 'Mfs::export');
 $routes->get('mfs/edit/(:num)', 'Mfs::edit/$1');
 $routes->post('mfs/update/(:num)', 'Mfs::update/$1');

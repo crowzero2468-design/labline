@@ -95,6 +95,43 @@ document.addEventListener('DOMContentLoaded', function () {
     } else if (successMessage && window.Swal) {
         Swal.fire({ icon: 'success', title: 'Success', text: successMessage, timer: 3000, timerProgressBar: true, showConfirmButton: false });
     }
+
+    const mfsImportForm = document.querySelector('form[action="<?= site_url('mfs/import') ?>"]');
+    const mfsImportInput = document.querySelector('input[name="excel_file"]');
+
+    if (mfsImportForm && mfsImportInput) {
+        mfsImportForm.addEventListener('submit', function (event) {
+            const file = mfsImportInput.files && mfsImportInput.files[0];
+
+            if (!file) {
+                event.preventDefault();
+                if (window.Swal) {
+                    Swal.fire({ icon: 'error', title: 'Invalid file', text: 'Please choose a file to import.' });
+                } else {
+                    alert('Please choose a file to import.');
+                }
+                return;
+            }
+
+            const fileName = (file.name || '').toLowerCase().trim();
+            const mimeType = (file.type || '').toLowerCase();
+            const isAllowedByName = fileName.endsWith('.xlsx') || fileName.endsWith('.csv');
+            const isAllowedByMime = [
+                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'text/csv',
+                'application/csv'
+            ].includes(mimeType);
+
+            if (!isAllowedByName && !isAllowedByMime) {
+                event.preventDefault();
+                if (window.Swal) {
+                    Swal.fire({ icon: 'error', title: 'Invalid file type', text: 'Only .xlsx and .csv files are allowed.' });
+                } else {
+                    alert('Only .xlsx and .csv files are allowed.');
+                }
+            }
+        });
+    }
 });
 </script>
 
@@ -115,7 +152,25 @@ document.addEventListener('DOMContentLoaded', function () {
             MSF Records
         </h4>
 
-        <div>
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+
+            <form method="post" action="<?= site_url('mfs/import') ?>" enctype="multipart/form-data" class="d-flex align-items-center gap-2 mb-0">
+
+                <?= csrf_field() ?>
+
+                <input type="file" name="excel_file" accept=".xlsx,.csv" class="form-control form-control-sm" style="width: 220px;" required>
+
+                <button type="submit" class="btn btn-success btn-sm text-nowrap">
+                    <i class="fas fa-file-import me-1"></i>
+                    Import MFS Excel
+                </button>
+
+                <a href="<?= base_url('templates/mfs_import_template.xlsx') ?>" class="btn btn-success btn-sm text-nowrap" download>
+                    <i class="fas fa-download me-1"></i>
+                    Download Excel Template Here
+                </a>
+
+            </form>
 
             <?php if (!empty($selected_employee)): ?>
 

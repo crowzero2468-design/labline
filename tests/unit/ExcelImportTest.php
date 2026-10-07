@@ -86,6 +86,19 @@ XML;
         unlink($path);
     }
 
+    public function testMfsImportExtensionDetectionAcceptsCaseInsensitiveAndMimeBasedFiles(): void
+    {
+        $controller = new \App\Controllers\Mfs();
+        $method = new \ReflectionMethod($controller, 'detectImportExtension');
+        $method->setAccessible(true);
+
+        $this->assertSame('xlsx', $method->invoke($controller, 'REPORT.XLSX', 'application/octet-stream'));
+        $this->assertSame('csv', $method->invoke($controller, 'REPORT.CSV', 'application/octet-stream'));
+        $this->assertSame('xlsx', $method->invoke($controller, 'report', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'));
+        $this->assertSame('csv', $method->invoke($controller, 'report', 'text/csv'));
+        $this->assertNull($method->invoke($controller, 'report.xls', 'application/vnd.ms-excel'));
+    }
+
     public function testPmsImportTreatsSamePmsNumberOnDifferentMachinesAsUnique(): void
     {
         $controller = new \App\Controllers\Pms();
