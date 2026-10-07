@@ -4351,10 +4351,12 @@ public function importExcel(): RedirectResponse
         // ------------------------------------------------------
         // DUPLICATE CHECK
         //
-        // First check PMS number.
+        // Same PMS number is allowed for different machine rows,
+        // so the import must compare the full record rather than
+        // the PMS number alone.
         // ------------------------------------------------------
 
-        $existing = null;
+        $existingRows = [];
 
         if (
             $pmsNumber !== '' &&
@@ -4365,14 +4367,14 @@ public function importExcel(): RedirectResponse
             )
         ) {
 
-            $existing = $database
+            $existingRows = $database
                 ->table('tb_pms')
                 ->where(
                     'pms_number',
                     $pmsNumber
                 )
                 ->get()
-                ->getRowArray();
+                ->getResultArray();
 
         } else {
 
@@ -4409,16 +4411,30 @@ public function importExcel(): RedirectResponse
                 }
             }
 
-            $existing = $duplicateBuilder
+            $existingRows = $duplicateBuilder
                 ->get()
-                ->getRowArray();
+                ->getResultArray();
         }
 
         // ------------------------------------------------------
-        // SKIP DUPLICATE
+        // SKIP ONLY AN EXACT DUPLICATE ROW
         // ------------------------------------------------------
 
-        if ($existing) {
+        $isDuplicate = false;
+
+        foreach ($existingRows as $existingRow) {
+            if (
+                $this->isDuplicatePmsImportRow(
+                    $record,
+                    $existingRow
+                )
+            ) {
+                $isDuplicate = true;
+                break;
+            }
+        }
+
+        if ($isDuplicate) {
             $skipped++;
             continue;
         }
@@ -4489,6 +4505,47 @@ public function importExcel(): RedirectResponse
             'error',
             $message
         );
+}
+
+/**
+ * Compare import rows by the full PMS record so rows with the
+ * same PMS number but different machine data remain valid.
+ */
+private function isDuplicatePmsImportRow(array $candidateRow, array $existingRow): bool
+{
+    $normalize = function (mixed $value): string {
+        $value = trim((string) $value);
+
+        if ($value !== '' && preg_match('/^\d+$/', $value)) {
+            $value = str_pad($value, 6, '0', STR_PAD_LEFT);
+        }
+
+        return strtolower($value);
+    };
+
+    $candidate = [
+        'pms_number' => $normalize($candidateRow['pms_number'] ?? ''),
+        'service_tech' => $normalize($candidateRow['service_tech'] ?? ''),
+        'clinic' => $normalize($candidateRow['clinic'] ?? ''),
+        'address' => $normalize($candidateRow['address'] ?? ''),
+        'date' => $normalize($candidateRow['date'] ?? ''),
+        'machine' => $normalize($candidateRow['machine'] ?? ''),
+        'sn' => $normalize($candidateRow['sn'] ?? ''),
+        'status' => $normalize($candidateRow['status'] ?? ''),
+    ];
+
+    $existing = [
+        'pms_number' => $normalize($existingRow['pms_number'] ?? ''),
+        'service_tech' => $normalize($existingRow['service_tech'] ?? ''),
+        'clinic' => $normalize($existingRow['clinic'] ?? ''),
+        'address' => $normalize($existingRow['address'] ?? ''),
+        'date' => $normalize($existingRow['date'] ?? ''),
+        'machine' => $normalize($existingRow['machine'] ?? ''),
+        'sn' => $normalize($existingRow['sn'] ?? ''),
+        'status' => $normalize($existingRow['status'] ?? ''),
+    ];
+
+    return $candidate === $existing;
 }
 
 

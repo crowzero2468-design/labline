@@ -77,6 +77,69 @@
             padding: 1rem !important;
         }
 
+        .page-header {
+            display: flex;
+            flex-direction: column;
+            align-items: stretch !important;
+            gap: 1rem;
+        }
+
+        .page-header > div {
+            width: 100%;
+        }
+
+        .page-title {
+            font-size: 1.6rem;
+            word-break: break-word;
+        }
+
+        .page-subtitle {
+            font-size: 0.8rem;
+        }
+
+        .card-stat {
+            min-width: 0;
+        }
+
+        .card-stat .card-header {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .card-stat .stat-label {
+            white-space: normal !important;
+            word-break: break-word;
+            line-height: 1.35;
+            min-width: 0;
+        }
+
+        .card-stat .stat-value {
+            font-size: clamp(1.5rem, 6vw, 2.1rem);
+            word-break: break-word;
+            line-height: 1.2;
+        }
+
+        .card-stat .badge,
+        .card-stat .trend-badge,
+        .card-stat .mt-3.d-flex {
+            white-space: normal !important;
+            word-break: break-word;
+        }
+
+        .card-stat .mt-3.d-flex {
+            justify-content: center !important;
+        }
+
+        .card-stat .trend-badge {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            width: 100%;
+        }
+
         #installedDateFilterContainer {
             width: 100%;
             flex-direction: column;

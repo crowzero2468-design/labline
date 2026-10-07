@@ -85,4 +85,36 @@ XML;
 
         unlink($path);
     }
+
+    public function testPmsImportTreatsSamePmsNumberOnDifferentMachinesAsUnique(): void
+    {
+        $controller = new \App\Controllers\Pms();
+        $method = new \ReflectionMethod($controller, 'isDuplicatePmsImportRow');
+        $method->setAccessible(true);
+
+        $firstRow = [
+            'pms_number' => '000123',
+            'service_tech' => 'John Smith',
+            'clinic' => 'Alpha Clinic',
+            'address' => '123 Main St',
+            'date' => '2026-10-07',
+            'machine' => 'X-Ray',
+            'sn' => 'XR-001',
+            'status' => 'Preventive Maintenance',
+        ];
+
+        $secondRow = [
+            'pms_number' => '000123',
+            'service_tech' => 'John Smith',
+            'clinic' => 'Alpha Clinic',
+            'address' => '123 Main St',
+            'date' => '2026-10-07',
+            'machine' => 'Ultrasound',
+            'sn' => 'US-010',
+            'status' => 'Cleaning and Inspection',
+        ];
+
+        $this->assertFalse($method->invoke($controller, $firstRow, $secondRow));
+        $this->assertTrue($method->invoke($controller, $firstRow, $firstRow));
+    }
 }

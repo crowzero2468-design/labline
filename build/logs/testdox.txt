@@ -1,3 +1,4 @@
 Excel Import
  [x] Dashboard parse excel rows handles xlsx default namespace
+ [x] Pms import treats same pms number on different machines as unique
 
