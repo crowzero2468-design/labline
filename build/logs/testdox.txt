@@ -1,5 +1,6 @@
 Excel Import
  [x] Dashboard parse excel rows handles xlsx default namespace
  [x] Mfs import extension detection accepts case insensitive and mime based files
+ [ ] Fsr import parses inline string xlsx template
  [x] Pms import treats same pms number on different machines as unique
 

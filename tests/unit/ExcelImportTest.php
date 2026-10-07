@@ -99,6 +99,84 @@ XML;
         $this->assertNull($method->invoke($controller, 'report.xls', 'application/vnd.ms-excel'));
     }
 
+    public function testFsrImportParsesInlineStringXlsxTemplate(): void
+    {
+        $dir = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'lablinesys_fsr_inline_test';
+
+        if (!is_dir($dir)) {
+            mkdir($dir, 0777, true);
+        }
+
+        $path = $dir . DIRECTORY_SEPARATOR . 'inline_template.xlsx';
+        if (file_exists($path)) {
+            unlink($path);
+        }
+
+        $zip = new ZipArchive();
+        $this->assertTrue($zip->open($path, ZipArchive::CREATE | ZipArchive::OVERWRITE) === true, 'Unable to create the temporary FSR XLSX fixture.');
+
+        $sheetXml = <<<'XML'
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+  <sheetData>
+    <row r="1">
+      <c r="A1" t="inlineStr"><is><t>FSR Number</t></is></c>
+      <c r="B1" t="inlineStr"><is><t>Service Engineer</t></is></c>
+      <c r="C1" t="inlineStr"><is><t>Account</t></is></c>
+    </row>
+    <row r="2">
+      <c r="A2" t="inlineStr"><is><t>000001</t></is></c>
+      <c r="B2" t="inlineStr"><is><t>John Smith</t></is></c>
+      <c r="C2" t="inlineStr"><is><t>Alpha Clinic</t></is></c>
+    </row>
+  </sheetData>
+</worksheet>
+XML;
+
+        $zip->addFromString('xl/workbook.xml', <<<'XML'
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+  <sheets><sheet name="Sheet1" sheetId="1" r:id="rId1"/></sheets>
+</workbook>
+XML);
+        $zip->addFromString('xl/_rels/workbook.xml.rels', <<<'XML'
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>
+</Relationships>
+XML);
+        $zip->addFromString('xl/worksheets/sheet1.xml', $sheetXml);
+        $zip->addFromString('[Content_Types].xml', <<<'XML'
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>
+  <Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
+</Types>
+XML);
+        $zip->addFromString('_rels/.rels', <<<'XML'
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>
+</Relationships>
+XML);
+        $zip->close();
+
+        $controller = new \App\Controllers\Fsr();
+        $method = new \ReflectionMethod($controller, 'parseExcelRows');
+        $method->setAccessible(true);
+
+        $rows = $method->invoke($controller, $path);
+
+        $this->assertCount(1, $rows);
+        $this->assertSame('000001', $rows[0]['A']['value']);
+        $this->assertSame('John Smith', $rows[0]['B']['value']);
+        $this->assertSame('Alpha Clinic', $rows[0]['C']['value']);
+
+        unlink($path);
+    }
+
     public function testPmsImportTreatsSamePmsNumberOnDifferentMachinesAsUnique(): void
     {
         $controller = new \App\Controllers\Pms();

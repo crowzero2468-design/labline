@@ -74,6 +74,7 @@ $routes->post('mfs/delete/(:num)', 'Mfs::delete/$1');
 
 $routes->get('fsr', 'Fsr::index');
 $routes->post('fsr/save', 'Fsr::save');
+$routes->post('fsr/import', 'Fsr::importExcel');
 $routes->get('fsr/edit/(:num)', 'Fsr::edit/$1');
 $routes->post('fsr/update/(:num)', 'Fsr::update/$1');
 $routes->post('fsr/delete/(:num)', 'Fsr::delete/$1');

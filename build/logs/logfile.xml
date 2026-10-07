@@ -1,8 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <testsuites>
-  <testsuite name="ExcelImportTest" file="F:\xampp\htdocs\lablinesys\tests\unit\ExcelImportTest.php" tests="3" assertions="11" errors="0" failures="0" skipped="0" time="0.051481">
-    <testcase name="testDashboardParseExcelRowsHandlesXlsxDefaultNamespace" file="F:\xampp\htdocs\lablinesys\tests\unit\ExcelImportTest.php" line="7" class="ExcelImportTest" classname="ExcelImportTest" assertions="4" time="0.029291"/>
-    <testcase name="testMfsImportExtensionDetectionAcceptsCaseInsensitiveAndMimeBasedFiles" file="F:\xampp\htdocs\lablinesys\tests\unit\ExcelImportTest.php" line="89" class="ExcelImportTest" classname="ExcelImportTest" assertions="5" time="0.018204"/>
-    <testcase name="testPmsImportTreatsSamePmsNumberOnDifferentMachinesAsUnique" file="F:\xampp\htdocs\lablinesys\tests\unit\ExcelImportTest.php" line="102" class="ExcelImportTest" classname="ExcelImportTest" assertions="2" time="0.003986"/>
+  <testsuite name="ExcelImportTest" file="F:\xampp\htdocs\lablinesys\tests\unit\ExcelImportTest.php" tests="4" assertions="13" errors="0" failures="1" skipped="0" time="0.122298">
+    <testcase name="testDashboardParseExcelRowsHandlesXlsxDefaultNamespace" file="F:\xampp\htdocs\lablinesys\tests\unit\ExcelImportTest.php" line="7" class="ExcelImportTest" classname="ExcelImportTest" assertions="4" time="0.029278"/>
+    <testcase name="testMfsImportExtensionDetectionAcceptsCaseInsensitiveAndMimeBasedFiles" file="F:\xampp\htdocs\lablinesys\tests\unit\ExcelImportTest.php" line="89" class="ExcelImportTest" classname="ExcelImportTest" assertions="5" time="0.002438"/>
+    <testcase name="testFsrImportParsesInlineStringXlsxTemplate" file="F:\xampp\htdocs\lablinesys\tests\unit\ExcelImportTest.php" line="102" class="ExcelImportTest" classname="ExcelImportTest" assertions="2" time="0.086941">
+      <failure type="PHPUnit\Framework\ExpectationFailedException">ExcelImportTest::testFsrImportParsesInlineStringXlsxTemplate&#13;
+Failed asserting that actual size 2 matches expected size 1.
+&#13;
+F:\xampp\htdocs\lablinesys\tests\unit\ExcelImportTest.php:172</failure>
+    </testcase>
+    <testcase name="testPmsImportTreatsSamePmsNumberOnDifferentMachinesAsUnique" file="F:\xampp\htdocs\lablinesys\tests\unit\ExcelImportTest.php" line="180" class="ExcelImportTest" classname="ExcelImportTest" assertions="2" time="0.003642"/>
   </testsuite>
 </testsuites>

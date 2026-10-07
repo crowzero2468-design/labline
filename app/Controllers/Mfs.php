@@ -1505,6 +1505,34 @@ public function delete($id)
             }
         }
 
+        $readCellValue = function (\DOMElement $cell) use ($sharedStrings, $mainNamespace): string {
+            $cellType = $cell->getAttribute('t');
+
+            if ($cellType === 'inlineStr') {
+                $inlineTextNodes = $cell->getElementsByTagNameNS($mainNamespace, 't');
+                $text = '';
+
+                foreach ($inlineTextNodes as $inlineTextNode) {
+                    $text .= $inlineTextNode->nodeValue;
+                }
+
+                return $text;
+            }
+
+            $valueNode = $cell->getElementsByTagNameNS($mainNamespace, 'v')->item(0);
+            if ($valueNode === null) {
+                return '';
+            }
+
+            $rawValue = trim((string) $valueNode->nodeValue);
+
+            if ($cellType === 's') {
+                return isset($sharedStrings[(int) $rawValue]) ? $sharedStrings[(int) $rawValue] : '';
+            }
+
+            return $rawValue;
+        };
+
         $workbookContent = $zip->getFromName('xl/workbook.xml');
         if ($workbookContent === false) {
             $zip->close();
@@ -1613,7 +1641,7 @@ public function delete($id)
                         }
                     }
 
-                    $mapped[$col] = ['value' => $value];
+                    $mapped[$col] = ['value' => $readCellValue($cell)];
                 }
 
                 if ($mapped !== []) {
