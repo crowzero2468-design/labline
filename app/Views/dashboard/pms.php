@@ -239,6 +239,7 @@ document.addEventListener('DOMContentLoaded', function () {
                                 <th>Service Engr</th>
                                 <th>Account</th>
                                 <th>Address</th>
+                                <th>Remarks</th>
                                 <th>Date</th>
                                 <th>Machine Type</th>
                                 <th>Serial Number</th>
@@ -400,6 +401,17 @@ if (!empty($pms_records)) {
             <td>
 
                 <?= esc($main['address'] ?? '') ?>
+
+            </td>
+
+
+            <!-- REMARKS -->
+
+            <?php $mainRemarks = trim((string) ($main['remarks'] ?? '')); ?>
+
+            <td style="max-width: 220px; white-space: normal; word-break: break-word;">
+
+                <?= $mainRemarks !== '' ? nl2br(esc($mainRemarks), false) : '-' ?>
 
             </td>
 
@@ -592,7 +604,7 @@ if (!empty($pms_records)) {
                 data-parent-group="<?= esc(md5($groupKey)) ?>"
             >
 
-                <td colspan="12">
+                <td colspan="13">
 
                     <div class="p-3 bg-light border rounded">
 
@@ -624,6 +636,8 @@ if (!empty($pms_records)) {
                                         <th>Account</th>
 
                                         <th>Address</th>
+
+                                        <th>Remarks</th>
 
                                         <th>Machine Type</th>
 
@@ -682,6 +696,17 @@ if (!empty($pms_records)) {
                                         <td>
 
                                             <?= esc($r['address'] ?? '') ?>
+
+                                        </td>
+
+
+                                        <!-- REMARKS -->
+
+                                        <?php $recordRemarks = trim((string) ($r['remarks'] ?? '')); ?>
+
+                                        <td style="max-width: 220px; white-space: normal; word-break: break-word;">
+
+                                            <?= $recordRemarks !== '' ? nl2br(esc($recordRemarks), false) : '-' ?>
 
                                         </td>
 
@@ -1393,6 +1418,28 @@ if (!empty($pms_records)) {
                             class="form-control"
                             readonly
                         >
+
+                    </div>
+
+
+                    <!-- ADDRESS -->
+
+                    <div class="col-md-12">
+
+                        <label
+                            for="pms_remarks"
+                            class="form-label"
+                        >
+                            Remarks
+                        </label>
+
+                        <textarea
+                            name="remarks"
+                            id="pms_remarks"
+                            class="form-control"
+                            rows="3"
+                            placeholder="Add remarks for this PMS record"
+                        ></textarea>
 
                     </div>
 
@@ -2698,6 +2745,27 @@ if (!empty($pms_records)) {
                                 name="address"
                                 id="edit_pms_address"
                                 rows="2"
+                            ></textarea>
+
+                        </div>
+
+
+                        <!-- REMARKS -->
+
+                        <div class="col-12">
+
+                            <label
+                                class="form-label fw-semibold"
+                            >
+                                Remarks
+                            </label>
+
+                            <textarea
+                                class="form-control"
+                                name="remarks"
+                                id="edit_pms_remarks"
+                                rows="3"
+                                placeholder="Add remarks"
                             ></textarea>
 
                         </div>

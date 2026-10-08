@@ -2,39 +2,304 @@
 <?= view('dashboard/layout/head') ?>
 
 <style>
+    :root {
+        --corp-bg: #edf3fb;
+        --corp-bg-strong: #e4edf9;
+        --corp-card: #ffffff;
+        --corp-card-alt: #f8fbff;
+        --corp-border: rgba(15, 23, 42, 0.08);
+        --corp-border-strong: rgba(15, 23, 42, 0.12);
+        --corp-primary: #0f4c81;
+        --corp-primary-strong: #0c3b66;
+        --corp-accent: #2e7de1;
+        --corp-success: #1b8f73;
+        --corp-warning: #e6992a;
+        --corp-danger: #d94a41;
+        --corp-text: #162033;
+        --corp-muted: #64748b;
+        --corp-shadow: 0 16px 38px rgba(15, 23, 42, 0.08);
+    }
+
     html,
     body {
         min-height: 100%;
         overflow-y: auto !important;
+        background: linear-gradient(180deg, var(--corp-bg-strong) 0%, var(--corp-bg) 100%);
+        color: var(--corp-text);
+        font-family: "Segoe UI", Inter, Arial, sans-serif;
     }
 
     .main-wrapper {
         min-height: 100vh;
         overflow: visible;
+        padding: 1.5rem 1.5rem 2.5rem;
     }
 
-    #clinicRecordsTable tbody td:nth-child(2),
-    #clinicRecordsTable tbody td:nth-child(3),
-    #clinicRecordsTable tbody td:nth-child(4),
-    #clinicRecordsTable tbody td:nth-child(5),
-    #clinicRecordsTable tbody td:nth-child(6),
-    #clinicRecordsTable tbody td:nth-child(8),
-    #clinicRecordsTable tbody td:nth-child(9) {
-        white-space: normal !important;
-        overflow-wrap: anywhere;
-        word-break: normal;
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+        padding: 1.4rem 1.6rem;
+        margin-bottom: 1.5rem;
+        border: 1px solid var(--corp-border);
+        border-radius: 20px;
+        background: linear-gradient(135deg, #0d1b2a 0%, #183b5c 45%, #1b5f94 100%);
+        box-shadow: var(--corp-shadow);
+        color: #fff;
+    }
+
+    .page-header .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.72rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        opacity: 0.85;
+        font-weight: 700;
+        margin-bottom: 0.35rem;
+    }
+
+    .page-header .eyebrow::before {
+        content: "";
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #6ee7b7;
+        box-shadow: 0 0 0 6px rgba(110, 231, 183, 0.18);
+    }
+
+    .page-title {
+        margin: 0;
+        font-size: clamp(1.8rem, 2vw + 1rem, 2.7rem);
+        font-weight: 800;
+        letter-spacing: -0.04em;
+    }
+
+    .page-subtitle {
+        margin: 0.25rem 0 0;
+        color: rgba(255, 255, 255, 0.78);
+        font-size: 0.88rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+
+    .page-header-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.6rem;
+        padding: 0.7rem 1rem;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        color: rgba(255, 255, 255, 0.9);
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        white-space: nowrap;
+    }
+
+    .page-header-badge .status-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #6ee7b7;
+        box-shadow: 0 0 0 5px rgba(110, 231, 183, 0.18);
+    }
+
+    .card {
+        border: 1px solid var(--corp-border);
+        border-radius: 18px;
+        background: var(--corp-card);
+        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
+    }
+
+    .card-header {
+        background: transparent;
+        border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+        padding: 1rem 1.1rem 0.9rem;
+    }
+
+    .card-title {
+        font-size: 1.05rem;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        color: var(--corp-text);
+    }
+
+    .card-body {
+        background: transparent;
+    }
+
+    .card-stat {
+        position: relative;
+        min-height: 220px;
+        overflow: hidden;
+        border: 1px solid var(--corp-border);
+        border-radius: 18px;
+        background: linear-gradient(180deg, #fff 0%, #f7fbff 100%);
+        box-shadow: var(--corp-shadow);
+        padding: 1rem;
+    }
+
+    .card-stat::before {
+        content: "";
+        position: absolute;
+        inset: 0 auto auto 0;
+        width: 100%;
+        height: 5px;
+        background: linear-gradient(90deg, var(--corp-primary) 0%, var(--corp-accent) 100%);
+    }
+
+    .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .stat-label {
+        font-size: 0.73rem;
+        font-weight: 700;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+        color: var(--corp-muted);
+    }
+
+    .card-more-btn {
+        width: 32px;
+        height: 32px;
+        border-radius: 10px;
+        border: 1px solid rgba(15, 23, 42, 0.08);
+        background: var(--corp-card-alt);
+        color: var(--corp-primary);
+    }
+
+    .stat-value {
+        margin-top: 0.75rem;
+        font-size: clamp(2rem, 2vw + 1rem, 2.7rem);
+        font-weight: 800;
+        line-height: 1.1;
+        letter-spacing: -0.05em;
+        color: var(--corp-primary-strong);
+    }
+
+    .trend-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        margin-top: 1rem;
+        padding: 0.4rem 0.7rem;
+        border-radius: 999px;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.03em;
+        border: 1px solid rgba(17, 24, 39, 0.06);
+    }
+
+    .trend-up {
+        background: rgba(27, 143, 115, 0.08);
+        color: var(--corp-success);
+    }
+
+    .trend-badge i {
+        font-size: 0.78rem;
+    }
+
+    .badge {
+        font-weight: 600;
+        letter-spacing: 0.02em;
+    }
+
+    .btn-date-picker {
+        border: 1px solid rgba(15, 23, 42, 0.1);
+        background: rgba(255, 255, 255, 0.9);
+        color: var(--corp-text);
+        border-radius: 12px;
+        padding: 0.72rem 1rem;
+        font-weight: 600;
+        box-shadow: 0 8px 16px rgba(15, 23, 42, 0.04);
+    }
+
+    .btn,
+    .dropdown-item {
+        transition: all 0.2s ease;
+    }
+
+    .btn:hover,
+    .dropdown-item:hover {
+        transform: translateY(-1px);
+    }
+
+    .dropdown-menu-custom {
+        border: 1px solid rgba(15, 23, 42, 0.08);
+        border-radius: 12px;
+        box-shadow: 0 16px 28px rgba(15, 23, 42, 0.12);
     }
 
     #btn-more-model + .machine-count-menu {
-        height: 150px !important;
-        max-height: 150px !important;
-        overflow-y: scroll !important;
+        height: 180px !important;
+        max-height: 180px !important;
+        overflow-y: auto !important;
         overflow-x: hidden !important;
     }
 
-    /* ==========================================================
-   DATATABLE PAGINATION — RIGHT ALIGN
-   ========================================================== */
+    #clinicRecordsTable {
+        border-collapse: separate;
+        border-spacing: 0;
+        width: 100%;
+    }
+
+    #clinicRecordsTable thead th {
+        background: linear-gradient(135deg, #122639 0%, #183d60 100%);
+        color: #fff;
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        border-bottom: none;
+        padding: 0.9rem 0.75rem;
+    }
+
+    #clinicRecordsTable tbody td {
+        padding: 0.8rem 0.75rem;
+        border-color: rgba(15, 23, 42, 0.06);
+        vertical-align: middle;
+    }
+
+    #clinicRecordsTable tbody tr:hover {
+        background: rgba(17, 94, 162, 0.03);
+    }
+
+    #clinicRecordsToolbar {
+        gap: 0.75rem;
+    }
+
+    .dashboard-import-form {
+        background: var(--corp-card-alt);
+        border: 1px solid var(--corp-border);
+        border-radius: 12px;
+        padding: 0.4rem 0.55rem;
+        align-items: center;
+    }
+
+    .dashboard-import-form .form-control {
+        min-width: 180px;
+        border: 1px solid rgba(15, 23, 42, 0.08);
+    }
+
+    #clinicRecordsSearchForm {
+        max-width: 420px;
+    }
+
+    #clinicRecordsSearch {
+        border-radius: 12px;
+        border: 1px solid rgba(15, 23, 42, 0.08);
+        background: var(--corp-card-alt);
+    }
 
     #clinicRecordsTable_wrapper .dataTables_paginate {
         float: right !important;
@@ -60,7 +325,7 @@
     }
 
     #clinicRecordsTable_wrapper .dataTables_info {
-    margin: 0 !important;
+        margin: 0 !important;
     }
 
     #clinicRecordsTable_wrapper .dataTables_paginate {
@@ -70,6 +335,18 @@
 
     #installedDateFilterContainer {
         max-width: 100%;
+    }
+
+    #clinicRecordsTable tbody td:nth-child(2),
+    #clinicRecordsTable tbody td:nth-child(3),
+    #clinicRecordsTable tbody td:nth-child(4),
+    #clinicRecordsTable tbody td:nth-child(5),
+    #clinicRecordsTable tbody td:nth-child(6),
+    #clinicRecordsTable tbody td:nth-child(8),
+    #clinicRecordsTable tbody td:nth-child(9) {
+        white-space: normal !important;
+        overflow-wrap: anywhere;
+        word-break: normal;
     }
 
     @media (max-width: 767.98px) {
@@ -324,13 +601,19 @@ document.addEventListener('DOMContentLoaded', function () {
     <div class="page-header">
 
         <div>
+            <div class="eyebrow">Operations</div>
             <h1 class="page-title">
-                Machine Information Dashboard
+                Executive Dashboard
             </h1>
 
             <p class="page-subtitle">
-                LABLINE INC.
+                LABLINE INC. • Service Performance Overview
             </p>
+        </div>
+
+        <div class="page-header-badge">
+            <span class="status-dot"></span>
+            Live operations
         </div>
 
 <!-- ==================================================
@@ -465,7 +748,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 <!-- ==========================================
                      TOTAL PROVINCE
                      ========================================== -->
-<!-- 
+
                 <div class="col-md-3">
 
                     <div class="card card-stat d-flex flex-column justify-content-between">
@@ -534,14 +817,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
                     </div>
 
-                </div> -->
+                </div>
 
 
                 <!-- ==========================================
                      TOTAL CLINICS
                      ========================================== -->
 
-                <!-- <div class="col-md-3">
+                <div class="col-md-3">
 
                     <div class="card card-stat d-flex flex-column justify-content-between">
 
@@ -609,14 +892,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
                     </div>
 
-                </div> -->
+                </div>
 
 
                 <!-- ==========================================
                      MACHINE
                      ========================================== -->
 
-                <!-- <div class="col-md-3">
+                <div class="col-md-3">
 
                     <div class="card card-stat d-flex flex-column justify-content-between">
 
@@ -852,14 +1135,61 @@ document.addEventListener('DOMContentLoaded', function () {
 
             </div>
 
-        </div> -->
+        </div>
+
+        <div class="col-12">
+            <div class="row g-4">
+                <?php
+                    $moduleSummary = [
+                        ['label' => 'Users', 'value' => (int) ($user_count ?? 0), 'icon' => 'bi-people-fill', 'tone' => 'primary', 'records' => $module_details['Users'] ?? []],
+                        ['label' => 'PMS', 'value' => (int) ($pms_count ?? 0), 'icon' => 'bi-wrench', 'tone' => 'success', 'records' => $module_details['PMS'] ?? []],
+                        ['label' => 'MFS', 'value' => (int) ($mfs_count ?? 0), 'icon' => 'bi-clipboard-check', 'tone' => 'warning', 'records' => $module_details['MFS'] ?? []],
+                        ['label' => 'FSR', 'value' => (int) ($fsr_count ?? 0), 'icon' => 'bi-file-earmark-text', 'tone' => 'info', 'records' => $module_details['FSR'] ?? []],
+                        ['label' => 'Rotor', 'value' => (int) ($rotor_count ?? 0), 'icon' => 'bi-gear-fill', 'tone' => 'danger', 'records' => $module_details['Rotor'] ?? []],
+                    ];
+                ?>
+
+                <?php foreach ($moduleSummary as $module): ?>
+                    <?php $recordsJson = json_encode($module['records'] ?? [], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>
+                    <div class="col-6 col-md-4 col-xl">
+                        <div
+                            class="card card-stat h-100 module-summary-card"
+                            style="min-height: 160px; cursor: pointer;"
+                            data-bs-toggle="modal"
+                            data-bs-target="#moduleSummaryModal"
+                            data-title="<?= esc($module['label']) ?>"
+                            data-value="<?= number_format($module['value']) ?>"
+                            data-detail="Total <?= esc($module['label']) ?> records currently recorded in the system."
+                            data-icon="<?= esc($module['icon']) ?>"
+                            data-tone="<?= esc($module['tone']) ?>"
+                            data-records='<?= $recordsJson ?>'
+                            tabindex="0"
+                            role="button"
+                            aria-label="View <?= esc($module['label']) ?> details"
+                        >
+                            <div class="card-header pb-2">
+                                <span class="stat-label"><?= esc($module['label']) ?></span>
+                                <span class="badge bg-<?= esc($module['tone']) ?>-subtle text-<?= esc($module['tone']) ?>-emphasis rounded-pill px-2 py-1">
+                                    <i class="<?= esc($module['icon']) ?>"></i>
+                                </span>
+                            </div>
+                            <div class="card-body d-flex align-items-center justify-content-between pt-3">
+                                <div class="stat-value" style="font-size: clamp(1.6rem, 1.7vw + 0.8rem, 2.2rem);">
+                                    <?= number_format($module['value']) ?>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
 
 
         <!-- ==================================================
              SUPPORT ANALYTICS
              ================================================== -->
 
-        <!-- <div class="col-12">
+        <div class="col-12">
             <div class="row g-4">
                 <div class="col-12 col-xl-4">
                     <div class="card h-100">
@@ -897,7 +1227,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     </div>
                 </div>
             </div>
-        </div> -->
+        </div>
 
 
         <!-- ==================================================
@@ -1108,7 +1438,7 @@ document.addEventListener('DOMContentLoaded', function () {
                                     <th>Installed Date</th>
                                     <th>SN</th>
                                     <th>DR Number</th>
-                                    <th class="text-center">Actions</th>
+                                    <!-- <th class="text-center">Actions</th> -->
                                 </tr>
                             </thead>
 
@@ -2361,6 +2691,44 @@ document.addEventListener('DOMContentLoaded', function () {
     </div>
 </div>
 
+<div class="modal fade" id="moduleSummaryModal" tabindex="-1" aria-labelledby="moduleSummaryModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header border-0 pb-2">
+                <div class="d-flex align-items-center gap-3">
+                    <span id="moduleSummaryIconBadge" class="badge rounded-pill px-3 py-2">
+                        <i id="moduleSummaryIcon" class="bi bi-database"></i>
+                    </span>
+                    <div>
+                        <div class="text-uppercase small text-muted fw-semibold">Overview</div>
+                        <h5 class="modal-title mb-0" id="moduleSummaryModalLabel">Module</h5>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body pt-1">
+                <div class="text-center mb-3">
+                    <div class="display-5 fw-bold" id="moduleSummaryValue">0</div>
+                </div>
+                <p class="text-muted mb-3 text-center" id="moduleSummaryDetail">
+                    Summary details.
+                </p>
+                <div id="moduleSummaryTableWrapper" class="table-responsive" style="max-height: 420px; overflow-y: auto;">
+                    <table id="moduleSummaryTable" class="table table-sm table-hover align-middle mb-0 w-100">
+                        <thead id="moduleSummaryTableHead">
+                        </thead>
+                        <tbody id="moduleSummaryTableBody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <?= view('dashboard/layout/footer') ?>
 
 
@@ -2382,6 +2750,136 @@ document.addEventListener('DOMContentLoaded', function () {
 <script>
 
 document.addEventListener('DOMContentLoaded', function () {
+
+    function getPreferredTableColumns(record) {
+        const preferred = ['id', 'clinic', 'machine', 'service_engineer', 'date', 'status', 'remarks', 'mfs_number', 'fsr_number', 'fname', 'lname'];
+        const excluded = ['role', 'uname', 'username', 'pass', 'password', 'created_at', 'updated_at', 'deleted_at'];
+
+        const keys = Object.keys(record || {}).filter(function (key) {
+            return !excluded.includes(key);
+        });
+
+        if (keys.length === 0) {
+            return [];
+        }
+
+        const priority = preferred.filter(function (key) {
+            return keys.includes(key);
+        });
+
+        return priority.length > 0 ? priority : keys.slice(0, 5);
+    }
+
+    function renderModuleRecords(records) {
+        const wrapper = document.getElementById('moduleSummaryTableWrapper');
+        if (!wrapper) {
+            return;
+        }
+
+        const filteredRecords = (records || []).filter(function (record) {
+            const username = (record && (record.uname || record.username)) ? String(record.uname || record.username).trim().toLowerCase() : '';
+            return username !== 'admin';
+        });
+
+        const firstRecord = filteredRecords.length ? filteredRecords[0] : {};
+        const columns = getPreferredTableColumns(firstRecord);
+
+        if ($.fn.DataTable.isDataTable('#moduleSummaryTable')) {
+            $('#moduleSummaryTable').DataTable().destroy();
+        }
+
+        if (!filteredRecords.length || !columns.length) {
+            wrapper.innerHTML = '<table id="moduleSummaryTable" class="table table-sm table-hover align-middle mb-0 w-100"><tbody><tr><td class="text-center text-muted py-4">No records found.</td></tr></tbody></table>';
+            return;
+        }
+
+        const headHtml = '<thead><tr>' + columns.map(function (column) {
+            return '<th class="text-uppercase small text-muted fw-semibold" style="white-space: nowrap;">' + column.replace(/_/g, ' ') + '</th>';
+        }).join('') + '</tr></thead>';
+
+        const bodyHtml = '<tbody>' + filteredRecords.map(function (record) {
+            return '<tr>' + columns.map(function (column) {
+                const value = record[column] ?? '';
+                const text = value === '' || value === null ? '—' : String(value);
+                return '<td class="align-middle text-break">' + text + '</td>';
+            }).join('') + '</tr>';
+        }).join('') + '</tbody>';
+
+        wrapper.innerHTML = '<table id="moduleSummaryTable" class="table table-sm table-hover align-middle mb-0 w-100">' + headHtml + bodyHtml + '</table>';
+
+        $('#moduleSummaryTable').DataTable({
+            paging: true,
+            searching: true,
+            ordering: true,
+            info: true,
+            pageLength: 5,
+            lengthMenu: [5, 10, 25, 50],
+            pagingType: 'simple_numbers',
+            language: {
+                search: 'Search records:',
+                lengthMenu: 'Show _MENU_ entries',
+                info: 'Showing _START_ to _END_ of _TOTAL_ entries',
+                emptyTable: 'No records found.'
+            },
+            destroy: true,
+            responsive: true,
+            scrollX: true
+        });
+    }
+
+    document.querySelectorAll('.module-summary-card').forEach(function (card) {
+        const openDetails = function () {
+            const modal = document.getElementById('moduleSummaryModal');
+            if (!modal) {
+                return;
+            }
+
+            const title = card.dataset.title || 'Module';
+            const value = card.dataset.value || '0';
+            const detail = card.dataset.detail || 'Summary details.';
+            const tone = card.dataset.tone || 'primary';
+            const icon = card.dataset.icon || 'bi-database';
+            const records = card.dataset.records ? JSON.parse(card.dataset.records) : [];
+
+            const titleEl = document.getElementById('moduleSummaryModalLabel');
+            const valueEl = document.getElementById('moduleSummaryValue');
+            const detailEl = document.getElementById('moduleSummaryDetail');
+            const iconBadge = document.getElementById('moduleSummaryIconBadge');
+            const iconEl = document.getElementById('moduleSummaryIcon');
+
+            if (titleEl) titleEl.textContent = title;
+            if (valueEl) valueEl.textContent = value;
+            if (detailEl) detailEl.textContent = detail;
+            if (iconEl) {
+                iconEl.className = 'bi ' + icon;
+            }
+
+            if (iconBadge) {
+                const toneClass = {
+                    primary: 'bg-primary-subtle text-primary-emphasis',
+                    success: 'bg-success-subtle text-success-emphasis',
+                    warning: 'bg-warning-subtle text-warning-emphasis',
+                    info: 'bg-info-subtle text-info-emphasis',
+                    danger: 'bg-danger-subtle text-danger-emphasis',
+                };
+
+                iconBadge.className = 'badge rounded-pill px-3 py-2 ' + (toneClass[tone] || 'bg-primary-subtle text-primary-emphasis');
+            }
+
+            renderModuleRecords(records);
+
+            const bsModal = bootstrap.Modal.getOrCreateInstance(modal);
+            bsModal.show();
+        };
+
+        card.addEventListener('click', openDetails);
+        card.addEventListener('keydown', function (event) {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                openDetails();
+            }
+        });
+    });
 
     /* ======================================================
        GET ELEMENTS
@@ -3227,110 +3725,7 @@ $(document).ready(function () {
 
 
                             return `
-                                <div class="d-flex justify-content-center align-items-center gap-1 flex-wrap">
 
-                                    ${
-                                        String(row.status || '').toUpperCase() === 'I'
-                                        ? `
-                                            <button
-                                                type="button"
-                                                class="btn btn-outline-danger btn-sm dt-cancel-reason"
-                                                title="Show Canceled Reason">
-
-                                                <i class="bi bi-info-circle"></i>
-                                                Show Canceled Reason
-
-                                            </button>
-                                        `
-                                        : ''
-                                    }
-
-                                    <!-- ==========================================
-                                         VIEW CONTRACT
-                                         ========================================== -->
-
-                                    ${
-                                        contractId > 0
-                                        ? `
-                                            <button
-                                                type="button"
-                                                class="btn btn-outline-success btn-sm dt-view-contract"
-                                                data-id="${id}"
-                                                data-contract-id="${contractId}"
-                                                title="View Contract">
-
-                                                <i class="bi bi-file-earmark-text"></i>
-                                                View
-
-                                            </button>
-                                        `
-                                        : `
-                                            <span
-                                                class="badge bg-warning text-dark"
-                                                title="No contract attached">
-
-                                                <i class="bi bi-file-earmark-x"></i>
-                                                No Contract Attached
-
-                                            </span>
-                                        `
-                                    }
-
-
-                                    <!-- ==========================================
-                                         ATTACH / REPLACE CONTRACT
-                                         ========================================== -->
-
-                                    <button
-                                        type="button"
-                                        class="btn btn-outline-success btn-sm dt-contract"
-                                        data-id="${id}"
-                                        data-contract-id="${contractId}"
-                                        title="${contractId > 0 ? 'Replace Contract' : 'Attach Contract'}">
-
-                                        <i class="bi bi-paperclip"></i>
-
-                                        ${
-                                            contractId > 0
-                                            ? 'Replace'
-                                            : 'Attach'
-                                        }
-
-                                    </button>
-
-
-                                    <!-- ==========================================
-                                         EDIT
-                                         ========================================== -->
-
-                                    <button
-                                        type="button"
-                                        class="btn btn-outline-primary btn-sm dt-edit-record"
-                                        data-id="${id}"
-                                        title="Edit Machine">
-
-                                        <i class="bi bi-pencil"></i>
-                                        Edit
-
-                                    </button>
-
-
-                                    <!-- ==========================================
-                                         DELETE
-                                         ========================================== -->
-
-                                    <button
-                                        type="button"
-                                        class="btn btn-outline-danger btn-sm dt-delete-record"
-                                        data-id="${id}"
-                                        title="Delete Machine">
-
-                                        <i class="bi bi-trash"></i>
-                                        Delete
-
-                                    </button>
-
-                                </div>
                             `;
 
                         }
@@ -5661,17 +6056,18 @@ if (
 
                 chart: {
                     type: 'bar',
-                    height: 280,
+                    height: 300,
                     toolbar: {
                         show: false
-                    }
+                    },
+                    background: '#ffffff',
+                    foreColor: '#1f2937'
                 },
 
                 series: [
                     {
                         name:
                             'Support Tickets',
-
                         data:
                             chartValues(
                                 monthlySupport
@@ -5683,17 +6079,43 @@ if (
                     categories:
                         chartCategories(
                             monthlySupport
-                        )
+                        ),
+                    labels: {
+                        style: {
+                            colors: '#475569',
+                            fontSize: '11px'
+                        }
+                    }
                 },
 
-                colors: [
-                    '#0d6efd'
-                ],
+                yaxis: {
+                    labels: {
+                        style: {
+                            colors: '#475569',
+                            fontSize: '11px'
+                        }
+                    }
+                },
+
+                colors: ['#0f4c81'],
 
                 plotOptions: {
                     bar: {
-                        borderRadius: 4,
-                        columnWidth: '55%'
+                        borderRadius: 7,
+                        columnWidth: '56%',
+                        distributed: false
+                    }
+                },
+
+                fill: {
+                    type: 'gradient',
+                    gradient: {
+                        shade: 'light',
+                        type: 'vertical',
+                        shadeIntensity: 0.2,
+                        opacityFrom: 0.9,
+                        opacityTo: 0.7,
+                        stops: [0, 100]
                     }
                 },
 
@@ -5702,8 +6124,21 @@ if (
                 },
 
                 grid: {
-                    borderColor:
-                        '#e9ecef'
+                    borderColor: '#e2e8f0',
+                    strokeDashArray: 4,
+                    xaxis: {
+                        lines: {
+                            show: false
+                        }
+                    }
+                },
+
+                tooltip: {
+                    theme: 'light'
+                },
+
+                legend: {
+                    show: false
                 }
 
             }
@@ -5734,11 +6169,12 @@ if (
             {
 
                 chart: {
-                    type: 'pie',
-                    height: 280,
+                    type: 'donut',
+                    height: 300,
                     toolbar: {
                         show: false
-                    }
+                    },
+                    background: '#ffffff'
                 },
 
                 series:
@@ -5752,21 +6188,43 @@ if (
                     ),
 
                 colors: [
-                    '#dc3545',
-                    '#fd7e14',
-                    '#ffc107',
-                    '#198754',
-                    '#0d6efd',
-                    '#6f42c1'
+                    '#0f4c81',
+                    '#2e7de1',
+                    '#6bb7ff',
+                    '#7dd3fc',
+                    '#dbeafe',
+                    '#c7d2fe'
                 ],
 
                 legend: {
-                    position:
-                        'bottom'
+                    position: 'bottom',
+                    fontSize: '12px',
+                    labels: {
+                        colors: '#475569'
+                    }
+                },
+
+                plotOptions: {
+                    pie: {
+                        donut: {
+                            size: '68%'
+                        }
+                    }
                 },
 
                 dataLabels: {
-                    enabled: true
+                    enabled: true,
+                    formatter: function (val) {
+                        return val ? val.toFixed(0) + '%' : '';
+                    },
+                    style: {
+                        fontSize: '11px',
+                        colors: ['#ffffff']
+                    }
+                },
+
+                tooltip: {
+                    theme: 'light'
                 }
 
             }
@@ -5869,10 +6327,11 @@ if (
 
                 chart: {
                     type: 'line',
-                    height: 280,
+                    height: 300,
                     toolbar: {
                         show: false
-                    }
+                    },
+                    background: '#ffffff'
                 },
 
                 series:
@@ -5880,31 +6339,59 @@ if (
 
                 xaxis: {
                     categories:
-                        years
+                        years,
+                    labels: {
+                        style: {
+                            colors: '#475569',
+                            fontSize: '11px'
+                        }
+                    }
+                },
+
+                yaxis: {
+                    labels: {
+                        style: {
+                            colors: '#475569',
+                            fontSize: '11px'
+                        }
+                    }
                 },
 
                 stroke: {
-                    curve:
-                        'smooth',
+                    curve: 'smooth',
+                    width: 3,
+                    dashArray: [0, 0]
+                },
 
-                    width:
-                        3
+                markers: {
+                    size: 4,
+                    strokeWidth: 0,
+                    hover: {
+                        size: 7
+                    }
                 },
 
                 dataLabels: {
-                    enabled:
-                        false
+                    enabled: false
                 },
 
                 legend: {
-                    position:
-                        'bottom'
+                    position: 'bottom',
+                    labels: {
+                        colors: '#475569'
+                    }
                 },
 
                 grid: {
-                    borderColor:
-                        '#e9ecef'
-                }
+                    borderColor: '#e2e8f0',
+                    strokeDashArray: 4
+                },
+
+                tooltip: {
+                    theme: 'light'
+                },
+
+                colors: ['#0f4c81', '#2e7de1', '#4cc9f0', '#94c5ff', '#a78bfa', '#1b8f73']
 
             }
         ).render();

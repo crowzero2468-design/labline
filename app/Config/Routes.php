@@ -17,6 +17,7 @@ $routes->get('logout', 'Login::logout');
 $routes->post('logout', 'Login::logout');
 
 $routes->get('dashboard', 'Dashboard::index');
+$routes->get('dashboard/view', 'DashboardView::index');
 $routes->get('dashboard/map', 'MapController::index');
 $routes->get('dashboard/user', 'UserController::index');
 $routes->get('dashboard/users', 'UserController::index');

@@ -720,6 +720,9 @@ document.addEventListener('DOMContentLoaded', function () {
             date:
                 document.getElementById('pms_date')?.value || '',
 
+            remarks:
+                document.getElementById('pms_remarks')?.value || '',
+
             machine:
                 firstMachine.machine || '',
 
@@ -3417,6 +3420,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 'edit_pms_address':
                     data.address || '',
+
+                'edit_pms_remarks':
+                    data.remarks || '',
 
                 'edit_pms_machine':
                     data.machine || '',
