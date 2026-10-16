@@ -32,10 +32,17 @@
       <div class="sidebar-menu-section">
         <div class="sidebar-menu-title">Menu</div>
         <ul class="sidebar-menu-list">
+
           <li class="sidebar-menu-item">
+            <a href="<?= site_url('dashboard/view') ?>" class="sidebar-menu-link <?= ($currentUri === 'dashboard/view') ? 'active' : '' ?>" id="menu-dashboard-view" title="Machine Info Dashboard">
+              <i class="bi bi-speedometer2"></i>
+              <span>Dashboard</span>
+            </a>
+          </li>
+            <li class="sidebar-menu-item">
             <a href="<?= site_url('dashboard') ?>" class="sidebar-menu-link <?= ($currentUri === 'dashboard') ? 'active' : '' ?>" id="menu-overview" title="Overview">
               <i class="bi bi-grid-fill"></i>
-              <span>Dashboard</span>
+              <span>Machine Info</span>
             </a>
           </li>
         </ul>

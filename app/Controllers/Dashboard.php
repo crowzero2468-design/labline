@@ -240,6 +240,34 @@ class Dashboard extends BaseController
         $returnedTicketCount = 0;
         $completedTicketCount = 0;
 
+        $userCount = 0;
+        $pmsCount = 0;
+        $mfsCount = 0;
+        $fsrCount = 0;
+        $rotorCount = 0;
+
+        if ($database->tableExists('tb_user')) {
+            $userCount = (int) $database->table('tb_user')
+                ->where('uname !=', 'admin')
+                ->countAllResults();
+        }
+
+        if ($database->tableExists('tb_pms')) {
+            $pmsCount = (int) $database->table('tb_pms')->countAllResults();
+        }
+
+        if ($database->tableExists('tb_mfs')) {
+            $mfsCount = (int) $database->table('tb_mfs')->countAllResults();
+        }
+
+        if ($database->tableExists('tb_fsr')) {
+            $fsrCount = (int) $database->table('tb_fsr')->countAllResults();
+        }
+
+        if ($database->tableExists('tb_rotor')) {
+            $rotorCount = (int) $database->table('tb_rotor')->countAllResults();
+        }
+
         if ($database->tableExists('tb_support')) {
             $supportTable = $database->table('tb_support');
 
@@ -430,6 +458,11 @@ class Dashboard extends BaseController
             'on_hold_ticket_count' => $onHoldTicketCount,
             'returned_ticket_count' => $returnedTicketCount,
             'completed_ticket_count' => $completedTicketCount,
+            'user_count' => $userCount,
+            'pms_count' => $pmsCount,
+            'mfs_count' => $mfsCount,
+            'fsr_count' => $fsrCount,
+            'rotor_count' => $rotorCount,
             'machine_counts' => $machineCounts,
             'monthly_support' => $monthlySupport,
             'pullout_timeline' => $pulloutTimeline,
@@ -1609,6 +1642,9 @@ public function viewContract($id)
                         DEFAULT NULL,
 
                     status VARCHAR(255)
+                        DEFAULT NULL,
+
+                    remarks TEXT
                         DEFAULT NULL,
 
                     created_at TIMESTAMP

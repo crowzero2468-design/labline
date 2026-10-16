@@ -208,4 +208,50 @@ XML);
         $this->assertFalse($method->invoke($controller, $firstRow, $secondRow));
         $this->assertTrue($method->invoke($controller, $firstRow, $firstRow));
     }
+
+    public function testPmsImportDuplicateCheckIncludesRemarks(): void
+    {
+        $controller = new \App\Controllers\Pms();
+        $method = new \ReflectionMethod($controller, 'isDuplicatePmsImportRow');
+        $method->setAccessible(true);
+
+        $rowA = [
+            'pms_number' => '000222',
+            'service_tech' => 'Jane Doe',
+            'clinic' => 'Test Clinic',
+            'address' => '9 Street',
+            'date' => '2026-10-08',
+            'machine' => 'Analyzer',
+            'sn' => 'AN-100',
+            'status' => 'Light PMS',
+            'remarks' => 'Needs calibration',
+        ];
+
+        $rowB = [
+            'pms_number' => '000222',
+            'service_tech' => 'Jane Doe',
+            'clinic' => 'Test Clinic',
+            'address' => '9 Street',
+            'date' => '2026-10-08',
+            'machine' => 'Analyzer',
+            'sn' => 'AN-100',
+            'status' => 'Light PMS',
+            'remarks' => 'Needs calibration',
+        ];
+
+        $rowC = [
+            'pms_number' => '000222',
+            'service_tech' => 'Jane Doe',
+            'clinic' => 'Test Clinic',
+            'address' => '9 Street',
+            'date' => '2026-10-08',
+            'machine' => 'Analyzer',
+            'sn' => 'AN-100',
+            'status' => 'Light PMS',
+            'remarks' => 'Different note',
+        ];
+
+        $this->assertTrue($method->invoke($controller, $rowA, $rowB));
+        $this->assertFalse($method->invoke($controller, $rowA, $rowC));
+    }
 }

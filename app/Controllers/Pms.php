@@ -243,6 +243,13 @@ public function viewFsr($id)
                 ");
             }
 
+            if (!in_array('remarks', $pmsColumns, true)) {
+                $database->query("
+                    ALTER TABLE tb_pms
+                    ADD COLUMN remarks TEXT DEFAULT NULL
+                ");
+            }
+
             /*
             |--------------------------------------------------------------------------
             | TECHNICIAN LIST
@@ -280,6 +287,7 @@ public function viewFsr($id)
                     date,
                     machine,
                     status,
+                    remarks,
                     receipt,
                     mfs,
                     fsr
@@ -393,6 +401,7 @@ public function viewFsr($id)
                 date,
                 machine,
                 status,
+                remarks,
                 mfs,
                 fsr,
                 receipt
@@ -468,6 +477,7 @@ public function viewFsr($id)
             'Date',
             'Machine',
             'Technical Done',
+            'Remarks',
             'MFS',
             'FSR',
             'Receipt'
@@ -495,6 +505,7 @@ public function viewFsr($id)
                 $r['date'] ?? '',
                 $r['machine'] ?? '',
                 $r['status'] ?? '',
+                $r['remarks'] ?? '',
                 !empty($r['mfs'])
                     ? 'MFS #' . $r['mfs']
                     : 'No MFS',
@@ -588,6 +599,10 @@ public function save()
 
     $address = trim(
         (string) $this->request->getPost('address')
+    );
+
+    $remarks = trim(
+        (string) $this->request->getPost('remarks')
     );
 
     /*
@@ -818,6 +833,11 @@ public function save()
 
     $pmsColumns = $db->getFieldNames('tb_pms');
 
+    if (!in_array('remarks', $pmsColumns, true)) {
+        $db->query("ALTER TABLE tb_pms ADD COLUMN remarks TEXT DEFAULT NULL");
+        $pmsColumns = $db->getFieldNames('tb_pms');
+    }
+
     /*
      * ============================================================
      * RECEIPT
@@ -1016,6 +1036,10 @@ public function save()
                 $machineData['technical_done']
         ];
 
+        if (in_array('remarks', $pmsColumns, true)) {
+            $pmsData['remarks'] = $remarks;
+        }
+
         /*
          * Receipt
          */
@@ -1170,6 +1194,9 @@ public function save()
 
             'technical_done' =>
                 $machineData['technical_done'],
+
+            'remarks' =>
+                $remarks,
 
             'mfs' =>
                 null,
@@ -3276,6 +3303,9 @@ public function edit($id)
                 'status' =>
                     (string) ($pms['status'] ?? ''),
 
+                'remarks' =>
+                    (string) ($pms['remarks'] ?? ''),
+
                 'mfs' =>
                     $mfs,
 
@@ -3430,6 +3460,10 @@ public function update($id)
 
     $status = trim(
         (string) $this->request->getPost('status')
+    );
+
+    $remarks = trim(
+        (string) $this->request->getPost('remarks')
     );
 
     $mfsId = (int) ($this->request->getPost('mfs_id') ?? 0);
@@ -3633,6 +3667,10 @@ public function update($id)
         'status' =>
             $status
     ];
+
+    if (in_array('remarks', $pmsColumns, true)) {
+        $updateData['remarks'] = $remarks;
+    }
 
     if (in_array('mfs', $pmsColumns, true)) {
         if ($mfsId > 0 && (!$db->tableExists('tb_mfs') || !$db->table('tb_mfs')->where('id', $mfsId)->countAllResults())) {
@@ -4197,10 +4235,11 @@ public function importExcel(): RedirectResponse
     // B = Service Technician
     // C = Clinic
     // D = Address
-    // H = Date
-    // E = Machine
-    // F = Serial Number
-    // G = Status / Technical Done
+    // E = Date
+    // F = Machine
+    // G = Serial Number
+    // H = Status / Technical Done
+    // I = Remarks
     // ----------------------------------------------------------
 
     foreach ($rows as $row) {
@@ -4257,11 +4296,11 @@ public function importExcel(): RedirectResponse
             )
         );
 
-        // $remarks = trim(
-        //     (string) (
-        //         $row['I']['value'] ?? ''
-        //     )
-        // );
+        $remarks = trim(
+            (string) (
+                $row['I']['value'] ?? ''
+            )
+        );
 
         // ------------------------------------------------------
         // SKIP EMPTY ROW
@@ -4275,7 +4314,8 @@ public function importExcel(): RedirectResponse
             $date,
             $machine,
             $serialNumber,
-            $status
+            $status,
+            $remarks
         ];
 
         if (!$this->hasMeaningfulImportValue($candidate)) {
@@ -4319,7 +4359,7 @@ public function importExcel(): RedirectResponse
             'machine' => $machine,
             'sn' => $serialNumber,
             'status' => $status,
-
+            'remarks' => $remarks,
         ];
 
         // ------------------------------------------------------
@@ -4532,6 +4572,7 @@ private function isDuplicatePmsImportRow(array $candidateRow, array $existingRow
         'machine' => $normalize($candidateRow['machine'] ?? ''),
         'sn' => $normalize($candidateRow['sn'] ?? ''),
         'status' => $normalize($candidateRow['status'] ?? ''),
+        'remarks' => $normalize($candidateRow['remarks'] ?? ''),
     ];
 
     $existing = [
@@ -4543,6 +4584,7 @@ private function isDuplicatePmsImportRow(array $candidateRow, array $existingRow
         'machine' => $normalize($existingRow['machine'] ?? ''),
         'sn' => $normalize($existingRow['sn'] ?? ''),
         'status' => $normalize($existingRow['status'] ?? ''),
+        'remarks' => $normalize($existingRow['remarks'] ?? ''),
     ];
 
     return $candidate === $existing;

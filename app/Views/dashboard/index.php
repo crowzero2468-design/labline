@@ -325,7 +325,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         <div>
             <h1 class="page-title">
-                Dashboard
+                Machine Information Dashboard
             </h1>
 
             <p class="page-subtitle">
@@ -465,7 +465,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 <!-- ==========================================
                      TOTAL PROVINCE
                      ========================================== -->
-
+<!-- 
                 <div class="col-md-3">
 
                     <div class="card card-stat d-flex flex-column justify-content-between">
@@ -534,14 +534,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
                     </div>
 
-                </div>
+                </div> -->
 
 
                 <!-- ==========================================
                      TOTAL CLINICS
                      ========================================== -->
 
-                <div class="col-md-3">
+                <!-- <div class="col-md-3">
 
                     <div class="card card-stat d-flex flex-column justify-content-between">
 
@@ -609,14 +609,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
                     </div>
 
-                </div>
+                </div> -->
 
 
                 <!-- ==========================================
                      MACHINE
                      ========================================== -->
 
-                <div class="col-md-3">
+                <!-- <div class="col-md-3">
 
                     <div class="card card-stat d-flex flex-column justify-content-between">
 
@@ -852,14 +852,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
             </div>
 
-        </div>
+        </div> -->
 
 
         <!-- ==================================================
              SUPPORT ANALYTICS
              ================================================== -->
 
-        <div class="col-12">
+        <!-- <div class="col-12">
             <div class="row g-4">
                 <div class="col-12 col-xl-4">
                     <div class="card h-100">
@@ -897,7 +897,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     </div>
                 </div>
             </div>
-        </div>
+        </div> -->
 
 
         <!-- ==================================================
