@@ -145,6 +145,44 @@
         color: #4b5563;
         line-height: 1.5;
     }
+
+    .mfs-skipped-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 1rem;
+    }
+
+    .mfs-skipped-card {
+        border: 1px solid #fecaca;
+        border-radius: 12px;
+        background: #fff7f7;
+        padding: 0.9rem;
+    }
+
+    .mfs-skipped-card h6 {
+        margin: 0 0 0.75rem;
+        font-weight: 700;
+        color: #7f1d1d;
+    }
+
+    .mfs-skipped-number-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.45rem;
+    }
+
+    .mfs-skipped-number {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 46px;
+        padding: 0.28rem 0.5rem;
+        border-radius: 999px;
+        background: #dc2626;
+        color: #ffffff;
+        font-size: 0.72rem;
+        font-weight: 700;
+    }
 </style>
 
 <body>
@@ -279,6 +317,7 @@ document.addEventListener('DOMContentLoaded', function () {
         <div class="mfs-view-switch" role="tablist" aria-label="MFS view switch">
             <button type="button" class="btn btn-primary" data-view="table">Table View</button>
             <button type="button" class="btn btn-light" data-view="calendar">Calendar View</button>
+            <button type="button" class="btn btn-light" data-view="skipped">MFS Skipped Number</button>
         </div>
     </div>
 
@@ -366,336 +405,232 @@ document.addEventListener('DOMContentLoaded', function () {
         </div>
 
 
-       <!-- MFS TABLE -->
-<div class="col-md-9">
-
-    <div class="card">
-
-        <div class="card-body p-0">
-
-            <div id="mfsTableView" class="mfs-view-panel">
-
-            <div class="table-responsive">
-
-                <table id="mfsTable"
-                    class="table table-striped table-hover table-sm mb-0">
-
-                    <thead>
-                        <tr>
-                            <th>MFS Number</th>
-                            <th>Employee</th>
-                            <th>Account</th>
-                            <th>Address</th>
-                            <th>Date</th>
-                            <th>Unit</th>
-                            <th>Machine</th>
-                            <th>Serial Number</th>
-                            <th>Accessories</th>
-                            <th>Consumables</th>
-                            <th>Reason</th>
-                            <th>Date Status</th>
-                            <th>Personnel</th>
-                            <th>Acknowledged</th>
-                            <th>Receipt</th>
-                            <th>Remarks</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-
-                    <tbody>
-
-                    <?php if (!empty($mfs_records)): ?>
-
-                        <?php foreach ($mfs_records as $r): ?>
-
-                            <tr>
-
-                                <!-- MFS NUMBER -->
-                                <td>
-                                    <?= esc($r['mfs_number'] ?? '') ?>
-                                </td>
-
-                                <!-- EMPLOYEE -->
-                                <td>
-                                    <?= esc($r['employee'] ?? '') ?>
-                                </td>
-
-                                <!-- ACCOUNT -->
-                                <td>
-                                    <?= esc($r['accounts'] ?? '') ?>
-                                </td>
-
-                                <!-- ADDRESS -->
-                                <td>
-                                    <?= esc($r['address'] ?? '') ?>
-                                </td>
-
-                                <!-- DATE -->
-                                <td>
-                                    <?= esc($r['date_fillup'] ?? '') ?>
-                                </td>
-
-                                <!-- UNIT -->
-                                <td>
-                                    <?= esc($r['unit'] ?? '') ?>
-                                </td>
-
-                                <!-- MACHINE -->
-                                <td>
-                                    <?= esc($r['machine'] ?? '') ?>
-                                </td>
-
-                                <!-- SERIAL NUMBER -->
-                                <td>
-                                    <?= esc($r['serial_number'] ?? '') ?>
-                                </td>
-
-                                <!-- ACCESSORIES -->
-                                <td>
-                                    <?php
-                                        $accessoryRows = [];
-                                        $accessoryRaw = trim((string) ($r['accessories'] ?? ''));
-
-                                        if ($accessoryRaw !== '') {
-                                            foreach (explode(';', $accessoryRaw) as $entry) {
-                                                $entry = trim((string) $entry);
-                                                if ($entry === '') {
-                                                    continue;
-                                                }
-
-                                                $parts = array_map('trim', explode('|', $entry));
-                                                $name = $parts[0] ?? '';
-                                                $quantity = $parts[1] ?? '';
-
-                                                if ($name !== '' || $quantity !== '') {
-                                                    $accessoryRows[] = trim($name . ' | ' . ($quantity !== '' ? $quantity : '1'));
-                                                }
-                                            }
-                                        }
-
-                                        if (!empty($accessoryRows)) {
-                                            echo '<div><strong>Accessory Name | Quantity</strong></div>';
-                                            foreach ($accessoryRows as $accessoryRow) {
-                                                echo '<div>' . esc($accessoryRow) . '</div>';
-                                            }
-                                        } else {
-                                            echo '—';
-                                        }
-                                    ?>
-                                </td>
-
-                                <!-- CONSUMABLES -->
-                                <td>
-                                    <?php
-                                        $consumableRows = [];
-                                        $consumableRaw = trim((string) ($r['consumables'] ?? ''));
-                                        $unitValue = trim((string) ($r['consumable_unit'] ?? ''));
-                                        $lotValue = trim((string) ($r['lot_number'] ?? ''));
-
-                                        if ($consumableRaw !== '' || $unitValue !== '' || $lotValue !== '') {
-                                            foreach (explode(';', $consumableRaw !== '' ? $consumableRaw : '') as $entry) {
-                                                $entry = trim((string) $entry);
-                                                if ($entry === '') {
-                                                    continue;
-                                                }
-
-                                                $parts = array_map('trim', explode('|', $entry));
-                                                $name = $parts[0] ?? '';
-                                                $unitEntry = $parts[1] ?? '';
-                                                $lotEntry = $parts[2] ?? '';
-
-                                                if ($name !== '' || $unitEntry !== '' || $lotEntry !== '') {
-                                                    $consumableRows[] = trim(
-                                                        implode(' | ', array_filter([
-                                                            $name,
-                                                            $unitEntry !== '' ? $unitEntry : $unitValue,
-                                                            $lotEntry !== '' ? $lotEntry : $lotValue,
-                                                        ], fn($value) => $value !== ''))
-                                                    );
-                                                }
-                                            }
-                                        }
-
-                                        if (empty($consumableRows)) {
-                                            $consumableRows[] = trim(implode(' | ', array_filter([$consumableRaw, $unitValue, $lotValue], fn($value) => $value !== '')));
-                                        }
-
-                                        if (!empty($consumableRows)) {
-                                            echo '<div><strong>Consumable | Unit | Lot Number</strong></div>';
-                                            foreach ($consumableRows as $consumableRow) {
-                                                echo '<div>' . esc($consumableRow) . '</div>';
-                                            }
-                                        } else {
-                                            echo '—';
-                                        }
-                                    ?>
-                                </td>
-
-                                <!-- REASON -->
-                                <td>
-                                    <?= esc($r['reason'] ?? '') ?>
-                                </td>
-
-                                <!-- DATE STATUS -->
-                                <td>
-                                    <?= esc($r['date_status'] ?? '') ?>
-                                </td>
-
-                                <!-- PERSONNEL -->
-                                <td>
-                                    <?= esc($r['personnel'] ?? '') ?>
-                                </td>
-
-                                <!-- ACKNOWLEDGED -->
-                                <td>
-
-                                    <?php if ((int) ($r['acknowledged'] ?? 0) === 1): ?>
-
-                                        <span class="badge bg-success">
-                                            Yes
-                                        </span>
-
-                                    <?php else: ?>
-
-                                        <span class="badge bg-secondary">
-                                            No
-                                        </span>
-
+        <!-- MFS TABLE -->
+        <div class="col-md-9">
+            <div class="card">
+                <div class="card-body p-0">
+                    <div id="mfsTableView" class="mfs-view-panel">
+                        <div class="table-responsive">
+                            <table id="mfsTable" class="table table-striped table-hover table-sm mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>MFS Number</th>
+                                        <th>Employee</th>
+                                        <th>Account</th>
+                                        <th>Address</th>
+                                        <th>Date</th>
+                                        <th>Unit</th>
+                                        <th>Machine</th>
+                                        <th>Serial Number</th>
+                                        <th>Accessories</th>
+                                        <th>Consumables</th>
+                                        <th>Reason</th>
+                                        <th>Date Status</th>
+                                        <th>Personnel</th>
+                                        <th>Acknowledged</th>
+                                        <th>Receipt</th>
+                                        <th>Remarks</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php if (!empty($mfs_records)): ?>
+                                        <?php foreach ($mfs_records as $r): ?>
+                                            <tr>
+                                                <td><?= esc($r['mfs_number'] ?? '') ?></td>
+                                                <td><?= esc($r['employee'] ?? '') ?></td>
+                                                <td><?= esc($r['accounts'] ?? '') ?></td>
+                                                <td><?= esc($r['address'] ?? '') ?></td>
+                                                <td><?= esc($r['date_fillup'] ?? '') ?></td>
+                                                <td><?= esc($r['unit'] ?? '') ?></td>
+                                                <td><?= esc($r['machine'] ?? '') ?></td>
+                                                <td><?= esc($r['serial_number'] ?? '') ?></td>
+                                                <td>
+                                                    <?php
+                                                        $accessoryRows = [];
+                                                        $accessoryRaw = trim((string) ($r['accessories'] ?? ''));
+                                                        if ($accessoryRaw !== '') {
+                                                            foreach (explode(';', $accessoryRaw) as $entry) {
+                                                                $entry = trim((string) $entry);
+                                                                if ($entry === '') continue;
+                                                                $parts = array_map('trim', explode('|', $entry));
+                                                                $name = $parts[0] ?? '';
+                                                                $quantity = $parts[1] ?? '';
+                                                                if ($name !== '' || $quantity !== '') {
+                                                                    $accessoryRows[] = trim($name . ' | ' . ($quantity !== '' ? $quantity : '1'));
+                                                                }
+                                                            }
+                                                        }
+                                                        if (!empty($accessoryRows)) {
+                                                            echo '<div><strong>Accessory Name | Quantity</strong></div>';
+                                                            foreach ($accessoryRows as $accessoryRow) {
+                                                                echo '<div>' . esc($accessoryRow) . '</div>';
+                                                            }
+                                                        } else {
+                                                            echo '—';
+                                                        }
+                                                    ?>
+                                                </td>
+                                                <td>
+                                                    <?php
+                                                        $consumableRows = [];
+                                                        $consumableRaw = trim((string) ($r['consumables'] ?? ''));
+                                                        $unitValue = trim((string) ($r['consumable_unit'] ?? ''));
+                                                        $lotValue = trim((string) ($r['lot_number'] ?? ''));
+                                                        if ($consumableRaw !== '' || $unitValue !== '' || $lotValue !== '') {
+                                                            foreach (explode(';', $consumableRaw !== '' ? $consumableRaw : '') as $entry) {
+                                                                $entry = trim((string) $entry);
+                                                                if ($entry === '') continue;
+                                                                $parts = array_map('trim', explode('|', $entry));
+                                                                $name = $parts[0] ?? '';
+                                                                $unitEntry = $parts[1] ?? '';
+                                                                $lotEntry = $parts[2] ?? '';
+                                                                if ($name !== '' || $unitEntry !== '' || $lotEntry !== '') {
+                                                                    $consumableRows[] = trim(implode(' | ', array_filter([
+                                                                        $name,
+                                                                        $unitEntry !== '' ? $unitEntry : $unitValue,
+                                                                        $lotEntry !== '' ? $lotEntry : $lotValue,
+                                                                    ], fn($value) => $value !== '')));
+                                                                }
+                                                            }
+                                                        }
+                                                        if (empty($consumableRows)) {
+                                                            $consumableRows[] = trim(implode(' | ', array_filter([$consumableRaw, $unitValue, $lotValue], fn($value) => $value !== '')));
+                                                        }
+                                                        if (!empty($consumableRows)) {
+                                                            echo '<div><strong>Consumable | Unit | Lot Number</strong></div>';
+                                                            foreach ($consumableRows as $consumableRow) {
+                                                                echo '<div>' . esc($consumableRow) . '</div>';
+                                                            }
+                                                        } else {
+                                                            echo '—';
+                                                        }
+                                                    ?>
+                                                </td>
+                                                <td><?= esc($r['reason'] ?? '') ?></td>
+                                                <td><?= esc($r['date_status'] ?? '') ?></td>
+                                                <td><?= esc($r['personnel'] ?? '') ?></td>
+                                                <td>
+                                                    <?php if ((int) ($r['acknowledged'] ?? 0) === 1): ?>
+                                                        <span class="badge bg-success">Yes</span>
+                                                    <?php else: ?>
+                                                        <span class="badge bg-secondary">No</span>
+                                                    <?php endif; ?>
+                                                </td>
+                                                <td>
+                                                    <?php $receiptId = (int) ($r['receipt'] ?? 0); ?>
+                                                    <?php if ($receiptId > 0): ?>
+                                                        <a href="<?= site_url('pms/receipt/' . $receiptId) ?>" target="_blank" class="btn btn-sm btn-success"><i class="bi bi-eye me-1"></i>View</a>
+                                                    <?php else: ?>
+                                                        <button type="button" class="btn btn-sm btn-outline-primary edit-mfs-btn" data-id="<?= (int) ($r['id'] ?? 0) ?>"><i class="bi bi-upload me-1"></i>Upload</button>
+                                                    <?php endif; ?>
+                                                </td>
+                                                <td><?= esc($r['remarks'] ?? '') ?></td>
+                                                <td class="text-center text-nowrap">
+                                                    <button type="button" class="btn btn-sm btn-outline-success edit-mfs-btn" data-id="<?= (int) ($r['id'] ?? 0) ?>"><i class="bi bi-pencil-square me-1"></i>Edit</button>
+                                                    <button type="button" class="btn btn-sm btn-outline-danger delete-mfs-btn" data-id="<?= (int) ($r['id'] ?? 0) ?>" data-mfs="<?= esc($r['mfs_number'] ?? '') ?>"><i class="bi bi-trash me-1"></i>Delete</button>
+                                                </td>
+                                            </tr>
+                                        <?php endforeach; ?>
                                     <?php endif; ?>
-
-                                </td>
-
-                                <!-- RECEIPT -->
-                                <td>
-                                    <?php $receiptId = (int) ($r['receipt'] ?? 0); ?>
-                                    <?php if ($receiptId > 0): ?>
-                                        <a href="<?= site_url('pms/receipt/' . $receiptId) ?>"
-                                           target="_blank"
-                                           class="btn btn-sm btn-success">
-                                            <i class="bi bi-eye me-1"></i>
-                                            View
-                                        </a>
-                                    <?php else: ?>
-                                        <button type="button"
-                                                class="btn btn-sm btn-outline-primary edit-mfs-btn"
-                                                data-id="<?= (int) ($r['id'] ?? 0) ?>">
-                                            <i class="bi bi-upload me-1"></i>
-                                            Upload
-                                        </button>
-                                    <?php endif; ?>
-                                </td>
-
-                                <!-- REMARKS -->
-                                <td>
-                                    <?= esc($r['remarks'] ?? '') ?>
-                                </td>
-
-                                <!-- ACTION -->
-                                <td class="text-center text-nowrap">
-
-                                    <!-- EDIT -->
-                                    <button
-                                        type="button"
-                                        class="btn btn-sm btn-outline-success edit-mfs-btn"
-                                        data-id="<?= (int) ($r['id'] ?? 0) ?>"
-                                    >
-                                        <i class="bi bi-pencil-square me-1"></i>
-                                        Edit
-                                    </button>
-
-                                    <!-- DELETE -->
-                                   <button
-                                        type="button"
-                                        class="btn btn-sm btn-outline-danger delete-mfs-btn"
-                                        data-id="<?= (int) ($r['id'] ?? 0) ?>"
-                                        data-mfs="<?= esc($r['mfs_number'] ?? '') ?>"
-                                    >
-                                        <i class="bi bi-trash me-1"></i>
-                                        Delete
-                                    </button>
-
-                                </td>
-
-                            </tr>
-
-                        <?php endforeach; ?>
-
-                    <?php endif; ?>
-
-                    </tbody>
-
-                </table>
-
-            </div>
-
-            </div>
-
-        </div>
-
-    </div>
-
-</div>
-
-    </div>
-
-    <div id="mfsCalendarView" class="mfs-view-panel d-none">
-        <?php
-        $monthNames = [
-            1 => 'January',
-            2 => 'February',
-            3 => 'March',
-            4 => 'April',
-            5 => 'May',
-            6 => 'June',
-            7 => 'July',
-            8 => 'August',
-            9 => 'September',
-            10 => 'October',
-            11 => 'November',
-            12 => 'December',
-        ];
-        ?>
-
-        <div class="card">
-            <div class="card-body">
-                <div class="mfs-calendar-grid">
-                    <?php for ($month = 1; $month <= 12; $month++): ?>
-                        <div class="mfs-month-card">
-                            <h6><?= esc($monthNames[$month]) ?></h6>
-                            <div class="mfs-month-records">
-                                <?php $monthHasRecords = false; ?>
-                                <?php foreach (($mfs_records ?? []) as $record): ?>
-                                    <?php
-                                        $recordDate = trim((string) ($record['date_fillup'] ?? ''));
-                                        $monthValue = $recordDate !== '' ? (int) date('n', strtotime($recordDate)) : 0;
-                                    ?>
-                                    <?php if ($monthValue === $month): ?>
-                                        <?php $monthHasRecords = true; ?>
-                                        <div class="mfs-record-item">
-                                            <div class="mfs-record-header">
-                                                <span class="mfs-record-number"><?= esc($record['mfs_number'] ?? '') ?></span>
-                                                <span class="badge bg-secondary"><?= esc($record['employee'] ?? '') ?></span>
-                                            </div>
-                                            <div class="mfs-record-meta">
-                                                <div><strong>Account:</strong> <?= esc($record['accounts'] ?? '') ?></div>
-                                                <div><strong>Machine:</strong> <?= esc($record['machine'] ?? '') ?></div>
-                                                <div><strong>Date:</strong> <?= esc($record['date_fillup'] ?? '') ?></div>
-                                            </div>
-                                        </div>
-                                    <?php endif; ?>
-                                <?php endforeach; ?>
-                                <?php if (!$monthHasRecords): ?>
-                                    <div class="text-muted small">No records</div>
-                                <?php endif; ?>
-                            </div>
+                                </tbody>
+                            </table>
                         </div>
-                    <?php endfor; ?>
+                    </div>
+
+                    <div id="mfsCalendarView" class="mfs-view-panel d-none">
+                        <?php
+                        $monthNames = [1 => 'January', 2 => 'February', 3 => 'March', 4 => 'April', 5 => 'May', 6 => 'June', 7 => 'July', 8 => 'August', 9 => 'September', 10 => 'October', 11 => 'November', 12 => 'December'];
+                        ?>
+                        <div class="mfs-calendar-grid">
+                            <?php for ($month = 1; $month <= 12; $month++): ?>
+                                <div class="mfs-month-card">
+                                    <h6><?= esc($monthNames[$month]) ?></h6>
+                                    <div class="mfs-month-records">
+                                        <?php $monthHasRecords = false; ?>
+                                        <?php foreach (($mfs_records ?? []) as $record): ?>
+                                            <?php
+                                                $recordDate = trim((string) ($record['date_fillup'] ?? ''));
+                                                $monthValue = $recordDate !== '' ? (int) date('n', strtotime($recordDate)) : 0;
+                                            ?>
+                                            <?php if ($monthValue === $month): ?>
+                                                <?php $monthHasRecords = true; ?>
+                                                <div class="mfs-record-item">
+                                                    <div class="mfs-record-header">
+                                                        <span class="mfs-record-number"><?= esc($record['mfs_number'] ?? '') ?></span>
+                                                        <span class="badge bg-secondary"><?= esc($record['employee'] ?? '') ?></span>
+                                                    </div>
+                                                    <div class="mfs-record-meta">
+                                                        <div><strong>Account:</strong> <?= esc($record['accounts'] ?? '') ?></div>
+                                                        <div><strong>Machine:</strong> <?= esc($record['machine'] ?? '') ?></div>
+                                                        <div><strong>Date:</strong> <?= esc($record['date_fillup'] ?? '') ?></div>
+                                                    </div>
+                                                </div>
+                                            <?php endif; ?>
+                                        <?php endforeach; ?>
+                                        <?php if (!$monthHasRecords): ?><div class="text-muted small">No records</div><?php endif; ?>
+                                    </div>
+                                </div>
+                            <?php endfor; ?>
+                        </div>
+                    </div>
+
+                    <div id="mfsSkippedView" class="mfs-view-panel d-none">
+                        <?php
+                        $mfsSkippedGroups = [];
+                        $mfsNumbers = [];
+                        foreach (($mfs_records ?? []) as $record) {
+                            $mfsText = trim((string) ($record['mfs_number'] ?? ''));
+                            preg_match('/\d+/', $mfsText, $mfsMatch);
+                            $numericMfs = isset($mfsMatch[0]) ? (int) $mfsMatch[0] : null;
+                            if ($numericMfs !== null && $numericMfs > 0) {
+                                $mfsNumbers[] = $numericMfs;
+                            }
+                        }
+                        if (!empty($mfsNumbers)) {
+                            $mfsNumbers = array_values(array_unique($mfsNumbers));
+                            sort($mfsNumbers, SORT_NUMERIC);
+                            foreach ($mfsNumbers as $number) {
+                                $rangeIndex = (int) floor(($number - 1) / 50);
+                                $mfsSkippedGroups[$rangeIndex][] = $number;
+                            }
+                            ksort($mfsSkippedGroups);
+                        }
+                        ?>
+                        <?php if (empty($mfsSkippedGroups)): ?>
+                            <div class="text-muted small">No MFS numbers available.</div>
+                        <?php else: ?>
+                            <div class="mfs-skipped-grid">
+                                <?php foreach ($mfsSkippedGroups as $rangeIndex => $rangeNumbers): ?>
+                                    <?php
+                                        $rangeStart = ($rangeIndex * 50) + 1;
+                                        $rangeEnd = $rangeStart + 49;
+                                        $missingNumbers = [];
+                                        for ($value = $rangeStart; $value <= $rangeEnd; $value++) {
+                                            if (!in_array($value, $rangeNumbers, true)) {
+                                                $missingNumbers[] = $value;
+                                            }
+                                        }
+                                    ?>
+                                    <div class="mfs-skipped-card">
+                                        <h6><?= $rangeStart ?>-<?= $rangeEnd ?></h6>
+                                        <?php if (empty($missingNumbers)): ?>
+                                            <div class="text-muted small">No skipped MFS</div>
+                                        <?php else: ?>
+                                            <div class="mfs-skipped-number-list">
+                                                <?php foreach ($missingNumbers as $missingNumber): ?>
+                                                    <span class="mfs-skipped-number"><?= esc($missingNumber) ?></span>
+                                                <?php endforeach; ?>
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php endif; ?>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
-
-</div>
 
 
 <!-- ============================
@@ -1369,16 +1304,20 @@ document.addEventListener('DOMContentLoaded', function () {
     function setMfsView(view) {
         const tableView = document.getElementById('mfsTableView');
         const calendarView = document.getElementById('mfsCalendarView');
+        const skippedView = document.getElementById('mfsSkippedView');
         const buttons = document.querySelectorAll('.mfs-view-switch [data-view]');
 
-        if (!tableView || !calendarView || !buttons.length) {
+        if (!tableView || !calendarView || !skippedView || !buttons.length) {
             return;
         }
 
+        const isTable = view === 'table';
         const isCalendar = view === 'calendar';
+        const isSkipped = view === 'skipped';
 
-        tableView.classList.toggle('d-none', isCalendar);
+        tableView.classList.toggle('d-none', !isTable);
         calendarView.classList.toggle('d-none', !isCalendar);
+        skippedView.classList.toggle('d-none', !isSkipped);
 
         buttons.forEach(function (button) {
             const isSelected = button.dataset.view === view;
