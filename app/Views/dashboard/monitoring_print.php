@@ -140,6 +140,7 @@ $statusColors = [
 
     <h1>Monthly Monitoring Report</h1>
     <div class="report-meta">
+        <span>Module: <?= esc(($selectedModule ?? 'pms') === 'mfs' ? 'MFS' : (($selectedModule ?? 'pms') === 'fsr' ? 'FSR' : 'PMS')) ?></span>
         <span>Machine: <?= esc($selectedMachine !== '' ? $selectedMachine : 'All Machines') ?></span>
         <span>Generated: <?= date('F d, Y h:i A') ?></span>
     </div>

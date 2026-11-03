@@ -108,6 +108,7 @@ class Mfs extends BaseController
                     unit,
                     machine,
                     serial_number,
+                    accessories,
                     consumable_unit,
                     consumables,
                     lot_number,
@@ -116,7 +117,8 @@ class Mfs extends BaseController
                     date_status,
                     personnel,
                     acknowledged,
-                    returned
+                    returned,
+                    receipt
                 FROM tb_mfs
             ";
 
@@ -207,6 +209,118 @@ class Mfs extends BaseController
 
 
     /**
+     * Returns the schema columns required by the current MFS add form.
+     *
+     * This keeps the front-end field layout and database column mapping in sync.
+     */
+    private function getRequiredMfsSchemaColumns(): array
+    {
+        return [
+            'mfs_number',
+            'employee',
+            'service_eng_id',
+            'pull_out_personnel',
+            'accounts',
+            'address',
+            'date_fillup',
+            'unit',
+            'machine',
+            'serial_number',
+            'accessories',
+            'consumable_unit',
+            'consumables',
+            'lot_number',
+            'remarks',
+            'reason',
+            'date_status',
+            'date_returned',
+            'personnel',
+            'returned_personnel',
+            'acknowledged',
+            'returned',
+            'receipt',
+        ];
+    }
+
+    /**
+     * Formats dynamic accessory or consumable rows into the string value saved in the DB.
+     */
+    private function formatMfsDynamicRows(array $rows, string $type): string
+    {
+        $formatted = [];
+
+        foreach ($rows as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+
+            if ($type === 'accessory') {
+                $name = trim((string) ($row['name'] ?? ''));
+                $quantity = trim((string) ($row['quantity'] ?? ''));
+
+                if ($name !== '' || $quantity !== '') {
+                    $formatted[] = trim($name . ' | ' . $quantity);
+                }
+
+                continue;
+            }
+
+            $name = trim((string) ($row['name'] ?? ''));
+            $unit = trim((string) ($row['unit'] ?? ''));
+            $lot = trim((string) ($row['lot_number'] ?? ''));
+
+            if ($name !== '' || $unit !== '' || $lot !== '') {
+                $parts = [$name];
+
+                if ($unit !== '') {
+                    $parts[] = $unit;
+                }
+
+                if ($lot !== '') {
+                    $parts[] = $lot;
+                }
+
+                $formatted[] = trim(implode(' | ', array_filter($parts, fn($value) => $value !== '')));
+            }
+        }
+
+        return implode('; ', $formatted);
+    }
+
+    /**
+     * Ensures the MFS table includes the columns needed by the latest form layout.
+     */
+    private function ensureMfsTableColumns(): void
+    {
+        $database = db_connect();
+
+        if (!$database->tableExists('tb_mfs')) {
+            return;
+        }
+
+        $existingColumns = array_map(
+            'strtolower',
+            $database->getFieldNames('tb_mfs')
+        );
+
+        $alterStatements = [
+            'service_eng_id' => 'ALTER TABLE tb_mfs ADD COLUMN service_eng_id INT NULL AFTER employee',
+            'pull_out_personnel' => 'ALTER TABLE tb_mfs ADD COLUMN pull_out_personnel VARCHAR(150) NULL AFTER employee',
+            'accessories' => 'ALTER TABLE tb_mfs ADD COLUMN accessories TEXT NULL AFTER serial_number',
+            'date_returned' => 'ALTER TABLE tb_mfs ADD COLUMN date_returned DATE NULL AFTER reason',
+            'returned_personnel' => 'ALTER TABLE tb_mfs ADD COLUMN returned_personnel VARCHAR(150) NULL AFTER date_returned',
+        ];
+
+        foreach ($alterStatements as $columnName => $statement) {
+            if (in_array(strtolower($columnName), $existingColumns, true)) {
+                continue;
+            }
+
+            $database->query($statement);
+        }
+    }
+
+    /**
      * ==========================================
      * SAVE MFS
      * ==========================================
@@ -225,6 +339,8 @@ class Mfs extends BaseController
                 ->with('error', 'tb_mfs table does not exist.');
         }
 
+        $this->ensureMfsTableColumns();
+
         // --------------------------------------------------
         // GET FORM VALUES
         // --------------------------------------------------
@@ -242,18 +358,102 @@ class Mfs extends BaseController
         $machine = trim((string) $this->request->getPost('machine'));
         $serialNumber = trim((string) $this->request->getPost('serial_number'));
 
+        $pullOutPersonnel = trim((string) $this->request->getPost('pull_out_personnel'));
+        $returnedPersonnel = trim((string) $this->request->getPost('returned_personnel'));
+
         $consumableUnit = trim((string) $this->request->getPost('consumable_unit'));
         $consumables = trim((string) $this->request->getPost('consumables'));
         $lotNumber = trim((string) $this->request->getPost('lot_number'));
+
+        $accessories = $this->request->getPost('accessories');
+        $consumablesRows = $this->request->getPost('consumables_rows');
+        $accessoriesText = '';
+
+        if (is_array($accessories)) {
+            $accessoriesText = $this->formatMfsDynamicRows($accessories, 'accessory');
+        }
+
+        if (is_array($consumablesRows)) {
+            $formattedUnits = [];
+
+            foreach ($consumablesRows as $row) {
+                if (!is_array($row)) {
+                    continue;
+                }
+
+                $unit = trim((string) ($row['unit'] ?? ''));
+
+                if ($unit !== '') {
+                    $formattedUnits[] = $unit;
+                }
+            }
+
+            $consumables = $this->formatMfsDynamicRows($consumablesRows, 'consumable');
+
+            if (!empty($formattedUnits)) {
+                $consumableUnit = implode(', ', array_filter($formattedUnits, fn($value) => $value !== ''));
+            }
+        }
 
         $remarks = trim((string) $this->request->getPost('remarks'));
         $reason = trim((string) $this->request->getPost('reason'));
 
         $dateStatus = trim((string) $this->request->getPost('date_status'));
+        $dateReturned = trim((string) $this->request->getPost('date_returned'));
         $personnel = trim((string) $this->request->getPost('personnel'));
+
+        if ($dateReturned === '' && $dateStatus !== '') {
+            $dateReturned = $dateStatus;
+        }
+
+        if ($returnedPersonnel !== '') {
+            $personnel = $returnedPersonnel;
+        } elseif ($pullOutPersonnel !== '') {
+            $personnel = $pullOutPersonnel;
+        }
 
         $acknowledged = (int) ($this->request->getPost('acknowledged') ?: 0);
         $returned = (int) ($this->request->getPost('returned') ?: 0);
+
+        $receiptId = null;
+        $receiptFile = $this->request->getFile('receipt');
+
+        if ($receiptFile && $receiptFile->getError() !== UPLOAD_ERR_NO_FILE) {
+            if (!$receiptFile->isValid()) {
+                return redirect()->back()->withInput()->with('error', 'Invalid receipt upload.');
+            }
+
+            $allowedMimeTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+            $mimeType = $receiptFile->getMimeType();
+
+            if (!in_array($mimeType, $allowedMimeTypes, true)) {
+                return redirect()->back()->withInput()->with('error', 'Invalid receipt file type. Allowed: JPG, PNG, WEBP, and PDF.');
+            }
+
+            $uploadPath = FCPATH . 'uploads/receipts';
+
+            if (!is_dir($uploadPath)) {
+                mkdir($uploadPath, 0777, true);
+            }
+
+            $newName = $receiptFile->getRandomName();
+
+            if (!$receiptFile->move($uploadPath, $newName)) {
+                return redirect()->back()->withInput()->with('error', 'Unable to upload receipt.');
+            }
+
+            if (!$database->tableExists('tb_receipt')) {
+                $database->query("CREATE TABLE IF NOT EXISTS tb_receipt (id INT AUTO_INCREMENT PRIMARY KEY, file_location VARCHAR(500) NOT NULL, date_upload TIMESTAMP DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+            }
+
+            $receiptInserted = $database->table('tb_receipt')->insert([
+                'file_location' => 'uploads/receipts/' . $newName,
+            ]);
+
+            if ($receiptInserted) {
+                $receiptId = (int) $database->insertID();
+            }
+        }
 
 
         // --------------------------------------------------
@@ -385,13 +585,29 @@ class Mfs extends BaseController
             'date_status'    => $dateStatus === ''
                 ? null
                 : $dateStatus,
-
+            'date_returned'  => $dateReturned === ''
+                ? null
+                : $dateReturned,
             'personnel'      => $personnel,
-
+            'returned_personnel' => $returnedPersonnel === '' ? null : $returnedPersonnel,
+            'pull_out_personnel' => $pullOutPersonnel === '' ? null : $pullOutPersonnel,
             'acknowledged'   => $acknowledged,
             'returned'       => $returned,
         ];
 
+        if ($accessoriesText !== '') {
+            $insert['accessories'] = $accessoriesText;
+        }
+
+        $fieldNames = array_map('strtolower', $database->getFieldNames('tb_mfs'));
+
+        if (in_array('service_eng_id', $fieldNames, true)) {
+            $insert['service_eng_id'] = $serviceEngId === '' ? null : (int) $serviceEngId;
+        }
+
+        if ($receiptId !== null && in_array('receipt', $fieldNames, true)) {
+            $insert['receipt'] = $receiptId;
+        }
 
         $result = $database
             ->table('tb_mfs')
@@ -810,9 +1026,7 @@ class Mfs extends BaseController
             'Unit',
             'Machine',
             'Serial Number',
-            'Consumable Unit',
             'Consumables',
-            'Lot Number',
             'Remarks',
             'Reason',
             'Date Status',
@@ -846,6 +1060,15 @@ class Mfs extends BaseController
             }
 
 
+            $consumableView = trim((string) ($r['consumables'] ?? ''));
+            $unitView = trim((string) ($r['consumable_unit'] ?? ''));
+            $lotView = trim((string) ($r['lot_number'] ?? ''));
+            $consumableDisplay = implode(' | ', array_filter([
+                $consumableView !== '' ? $consumableView : null,
+                $unitView !== '' ? $unitView : null,
+                $lotView !== '' ? $lotView : null,
+            ], fn($value) => $value !== null && $value !== ''));
+
             fputcsv($out, [
 
                 $mfsNumber,
@@ -864,11 +1087,7 @@ class Mfs extends BaseController
 
                 $r['serial_number'] ?? '',
 
-                $r['consumable_unit'] ?? '',
-
-                $r['consumables'] ?? '',
-
-                $r['lot_number'] ?? '',
+                $consumableDisplay,
 
                 $r['remarks'] ?? '',
 
@@ -1061,6 +1280,14 @@ public function update($id)
         }
     }
 
+    $pullOutPersonnel = trim(
+        (string) $this->request->getPost('pull_out_personnel')
+    );
+
+    $returnedPersonnel = trim(
+        (string) $this->request->getPost('returned_personnel')
+    );
+
     $accounts = trim(
         (string) $this->request->getPost('accounts')
     );
@@ -1097,6 +1324,21 @@ public function update($id)
         (string) $this->request->getPost('lot_number')
     );
 
+    $accessories = $this->request->getPost('accessories');
+    $accessoriesText = is_array($accessories)
+        ? $this->formatMfsDynamicRows($accessories, 'accessory')
+        : '';
+
+    $consumablesRows = $this->request->getPost('consumables_rows');
+
+    if (is_array($consumablesRows)) {
+        $formattedConsumables = $this->formatMfsDynamicRows($consumablesRows, 'consumable');
+
+        if ($formattedConsumables !== '') {
+            $consumables = $formattedConsumables;
+        }
+    }
+
     $reason = trim(
         (string) $this->request->getPost('reason')
     );
@@ -1108,6 +1350,12 @@ public function update($id)
     $personnel = trim(
         (string) $this->request->getPost('personnel')
     );
+
+    if ($returnedPersonnel !== '') {
+        $personnel = $returnedPersonnel;
+    } elseif ($pullOutPersonnel !== '') {
+        $personnel = $pullOutPersonnel;
+    }
 
     $acknowledged = (int) (
         $this->request->getPost('acknowledged') ?: 0
@@ -1121,6 +1369,60 @@ public function update($id)
         (string) $this->request->getPost('remarks')
     );
 
+    $receiptId = (int) ($existing['receipt'] ?? 0);
+    $receiptFile = $this->request->getFile('receipt');
+
+    if ($receiptFile && $receiptFile->getError() !== UPLOAD_ERR_NO_FILE) {
+        if (!$receiptFile->isValid()) {
+            return $this->response
+                ->setStatusCode(422)
+                ->setJSON([
+                    'success' => false,
+                    'message' => 'Invalid receipt upload.'
+                ]);
+        }
+
+        $allowedMimeTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+        $mimeType = $receiptFile->getMimeType();
+
+        if (!in_array($mimeType, $allowedMimeTypes, true)) {
+            return $this->response
+                ->setStatusCode(422)
+                ->setJSON([
+                    'success' => false,
+                    'message' => 'Invalid receipt file type. Allowed: JPG, PNG, WEBP, and PDF.'
+                ]);
+        }
+
+        $uploadPath = FCPATH . 'uploads/receipts';
+
+        if (!is_dir($uploadPath)) {
+            mkdir($uploadPath, 0777, true);
+        }
+
+        $newName = $receiptFile->getRandomName();
+
+        if (!$receiptFile->move($uploadPath, $newName)) {
+            return $this->response
+                ->setStatusCode(500)
+                ->setJSON([
+                    'success' => false,
+                    'message' => 'Unable to upload receipt.'
+                ]);
+        }
+
+        if (!$database->tableExists('tb_receipt')) {
+            $database->query("CREATE TABLE IF NOT EXISTS tb_receipt (id INT AUTO_INCREMENT PRIMARY KEY, file_location VARCHAR(500) NOT NULL, date_upload TIMESTAMP DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+        }
+
+        $receiptInsert = $database->table('tb_receipt')->insert([
+            'file_location' => 'uploads/receipts/' . $newName,
+        ]);
+
+        if ($receiptInsert) {
+            $receiptId = (int) $database->insertID();
+        }
+    }
 
     // --------------------------------------------------
     // VALIDATION
@@ -1162,6 +1464,8 @@ public function update($id)
     // UPDATE DATA
     // --------------------------------------------------
 
+    $fieldNames = array_map('strtolower', $database->getFieldNames('tb_mfs'));
+
     $update = [
 
         'mfs_number' =>
@@ -1169,6 +1473,9 @@ public function update($id)
 
         'employee' =>
             $employee,
+
+        'pull_out_personnel' =>
+            $pullOutPersonnel === '' ? null : $pullOutPersonnel,
 
         'accounts' =>
             $accounts,
@@ -1190,6 +1497,9 @@ public function update($id)
         'serial_number' =>
             $serialNumber,
 
+        'accessories' =>
+            $accessoriesText,
+
         'consumable_unit' =>
             $consumableUnit,
 
@@ -1210,6 +1520,9 @@ public function update($id)
         'personnel' =>
             $personnel,
 
+        'returned_personnel' =>
+            $returnedPersonnel === '' ? null : $returnedPersonnel,
+
         'acknowledged' =>
             $acknowledged,
 
@@ -1220,6 +1533,14 @@ public function update($id)
             $remarks,
 
     ];
+
+    if (in_array('service_eng_id', $fieldNames, true)) {
+        $update['service_eng_id'] = $serviceEngId > 0 ? $serviceEngId : null;
+    }
+
+    if (in_array('receipt', $fieldNames, true) && $receiptId > 0) {
+        $update['receipt'] = $receiptId;
+    }
 
 
     // --------------------------------------------------

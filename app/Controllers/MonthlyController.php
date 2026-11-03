@@ -21,38 +21,72 @@ class MonthlyController extends BaseController
     {
         $db = \Config\Database::connect();
 
-        /*
-        |--------------------------------------------------------------------------
-        | Selected Machine
-        |--------------------------------------------------------------------------
-        */
+        $selectedModule = strtolower(
+            trim((string) ($this->request->getGet('module') ?? 'pms'))
+        );
+
+        $allowedModules = ['pms', 'fsr', 'mfs'];
+        if (!in_array($selectedModule, $allowedModules, true)) {
+            $selectedModule = 'pms';
+        }
+
+        $moduleLabels = [
+            'pms' => 'PMS',
+            'fsr' => 'FSR',
+            'mfs' => 'MFS',
+        ];
 
         $selectedMachine = trim(
             $this->request->getGet('machine') ?? ''
         );
 
+        $tableMap = [
+            'pms' => [
+                'table' => 'tb_pms',
+                'clinic' => 'clinic',
+                'date' => 'date',
+                'machine' => 'machine',
+            ],
+            'fsr' => [
+                'table' => 'tb_fsr',
+                'clinic' => 'account',
+                'date' => 'date',
+                'machine' => 'machine',
+            ],
+            'mfs' => [
+                'table' => 'tb_mfs',
+                'clinic' => 'accounts',
+                'date' => 'date_fillup',
+                'machine' => 'machine',
+            ],
+        ];
 
-        /*
-        |--------------------------------------------------------------------------
-        | Get Machine List
-        |--------------------------------------------------------------------------
-        */
+        $moduleConfig = $tableMap[$selectedModule];
+        $tableName = $moduleConfig['table'];
+        $clinicField = $moduleConfig['clinic'];
+        $dateField = $moduleConfig['date'];
+        $machineField = $moduleConfig['machine'];
 
-        $machines = $db->table('tb_pms')
-            ->select('machine')
-            ->where('machine IS NOT NULL')
-            ->where('machine !=', '')
-            ->groupBy('machine')
-            ->orderBy('machine', 'ASC')
+        $tableColumns = $db->getFieldNames($tableName);
+        $statusField = 'status';
+
+        if (!in_array('status', $tableColumns, true)) {
+            foreach (['reason', 'technical_concern', 'remarks', 'acknowledge'] as $candidate) {
+                if (in_array($candidate, $tableColumns, true)) {
+                    $statusField = $candidate;
+                    break;
+                }
+            }
+        }
+
+        $machines = $db->table($tableName)
+            ->select($machineField . ' AS machine')
+            ->where($machineField . ' IS NOT NULL')
+            ->where($machineField . ' !=', '')
+            ->groupBy($machineField)
+            ->orderBy($machineField, 'ASC')
             ->get()
             ->getResultArray();
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Get Clinics from tb_data
-        |--------------------------------------------------------------------------
-        */
 
         $clinics = $db->table('tb_data')
             ->select('Clinic_name, address, province')
@@ -68,157 +102,76 @@ class MonthlyController extends BaseController
             ->get()
             ->getResultArray();
 
+        $moduleBuilder = $db->table($tableName);
 
-        /*
-        |--------------------------------------------------------------------------
-        | Get PMS Records
-        |--------------------------------------------------------------------------
-        */
-
-        $pmsBuilder = $db->table('tb_pms');
-
-        $pmsBuilder->select([
-            'clinic',
-            'date',
-            'status',
-            'machine'
-        ]);
-
-        $pmsBuilder
-            ->where('clinic IS NOT NULL')
-            ->where('clinic !=', '')
-            ->where('date IS NOT NULL');
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | MACHINE FILTER
-        |--------------------------------------------------------------------------
-        |
-        | When a machine is selected:
-        |
-        | tb_pms.machine = selected machine
-        |
-        |--------------------------------------------------------------------------
-        */
-
-        if ($selectedMachine !== '') {
-
-            $pmsBuilder->where(
-                'machine',
-                $selectedMachine
-            );
-
+        $statusAlias = $statusField;
+        if ($statusField === 'remarks') {
+            $statusAlias = 'status';
         }
 
+        $moduleBuilder->select([
+            $clinicField . ' AS clinic',
+            $dateField . ' AS date',
+            $statusField . ' AS ' . $statusAlias,
+            $machineField . ' AS machine',
+        ]);
 
-        $pmsRecords = $pmsBuilder
-            ->orderBy('date', 'ASC')
+        $moduleBuilder
+            ->where($clinicField . ' IS NOT NULL')
+            ->where($clinicField . ' !=', '')
+            ->where($dateField . ' IS NOT NULL');
+
+        if ($selectedMachine !== '') {
+            $moduleBuilder->where($machineField, $selectedMachine);
+        }
+
+        $moduleRecords = $moduleBuilder
+            ->orderBy($dateField, 'ASC')
             ->get()
             ->getResultArray();
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | Organize PMS Records
-        |--------------------------------------------------------------------------
-        |
-        | clinic
-        |    month
-        |        status
-        |
-        |--------------------------------------------------------------------------
-        */
-
         $monthlyStatus = [];
 
-        foreach ($pmsRecords as $pms) {
-
-            if (
-                empty($pms['clinic']) ||
-                empty($pms['date'])
-            ) {
+        foreach ($moduleRecords as $record) {
+            if (empty($record['clinic']) || empty($record['date'])) {
                 continue;
             }
 
-
-            $clinic = trim($pms['clinic']);
-
-
-            $timestamp = strtotime($pms['date']);
+            $clinic = trim((string) $record['clinic']);
+            $timestamp = strtotime((string) $record['date']);
 
             if ($timestamp === false) {
                 continue;
             }
 
-
-            $month = (int) date(
-                'n',
-                $timestamp
-            );
-
+            $month = (int) date('n', $timestamp);
+            $statusValue = trim((string) ($record['status'] ?? $record[$statusAlias] ?? ''));
 
             $monthlyStatus[$clinic][$month][] = [
-
-                'status' => trim(
-                    $pms['status'] ?? ''
-                ),
-
-                'date' => $pms['date'],
-
-                'machine' => trim(
-                    $pms['machine'] ?? ''
-                )
-
+                'status' => $statusValue,
+                'date' => $record['date'],
+                'machine' => trim((string) ($record['machine'] ?? '')),
             ];
         }
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | Attach Monthly Data to Clinics
-        |--------------------------------------------------------------------------
-        */
-
         foreach ($clinics as &$clinic) {
-
-            $clinicName = trim(
-                $clinic['Clinic_name']
-            );
-
-
+            $clinicName = trim((string) ($clinic['Clinic_name'] ?? ''));
             $clinic['months'] = [];
 
-
             for ($month = 1; $month <= 12; $month++) {
-
-                $clinic['months'][$month] =
-                    $monthlyStatus[$clinicName][$month] ?? [];
-
+                $clinic['months'][$month] = $monthlyStatus[$clinicName][$month] ?? [];
             }
         }
 
         unset($clinic);
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | Send to View
-        |--------------------------------------------------------------------------
-        */
-
-        $data = [
-
+        return [
             'clinics' => $clinics,
-
             'machines' => $machines,
-
-            'selectedMachine' => $selectedMachine
-
+            'selectedMachine' => $selectedMachine,
+            'selectedModule' => $selectedModule,
+            'moduleLabel' => $moduleLabels[$selectedModule],
         ];
-
-        
-        return $data;
     }
 
 }

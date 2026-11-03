@@ -2,6 +2,76 @@
 
 <body>
 
+<style>
+    .pms-view-switch {
+        display: inline-flex;
+        background: #f3f4f6;
+        border-radius: 10px;
+        padding: 4px;
+        border: 1px solid #e5e7eb;
+    }
+
+    .pms-view-switch .btn {
+        border-radius: 8px;
+        border: 0;
+        font-weight: 600;
+        padding: 0.45rem 0.9rem;
+    }
+
+    .pms-calendar-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 1rem;
+    }
+
+    .pms-month-card {
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        background: #ffffff;
+        padding: 0.9rem;
+        min-height: 220px;
+    }
+
+    .pms-month-card h6 {
+        margin: 0 0 0.75rem;
+        font-weight: 700;
+        color: #1f2937;
+    }
+
+    .pms-month-records {
+        display: flex;
+        flex-direction: column;
+        gap: 0.6rem;
+    }
+
+    .pms-record-item {
+        border: 1px solid #eef2f7;
+        border-radius: 10px;
+        background: #f8fafc;
+        padding: 0.6rem 0.7rem;
+    }
+
+    .pms-record-header {
+        display: flex;
+        justify-content: space-between;
+        gap: 0.5rem;
+        align-items: center;
+        margin-bottom: 0.35rem;
+    }
+
+    .pms-record-number {
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: #1f2937;
+    }
+
+    .pms-record-meta {
+        font-size: 0.75rem;
+        color: #4b5563;
+        line-height: 1.5;
+    }
+</style>
+
 <?php
     $pmsError = session()->getFlashdata('error');
     $pmsSuccess = session()->getFlashdata('success');
@@ -109,6 +179,12 @@ document.addEventListener('DOMContentLoaded', function () {
 </div>
     </div>
 
+<div class="d-flex justify-content-end mb-3">
+    <div class="pms-view-switch" role="tablist" aria-label="PMS view switch">
+        <button type="button" class="btn btn-primary" data-view="table">Table View</button>
+        <button type="button" class="btn btn-light" data-view="calendar">Calendar View</button>
+    </div>
+</div>
 
 <!-- =========================================================
      MAIN ROW
@@ -221,14 +297,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
         <div class="card">
 
-            <div class="card-body">
+            <div class="card-body p-0">
 
-                <div class="table-responsive">
-
+                <div id="pmsTableView" class="pms-view-panel">
+                    <div class="table-responsive">
 
                     <table
                         id="pmsTable"
-                        class="table table-striped table-hover table-sm table-bordered align-middle w-100"
+                        class="table table-striped table-hover table-sm table-bordered align-middle w-100 mb-0"
                     >
 
                         <thead>
@@ -901,6 +977,64 @@ if (!empty($pms_records)) {
 
 
 
+                    </div>
+                </div>
+
+                <div id="pmsCalendarView" class="pms-view-panel d-none">
+                    <?php
+                    $monthNames = [
+                        1 => 'January',
+                        2 => 'February',
+                        3 => 'March',
+                        4 => 'April',
+                        5 => 'May',
+                        6 => 'June',
+                        7 => 'July',
+                        8 => 'August',
+                        9 => 'September',
+                        10 => 'October',
+                        11 => 'November',
+                        12 => 'December',
+                    ];
+                    ?>
+
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="pms-calendar-grid">
+                                <?php for ($month = 1; $month <= 12; $month++): ?>
+                                    <div class="pms-month-card">
+                                        <h6><?= esc($monthNames[$month]) ?></h6>
+                                        <div class="pms-month-records">
+                                            <?php $monthHasRecords = false; ?>
+                                            <?php foreach (($pms_records ?? []) as $record): ?>
+                                                <?php
+                                                    $recordDate = trim((string) ($record['date'] ?? ''));
+                                                    $monthValue = $recordDate !== '' ? (int) date('n', strtotime($recordDate)) : 0;
+                                                ?>
+                                                <?php if ($monthValue === $month): ?>
+                                                    <?php $monthHasRecords = true; ?>
+                                                    <div class="pms-record-item">
+                                                        <div class="pms-record-header">
+                                                            <span class="pms-record-number"><?= esc($record['pms_number'] ?? '') ?></span>
+                                                            <span class="badge bg-secondary"><?= esc($record['service_tech'] ?? '') ?></span>
+                                                        </div>
+                                                        <div class="pms-record-meta">
+                                                            <div><strong>Account:</strong> <?= esc($record['clinic'] ?? '') ?></div>
+                                                            <div><strong>Machine:</strong> <?= esc($record['machine'] ?? '') ?></div>
+                                                            <div><strong>Date:</strong> <?= esc($record['date'] ?? '') ?></div>
+                                                        </div>
+                                                    </div>
+                                                <?php endif; ?>
+                                            <?php endforeach; ?>
+                                            <?php if (!$monthHasRecords): ?>
+                                                <div class="text-muted small">No records</div>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+                                <?php endfor; ?>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
             </div>
@@ -911,7 +1045,39 @@ if (!empty($pms_records)) {
 
 </div>
 
+<script>
+    function setPmsView(view) {
+        const tableView = document.getElementById('pmsTableView');
+        const calendarView = document.getElementById('pmsCalendarView');
+        const buttons = document.querySelectorAll('.pms-view-switch [data-view]');
 
+        if (!tableView || !calendarView || !buttons.length) {
+            return;
+        }
+
+        const isCalendar = view === 'calendar';
+
+        tableView.classList.toggle('d-none', isCalendar);
+        calendarView.classList.toggle('d-none', !isCalendar);
+
+        buttons.forEach(function (button) {
+            const isSelected = button.dataset.view === view;
+            button.classList.toggle('btn-primary', isSelected);
+            button.classList.toggle('btn-light', !isSelected);
+            button.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('.pms-view-switch [data-view]').forEach(function (button) {
+            button.addEventListener('click', function () {
+                setPmsView(this.dataset.view);
+            });
+        });
+
+        setPmsView('table');
+    });
+</script>
 
 <!-- ============================================================
      MFS VIEW MODAL

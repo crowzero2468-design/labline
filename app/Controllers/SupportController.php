@@ -265,6 +265,7 @@ class SupportController extends BaseController
         'done',
         'on_hold',
         'pullout',
+        'buyout',
         'unservicable',
         'canceled'
     ];

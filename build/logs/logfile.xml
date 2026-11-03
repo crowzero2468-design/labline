@@ -1,10 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <testsuites>
-  <testsuite name="ExcelImportTest" file="F:\xampp\htdocs\lablinesys\tests\unit\ExcelImportTest.php" tests="5" assertions="18" errors="0" failures="0" skipped="0" time="0.181065">
-    <testcase name="testDashboardParseExcelRowsHandlesXlsxDefaultNamespace" file="F:\xampp\htdocs\lablinesys\tests\unit\ExcelImportTest.php" line="7" class="ExcelImportTest" classname="ExcelImportTest" assertions="4" time="0.111311"/>
-    <testcase name="testMfsImportExtensionDetectionAcceptsCaseInsensitiveAndMimeBasedFiles" file="F:\xampp\htdocs\lablinesys\tests\unit\ExcelImportTest.php" line="89" class="ExcelImportTest" classname="ExcelImportTest" assertions="5" time="0.044663"/>
-    <testcase name="testFsrImportParsesInlineStringXlsxTemplate" file="F:\xampp\htdocs\lablinesys\tests\unit\ExcelImportTest.php" line="102" class="ExcelImportTest" classname="ExcelImportTest" assertions="5" time="0.020039"/>
-    <testcase name="testPmsImportTreatsSamePmsNumberOnDifferentMachinesAsUnique" file="F:\xampp\htdocs\lablinesys\tests\unit\ExcelImportTest.php" line="180" class="ExcelImportTest" classname="ExcelImportTest" assertions="2" time="0.004250"/>
-    <testcase name="testPmsImportDuplicateCheckIncludesRemarks" file="F:\xampp\htdocs\lablinesys\tests\unit\ExcelImportTest.php" line="212" class="ExcelImportTest" classname="ExcelImportTest" assertions="2" time="0.000802"/>
+  <testsuite name="ExcelImportTest" file="F:\xampp\htdocs\lablinesys\tests\unit\ExcelImportTest.php" tests="7" assertions="24" errors="0" failures="0" skipped="0" time="0.059148">
+    <testcase name="testDashboardParseExcelRowsHandlesXlsxDefaultNamespace" file="F:\xampp\htdocs\lablinesys\tests\unit\ExcelImportTest.php" line="7" class="ExcelImportTest" classname="ExcelImportTest" assertions="4" time="0.034368"/>
+    <testcase name="testMfsImportExtensionDetectionAcceptsCaseInsensitiveAndMimeBasedFiles" file="F:\xampp\htdocs\lablinesys\tests\unit\ExcelImportTest.php" line="89" class="ExcelImportTest" classname="ExcelImportTest" assertions="5" time="0.004041"/>
+    <testcase name="testMfsSchemaIncludesNewFormFields" file="F:\xampp\htdocs\lablinesys\tests\unit\ExcelImportTest.php" line="102" class="ExcelImportTest" classname="ExcelImportTest" assertions="4" time="0.001610"/>
+    <testcase name="testMfsAccessoryAndConsumableRowsFormatIndependently" file="F:\xampp\htdocs\lablinesys\tests\unit\ExcelImportTest.php" line="116" class="ExcelImportTest" classname="ExcelImportTest" assertions="2" time="0.000744"/>
+    <testcase name="testFsrImportParsesInlineStringXlsxTemplate" file="F:\xampp\htdocs\lablinesys\tests\unit\ExcelImportTest.php" line="135" class="ExcelImportTest" classname="ExcelImportTest" assertions="5" time="0.012372"/>
+    <testcase name="testPmsImportTreatsSamePmsNumberOnDifferentMachinesAsUnique" file="F:\xampp\htdocs\lablinesys\tests\unit\ExcelImportTest.php" line="213" class="ExcelImportTest" classname="ExcelImportTest" assertions="2" time="0.005235"/>
+    <testcase name="testPmsImportDuplicateCheckIncludesRemarks" file="F:\xampp\htdocs\lablinesys\tests\unit\ExcelImportTest.php" line="245" class="ExcelImportTest" classname="ExcelImportTest" assertions="2" time="0.000777"/>
   </testsuite>
 </testsuites>

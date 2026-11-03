@@ -93,10 +93,10 @@
 
 
                                 <!-- HEADER + FILTER -->
-                                <div class="row mb-4 align-items-end">
+                                <div class="row mb-4 align-items-end g-3">
 
                                     <!-- HEADER -->
-                                    <div class="col-md-8">
+                                    <div class="col-lg-5">
 
                                         <h4 class="mb-1">
                                             <i class="bi bi-calendar-check me-2"></i>
@@ -104,47 +104,49 @@
                                         </h4>
 
                                         <p class="text-muted mb-0">
-                                            Monthly PMS records
+                                            Monthly <?= esc($moduleLabel ?? 'PMS') ?> records
                                         </p>
 
                                     </div>
 
 
-                                    <!-- MACHINE FILTER + PRINT -->
-                                    <div class="col-md-4">
+                                    <!-- FILTERS -->
+                                    <div class="col-lg-7">
 
-                                        <label for="machineFilter"
-                                            class="form-label fw-semibold">
+                                        <div class="row g-2">
+                                            <div class="col-md-4">
+                                                <label for="moduleFilter" class="form-label fw-semibold mb-1">
+                                                    Module
+                                                </label>
+                                                <select id="moduleFilter" class="form-select">
+                                                    <option value="pms" <?= (($selectedModule ?? 'pms') === 'pms') ? 'selected' : '' ?>>PMS</option>
+                                                    <option value="fsr" <?= (($selectedModule ?? 'pms') === 'fsr') ? 'selected' : '' ?>>FSR</option>
+                                                    <option value="mfs" <?= (($selectedModule ?? 'pms') === 'mfs') ? 'selected' : '' ?>>MFS</option>
+                                                </select>
+                                            </div>
 
-                                            Machine
+                                            <div class="col-md-5">
+                                                <label for="machineFilter" class="form-label fw-semibold mb-1">
+                                                    Machine
+                                                </label>
+                                                <select id="machineFilter" class="form-select">
+                                                    <option value="">All Machines</option>
+                                                    <?php foreach ($machines as $machine): ?>
+                                                        <option value="<?= esc($machine['machine']) ?>"
+                                                            <?= ($selectedMachine === $machine['machine']) ? 'selected' : '' ?>>
+                                                            <?= esc($machine['machine']) ?>
+                                                        </option>
+                                                    <?php endforeach; ?>
+                                                </select>
+                                            </div>
 
-                                        </label>
-
-                                        <div class="d-flex gap-2">
-                                        <select id="machineFilter" class="form-select flex-grow-1">
-
-                                            <option value="">
-                                                All Machines
-                                            </option>
-
-                                            <?php foreach ($machines as $machine): ?>
-
-                                                <option
-                                                    value="<?= esc($machine['machine']) ?>"
-                                                    <?= ($selectedMachine === $machine['machine']) ? 'selected' : '' ?>>
-
-                                                    <?= esc($machine['machine']) ?>
-
-                                                </option>
-
-                                            <?php endforeach; ?>
-
-                                        </select>
-                                        <button type="button"
-                                                class="btn btn-outline-primary text-nowrap"
-                                                id="btnPrintMonitoringReport">
-                                            <i class="bi bi-printer me-1"></i>Print
-                                        </button>
+                                            <div class="col-md-3 d-flex align-items-end">
+                                                <button type="button"
+                                                        class="btn btn-outline-primary w-100 text-nowrap"
+                                                        id="btnPrintMonitoringReport">
+                                                    <i class="bi bi-printer me-1"></i>Print
+                                                </button>
+                                            </div>
                                         </div>
 
                                     </div>
@@ -488,28 +490,54 @@
         |--------------------------------------------------------------------------
         */
 
-        $('#machineFilter').on('change', function () {
+        $('#moduleFilter').on('change', function () {
+            const module = $(this).val();
+            const machine = $('#machineFilter').val();
+            const query = new URLSearchParams();
 
-            const machine = $(this).val();
-
-            let url = '<?= site_url('monitoring') ?>';
-
-
-            if (machine !== '') {
-
-                url += '?machine=' +
-                    encodeURIComponent(machine);
-
+            if (module) {
+                query.set('module', module);
             }
 
+            if (machine) {
+                query.set('machine', machine);
+            }
+
+            const queryString = query.toString();
+            const url = '<?= site_url('monitoring') ?>' +
+                (queryString ? '?' + queryString : '');
 
             window.location.href = url;
+        });
 
+        $('#machineFilter').on('change', function () {
+            const module = $('#moduleFilter').val();
+            const machine = $(this).val();
+            const query = new URLSearchParams();
+
+            if (module) {
+                query.set('module', module);
+            }
+
+            if (machine) {
+                query.set('machine', machine);
+            }
+
+            const queryString = query.toString();
+            const url = '<?= site_url('monitoring') ?>' +
+                (queryString ? '?' + queryString : '');
+
+            window.location.href = url;
         });
 
         $('#btnPrintMonitoringReport').on('click', function () {
+            const module = $('#moduleFilter').val();
             const machine = $('#machineFilter').val();
             const query = new URLSearchParams();
+
+            if (module) {
+                query.set('module', module);
+            }
 
             if (machine) {
                 query.set('machine', machine);

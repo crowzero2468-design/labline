@@ -99,6 +99,39 @@ XML;
         $this->assertNull($method->invoke($controller, 'report.xls', 'application/vnd.ms-excel'));
     }
 
+    public function testMfsSchemaIncludesNewFormFields(): void
+    {
+        $controller = new \App\Controllers\Mfs();
+        $method = new \ReflectionMethod($controller, 'getRequiredMfsSchemaColumns');
+        $method->setAccessible(true);
+
+        $columns = $method->invoke($controller);
+
+        $this->assertContains('pull_out_personnel', $columns);
+        $this->assertContains('returned_personnel', $columns);
+        $this->assertContains('date_returned', $columns);
+        $this->assertContains('accessories', $columns);
+    }
+
+    public function testMfsAccessoryAndConsumableRowsFormatIndependently(): void
+    {
+        $controller = new \App\Controllers\Mfs();
+        $method = new \ReflectionMethod($controller, 'formatMfsDynamicRows');
+        $method->setAccessible(true);
+
+        $accessories = [
+            ['name' => 'Keyboard', 'quantity' => '2'],
+            ['name' => 'Mouse', 'quantity' => '1'],
+        ];
+
+        $consumables = [
+            ['name' => 'Ink', 'unit' => 'Box', 'lot_number' => 'LOT-01'],
+        ];
+
+        $this->assertSame('Keyboard | 2; Mouse | 1', $method->invoke($controller, $accessories, 'accessory'));
+        $this->assertSame('Ink | LOT-01', $method->invoke($controller, $consumables, 'consumable'));
+    }
+
     public function testFsrImportParsesInlineStringXlsxTemplate(): void
     {
         $dir = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'lablinesys_fsr_inline_test';
