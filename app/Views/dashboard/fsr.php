@@ -62,6 +62,112 @@
     .select2-results__option--highlighted[aria-selected] .fsr-account-address {
         color: #e9ecef;
     }
+
+    .fsr-view-switch {
+        display: inline-flex;
+        background: #f3f4f6;
+        border-radius: 10px;
+        padding: 4px;
+        border: 1px solid #e5e7eb;
+    }
+
+    .fsr-view-switch .btn {
+        border-radius: 8px;
+        border: 0;
+        font-weight: 600;
+        padding: 0.45rem 0.9rem;
+    }
+
+    .fsr-calendar-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 1rem;
+    }
+
+    .fsr-month-card {
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        background: #ffffff;
+        padding: 0.9rem;
+        min-height: 220px;
+    }
+
+    .fsr-month-card h6 {
+        margin: 0 0 0.75rem;
+        font-weight: 700;
+        color: #1f2937;
+    }
+
+    .fsr-month-records {
+        display: flex;
+        flex-direction: column;
+        gap: 0.6rem;
+    }
+
+    .fsr-record-item {
+        border: 1px solid #eef2f7;
+        border-radius: 10px;
+        background: #f8fafc;
+        padding: 0.6rem 0.7rem;
+    }
+
+    .fsr-record-header {
+        display: flex;
+        justify-content: space-between;
+        gap: 0.5rem;
+        align-items: center;
+        margin-bottom: 0.35rem;
+    }
+
+    .fsr-record-number {
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: #1f2937;
+    }
+
+    .fsr-record-meta {
+        font-size: 0.75rem;
+        color: #4b5563;
+        line-height: 1.5;
+    }
+
+    .fsr-skipped-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 1rem;
+    }
+
+    .fsr-skipped-card {
+        border: 1px solid #fecaca;
+        border-radius: 12px;
+        background: #fff7f7;
+        padding: 0.9rem;
+    }
+
+    .fsr-skipped-card h6 {
+        margin: 0 0 0.75rem;
+        font-weight: 700;
+        color: #7f1d1d;
+    }
+
+    .fsr-skipped-number-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.45rem;
+    }
+
+    .fsr-skipped-number {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 46px;
+        padding: 0.28rem 0.5rem;
+        border-radius: 999px;
+        background: #dc2626;
+        color: #ffffff;
+        font-size: 0.72rem;
+        font-weight: 700;
+    }
 </style>
 
 <body>
@@ -238,6 +344,14 @@ foreach (($accounts ?? []) as $a) {
     </div>
 
 
+    <div class="d-flex justify-content-end mb-3">
+        <div class="fsr-view-switch" role="tablist" aria-label="FSR view switch">
+            <button type="button" class="btn btn-primary" data-view="table">Table View</button>
+            <button type="button" class="btn btn-light" data-view="calendar">Calendar View</button>
+            <button type="button" class="btn btn-light" data-view="skipped">FSR Skipped Number</button>
+        </div>
+    </div>
+
     <div class="row">
 
         <!-- ==========================================
@@ -332,137 +446,158 @@ foreach (($accounts ?? []) as $a) {
         <!-- ==========================================
              FSR TABLE
              ========================================== -->
-
-<div class="col-md-9">
-
-    <div class="card">
-
-        <div class="card-body p-0">
-
-            <div class="table-responsive">
-
-                <table id="fsrTable"
-                       class="table table-striped table-hover table-sm mb-0">
-
-                    <thead>
-                        <tr>
-                            <th>FSR Number</th>
-                            <th>Service Engineer</th>
-                            <th>Account</th>
-                            <th>Address</th>
-                            <th>Date</th>
-                            <th>Machine</th>
-                            <th>Serial Number</th>
-                            <th>Technical Concern</th>
-                            <th>Remarks</th>
-                            <th>Action Made</th>
-                            <th>Acknowledge</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-
-                    <tbody>
-
-                    <?php if (!empty($fsr_records)): ?>
-
-                        <?php foreach ($fsr_records as $r): ?>
-
-                            <?php
-                                $ack = strtolower(
-                                    trim(
-                                        (string) ($r['acknowledge'] ?? '')
-                                    )
-                                );
-                            ?>
-
-                            <tr>
-
-                                <td><?= esc($r['fsr_number'] ?? '') ?></td>
-
-                                <td><?= esc($r['service_engineer'] ?? '') ?></td>
-
-                                <td><?= esc($r['account'] ?? '') ?></td>
-
-                                <td><?= esc($r['address'] ?? '') ?></td>
-
-                                <td><?= esc($r['date'] ?? '') ?></td>
-
-                                <td><?= esc($r['machine'] ?? '') ?></td>
-
-                                <td><?= esc($r['serial_number'] ?? '') ?></td>
-
-                                <td style="min-width: 220px;">
-                                    <?= esc($r['technical_concern'] ?? '') ?>
-                                </td>
-
-                                <td style="min-width: 180px;">
-                                    <?= esc($r['remarks'] ?? '') ?>
-                                </td>
-
-                                <td style="min-width: 220px;">
-                                    <?= esc($r['action_made'] ?? '') ?>
-                                </td>
-
-                                <td>
-                                    <?php if (
-                                        $ack === 'yes' ||
-                                        $ack === '1' ||
-                                        $ack === 'acknowledged'
-                                    ): ?>
-
-                                        <span class="badge bg-success">
-                                            Yes
-                                        </span>
-
-                                    <?php else: ?>
-
-                                        <span class="badge bg-secondary">
-                                            No
-                                        </span>
-
+        <div class="col-md-9">
+            <div class="card">
+                <div class="card-body p-0">
+                    <div id="fsrTableView" class="fsr-view-panel">
+                        <div class="table-responsive">
+                            <table id="fsrTable" class="table table-striped table-hover table-sm mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>FSR Number</th>
+                                        <th>Service Engineer</th>
+                                        <th>Account</th>
+                                        <th>Address</th>
+                                        <th>Date</th>
+                                        <th>Machine</th>
+                                        <th>Serial Number</th>
+                                        <th>Technical Concern</th>
+                                        <th>Remarks</th>
+                                        <th>Action Made</th>
+                                        <th>Acknowledge</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php if (!empty($fsr_records)): ?>
+                                        <?php foreach ($fsr_records as $r): ?>
+                                            <?php $ack = strtolower(trim((string) ($r['acknowledge'] ?? ''))); ?>
+                                            <tr>
+                                                <td><?= esc($r['fsr_number'] ?? '') ?></td>
+                                                <td><?= esc($r['service_engineer'] ?? '') ?></td>
+                                                <td><?= esc($r['account'] ?? '') ?></td>
+                                                <td><?= esc($r['address'] ?? '') ?></td>
+                                                <td><?= esc($r['date'] ?? '') ?></td>
+                                                <td><?= esc($r['machine'] ?? '') ?></td>
+                                                <td><?= esc($r['serial_number'] ?? '') ?></td>
+                                                <td style="min-width: 220px;"><?= esc($r['technical_concern'] ?? '') ?></td>
+                                                <td style="min-width: 180px;"><?= esc($r['remarks'] ?? '') ?></td>
+                                                <td style="min-width: 220px;"><?= esc($r['action_made'] ?? '') ?></td>
+                                                <td>
+                                                    <?php if ($ack === 'yes' || $ack === '1' || $ack === 'acknowledged'): ?>
+                                                        <span class="badge bg-success">Yes</span>
+                                                    <?php else: ?>
+                                                        <span class="badge bg-secondary">No</span>
+                                                    <?php endif; ?>
+                                                </td>
+                                                <td class="text-nowrap">
+                                                    <button type="button" class="btn btn-sm btn-outline-success edit-fsr-btn" data-id="<?= (int) $r['id'] ?>"><i class="bi bi-pencil-square"></i>Edit</button>
+                                                    <form method="post" action="<?= site_url('fsr/delete/' . (int) $r['id']) ?>" class="d-inline fsr-delete-form">
+                                                        <?= csrf_field() ?>
+                                                        <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i>Delete</button>
+                                                    </form>
+                                                </td>
+                                            </tr>
+                                        <?php endforeach; ?>
                                     <?php endif; ?>
-                                </td>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
 
-                                <td class="text-nowrap">
-                                    <button type="button"
-                                            class="btn btn-sm btn-outline-success edit-fsr-btn"
-                                            data-id="<?= (int) $r['id'] ?>">
-                                        <i class="bi bi-pencil-square"></i>
-                                        Edit
-                                    </button>
+                    <div id="fsrCalendarView" class="fsr-view-panel d-none">
+                        <?php
+                        $monthNames = [1 => 'January', 2 => 'February', 3 => 'March', 4 => 'April', 5 => 'May', 6 => 'June', 7 => 'July', 8 => 'August', 9 => 'September', 10 => 'October', 11 => 'November', 12 => 'December'];
+                        ?>
+                        <div class="fsr-calendar-grid">
+                            <?php for ($month = 1; $month <= 12; $month++): ?>
+                                <div class="fsr-month-card">
+                                    <h6><?= esc($monthNames[$month]) ?></h6>
+                                    <div class="fsr-month-records">
+                                        <?php $monthHasRecords = false; ?>
+                                        <?php foreach (($fsr_records ?? []) as $record): ?>
+                                            <?php
+                                                $recordDate = trim((string) ($record['date'] ?? ''));
+                                                $monthValue = $recordDate !== '' ? (int) date('n', strtotime($recordDate)) : 0;
+                                            ?>
+                                            <?php if ($monthValue === $month): ?>
+                                                <?php $monthHasRecords = true; ?>
+                                                <div class="fsr-record-item">
+                                                    <div class="fsr-record-header">
+                                                        <span class="fsr-record-number"><?= esc($record['fsr_number'] ?? '') ?></span>
+                                                        <span class="badge bg-secondary"><?= esc($record['service_engineer'] ?? '') ?></span>
+                                                    </div>
+                                                    <div class="fsr-record-meta">
+                                                        <div><strong>Account:</strong> <?= esc($record['account'] ?? '') ?></div>
+                                                        <div><strong>Machine:</strong> <?= esc($record['machine'] ?? '') ?></div>
+                                                        <div><strong>Date:</strong> <?= esc($record['date'] ?? '') ?></div>
+                                                    </div>
+                                                </div>
+                                            <?php endif; ?>
+                                        <?php endforeach; ?>
+                                        <?php if (!$monthHasRecords): ?><div class="text-muted small">No records</div><?php endif; ?>
+                                    </div>
+                                </div>
+                            <?php endfor; ?>
+                        </div>
+                    </div>
 
-                                    <form method="post"
-                                          action="<?= site_url('fsr/delete/' . (int) $r['id']) ?>"
-                                          class="d-inline fsr-delete-form">
-                                        <?= csrf_field() ?>
-                                        <button type="submit" class="btn btn-sm btn-outline-danger">
-                                            <i class="bi bi-trash"></i>
-                                            Delete
-                                        </button>
-                                    </form>
-                                </td>
-
-                            </tr>
-
-                        <?php endforeach; ?>
-
-                    <?php endif; ?>
-
-                    </tbody>
-
-                </table>
-
+                    <div id="fsrSkippedView" class="fsr-view-panel d-none">
+                        <?php
+                        $fsrSkippedGroups = [];
+                        $fsrNumbers = [];
+                        foreach (($fsr_records ?? []) as $record) {
+                            $fsrText = trim((string) ($record['fsr_number'] ?? ''));
+                            preg_match('/\d+/', $fsrText, $fsrMatch);
+                            $numericFsr = isset($fsrMatch[0]) ? (int) $fsrMatch[0] : null;
+                            if ($numericFsr !== null && $numericFsr > 0) {
+                                $fsrNumbers[] = $numericFsr;
+                            }
+                        }
+                        if (!empty($fsrNumbers)) {
+                            $fsrNumbers = array_values(array_unique($fsrNumbers));
+                            sort($fsrNumbers, SORT_NUMERIC);
+                            foreach ($fsrNumbers as $number) {
+                                $rangeIndex = (int) floor(($number - 1) / 50);
+                                $fsrSkippedGroups[$rangeIndex][] = $number;
+                            }
+                            ksort($fsrSkippedGroups);
+                        }
+                        ?>
+                        <?php if (empty($fsrSkippedGroups)): ?>
+                            <div class="text-muted small">No FSR numbers available.</div>
+                        <?php else: ?>
+                            <div class="fsr-skipped-grid">
+                                <?php foreach ($fsrSkippedGroups as $rangeIndex => $rangeNumbers): ?>
+                                    <?php
+                                        $rangeStart = ($rangeIndex * 50) + 1;
+                                        $rangeEnd = $rangeStart + 49;
+                                        $missingNumbers = [];
+                                        for ($value = $rangeStart; $value <= $rangeEnd; $value++) {
+                                            if (!in_array($value, $rangeNumbers, true)) {
+                                                $missingNumbers[] = $value;
+                                            }
+                                        }
+                                    ?>
+                                    <div class="fsr-skipped-card">
+                                        <h6><?= $rangeStart ?>-<?= $rangeEnd ?></h6>
+                                        <?php if (empty($missingNumbers)): ?>
+                                            <div class="text-muted small">No skipped FSR</div>
+                                        <?php else: ?>
+                                            <div class="fsr-skipped-number-list">
+                                                <?php foreach ($missingNumbers as $missingNumber): ?>
+                                                    <span class="fsr-skipped-number"><?= esc($missingNumber) ?></span>
+                                                <?php endforeach; ?>
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
             </div>
-
         </div>
-
-    </div>
-
-</div>
-
-    </div>
-
-</div>
 
 <!-- ==========================================
      EDIT FSR MODAL
@@ -962,6 +1097,28 @@ foreach (($accounts ?? []) as $a) {
             });
         }
 
+    function setFsrView(view) {
+        const tableView = $('#fsrTableView');
+        const calendarView = $('#fsrCalendarView');
+        const skippedView = $('#fsrSkippedView');
+        const buttons = $('.fsr-view-switch [data-view]');
+
+        const isTable = view === 'table';
+        const isCalendar = view === 'calendar';
+        const isSkipped = view === 'skipped';
+
+        tableView.toggleClass('d-none', !isTable);
+        calendarView.toggleClass('d-none', !isCalendar);
+        skippedView.toggleClass('d-none', !isSkipped);
+
+        buttons.removeClass('btn-primary').addClass('btn-light');
+        buttons.filter('[data-view="' + view + '"]').removeClass('btn-light').addClass('btn-primary');
+    }
+
+    $('.fsr-view-switch [data-view]').on('click', function () {
+        setFsrView($(this).data('view'));
+    });
+
     $('#fsrTable').DataTable({
         pageLength: 10,
 
@@ -1112,12 +1269,28 @@ document.addEventListener('DOMContentLoaded', function () {
     const editSerialInput =
         document.getElementById('edit_fsr_serial');
 
+    function findSelectedOption(selectElement) {
+        if (!selectElement || !selectElement.value) {
+            return null;
+        }
+
+        const value = String(selectElement.value).trim();
+
+        if (!value) {
+            return null;
+        }
+
+        return Array.from(selectElement.options).find(function (option) {
+            return String(option.value).trim() === value;
+        }) || selectElement.options[selectElement.selectedIndex] || null;
+    }
+
     function populateEditMachines(selectedMachine, selectedSerial) {
         if (!editAccountSelect || !editMachineSelect) {
             return;
         }
 
-        const selectedOption = editAccountSelect.options[editAccountSelect.selectedIndex];
+        const selectedOption = findSelectedOption(editAccountSelect);
         const address = selectedOption?.dataset.address || '';
         let machines = {};
 
@@ -1152,7 +1325,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     if (editAccountSelect) {
-        editAccountSelect.addEventListener('change', function () {
+        $(editAccountSelect).on('change select2:select select2:clear', function () {
             populateEditMachines('', '');
         });
     }
@@ -1190,105 +1363,48 @@ document.addEventListener('DOMContentLoaded', function () {
      * ==========================================
      */
 
-    accountSelect.addEventListener(
-        'change',
-        function () {
+    function refreshFsrClinicDetails(event) {
+        const selectedOption = event && event.params && event.params.data && event.params.data.element
+            ? event.params.data.element
+            : findSelectedOption(accountSelect);
 
-            const selectedOption =
-                this.options[this.selectedIndex];
+        if (!selectedOption || !selectedOption.value) {
+            if (addressInput) {
+                addressInput.value = '';
+            }
 
-
-            /*
-             * Get address
-             */
-            const address =
-                selectedOption.dataset.address || '';
-
-            addressInput.value =
-                address;
-
-
-            /*
-             * Reset machine
-             */
-            machineSelect.innerHTML =
-                '<option value="">-- Select Machine --</option>';
-
-
-            /*
-             * Reset serial
-             */
+            machineSelect.innerHTML = '<option value="">-- Select Machine --</option>';
             serialInput.value = '';
-
-
-            /*
-             * Reset machine map
-             */
             currentMachines = {};
-
-
-            /*
-             * No account selected
-             */
-            if (!this.value) {
-
-                machineSelect.disabled = true;
-
-                return;
-            }
-
-
-            /*
-             * Get machines
-             */
-            try {
-
-                currentMachines =
-                    JSON.parse(
-                        selectedOption.dataset.machines || '{}'
-                    );
-
-            } catch (error) {
-
-                console.error(
-                    'Invalid machine data:',
-                    error
-                );
-
-                currentMachines = {};
-            }
-
-
-            /*
-             * Populate machine dropdown
-             */
-            Object.keys(currentMachines)
-                .forEach(function (machine) {
-
-                    const option =
-                        document.createElement('option');
-
-                    option.value =
-                        machine;
-
-                    option.textContent =
-                        machine;
-
-                    machineSelect.appendChild(
-                        option
-                    );
-
-                });
-
-
-            /*
-             * Enable machine
-             */
-            machineSelect.disabled =
-                Object.keys(currentMachines).length === 0;
-
+            machineSelect.disabled = true;
+            return;
         }
-    );
+
+        const address = selectedOption.dataset.address || '';
+        addressInput.value = address;
+
+        machineSelect.innerHTML = '<option value="">-- Select Machine --</option>';
+        serialInput.value = '';
+        currentMachines = {};
+
+        try {
+            currentMachines = JSON.parse(selectedOption.dataset.machines || '{}');
+        } catch (error) {
+            console.error('Invalid machine data:', error);
+            currentMachines = {};
+        }
+
+        Object.keys(currentMachines).forEach(function (machine) {
+            const option = document.createElement('option');
+            option.value = machine;
+            option.textContent = machine;
+            machineSelect.appendChild(option);
+        });
+
+        machineSelect.disabled = Object.keys(currentMachines).length === 0;
+    }
+
+    $(accountSelect).on('change select2:select select2:clear', refreshFsrClinicDetails);
 
 
     /*

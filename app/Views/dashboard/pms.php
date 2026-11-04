@@ -2,6 +2,114 @@
 
 <body>
 
+<style>
+    .pms-view-switch {
+        display: inline-flex;
+        background: #f3f4f6;
+        border-radius: 10px;
+        padding: 4px;
+        border: 1px solid #e5e7eb;
+    }
+
+    .pms-view-switch .btn {
+        border-radius: 8px;
+        border: 0;
+        font-weight: 600;
+        padding: 0.45rem 0.9rem;
+    }
+
+    .pms-calendar-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 1rem;
+    }
+
+    .pms-month-card {
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        background: #ffffff;
+        padding: 0.9rem;
+        min-height: 220px;
+    }
+
+    .pms-month-card h6 {
+        margin: 0 0 0.75rem;
+        font-weight: 700;
+        color: #1f2937;
+    }
+
+    .pms-month-records {
+        display: flex;
+        flex-direction: column;
+        gap: 0.6rem;
+    }
+
+    .pms-record-item {
+        border: 1px solid #eef2f7;
+        border-radius: 10px;
+        background: #f8fafc;
+        padding: 0.6rem 0.7rem;
+    }
+
+    .pms-record-header {
+        display: flex;
+        justify-content: space-between;
+        gap: 0.5rem;
+        align-items: center;
+        margin-bottom: 0.35rem;
+    }
+
+    .pms-record-number {
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: #1f2937;
+    }
+
+    .pms-record-meta {
+        font-size: 0.75rem;
+        color: #4b5563;
+        line-height: 1.5;
+    }
+
+    .pms-skipped-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 1rem;
+    }
+
+    .pms-skipped-card {
+        border: 1px solid #fecaca;
+        border-radius: 12px;
+        background: #fff7f7;
+        padding: 0.9rem;
+    }
+
+    .pms-skipped-card h6 {
+        margin: 0 0 0.75rem;
+        font-weight: 700;
+        color: #7f1d1d;
+    }
+
+    .pms-skipped-number-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.45rem;
+    }
+
+    .pms-skipped-number {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 46px;
+        padding: 0.28rem 0.5rem;
+        border-radius: 999px;
+        background: #dc2626;
+        color: #ffffff;
+        font-size: 0.72rem;
+        font-weight: 700;
+    }
+</style>
+
 <?php
     $pmsError = session()->getFlashdata('error');
     $pmsSuccess = session()->getFlashdata('success');
@@ -109,6 +217,13 @@ document.addEventListener('DOMContentLoaded', function () {
 </div>
     </div>
 
+<div class="d-flex justify-content-end mb-3">
+    <div class="pms-view-switch" role="tablist" aria-label="PMS view switch">
+        <button type="button" class="btn btn-primary" data-view="table">Table View</button>
+        <button type="button" class="btn btn-light" data-view="calendar">Calendar View</button>
+        <button type="button" class="btn btn-light" data-view="skipped">Skipped PMS</button>
+    </div>
+</div>
 
 <!-- =========================================================
      MAIN ROW
@@ -221,14 +336,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
         <div class="card">
 
-            <div class="card-body">
+            <div class="card-body p-0">
 
-                <div class="table-responsive">
-
+                <div id="pmsTableView" class="pms-view-panel">
+                    <div class="table-responsive">
 
                     <table
                         id="pmsTable"
-                        class="table table-striped table-hover table-sm table-bordered align-middle w-100"
+                        class="table table-striped table-hover table-sm table-bordered align-middle w-100 mb-0"
                     >
 
                         <thead>
@@ -901,6 +1016,202 @@ if (!empty($pms_records)) {
 
 
 
+                    </div>
+                </div>
+
+                <div id="pmsCalendarView" class="pms-view-panel d-none">
+                    <?php
+                    $monthNames = [
+                        1 => 'January',
+                        2 => 'February',
+                        3 => 'March',
+                        4 => 'April',
+                        5 => 'May',
+                        6 => 'June',
+                        7 => 'July',
+                        8 => 'August',
+                        9 => 'September',
+                        10 => 'October',
+                        11 => 'November',
+                        12 => 'December',
+                    ];
+                    ?>
+
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="pms-calendar-grid">
+                                <?php for ($month = 1; $month <= 12; $month++): ?>
+                                    <div class="pms-month-card">
+                                        <h6><?= esc($monthNames[$month]) ?></h6>
+                                        <div class="pms-month-records">
+                                            <?php $monthHasRecords = false; ?>
+                                            <?php foreach (($pms_records ?? []) as $record): ?>
+                                                <?php
+                                                    $recordDate = trim((string) ($record['date'] ?? ''));
+                                                    $monthValue = $recordDate !== '' ? (int) date('n', strtotime($recordDate)) : 0;
+                                                ?>
+                                                <?php if ($monthValue === $month): ?>
+                                                    <?php $monthHasRecords = true; ?>
+                                                    <div class="pms-record-item">
+                                                        <div class="pms-record-header">
+                                                            <span class="pms-record-number"><?= esc($record['pms_number'] ?? '') ?></span>
+                                                            <span class="badge bg-secondary"><?= esc($record['service_tech'] ?? '') ?></span>
+                                                        </div>
+                                                        <div class="pms-record-meta">
+                                                            <div><strong>Account:</strong> <?= esc($record['clinic'] ?? '') ?></div>
+                                                            <div><strong>Machine:</strong> <?= esc($record['machine'] ?? '') ?></div>
+                                                            <div><strong>Date:</strong> <?= esc($record['date'] ?? '') ?></div>
+                                                        </div>
+                                                    </div>
+                                                <?php endif; ?>
+                                            <?php endforeach; ?>
+                                            <?php if (!$monthHasRecords): ?>
+                                                <div class="text-muted small">No records</div>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+                                <?php endfor; ?>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="pmsSkippedView" class="pms-view-panel d-none">
+                    <?php
+                    $buildSkippedGroups = static function (array $numberList): array {
+                        $grouped = [];
+                        $uniqueNumbers = array_values(array_unique($numberList));
+                        sort($uniqueNumbers, SORT_NUMERIC);
+
+                        foreach ($uniqueNumbers as $number) {
+                            $rangeIndex = (int) floor(($number - 1) / 50);
+                            $grouped[$rangeIndex][] = (int) $number;
+                        }
+
+                        ksort($grouped);
+
+                        return $grouped;
+                    };
+
+                    $pmsSkippedGroups = [];
+                    $numericPmsList = [];
+
+                    foreach (($pms_records ?? []) as $record) {
+                        $pmsNumberText = trim((string) ($record['pms_number'] ?? ''));
+                        preg_match('/\d+/', $pmsNumberText, $match);
+                        $numericPms = isset($match[0]) ? (int) $match[0] : null;
+
+                        if ($numericPms !== null && $numericPms > 0) {
+                            $numericPmsList[] = $numericPms;
+                        }
+                    }
+
+                    $pmsSkippedGroups = $buildSkippedGroups($numericPmsList);
+
+                    $mfsSkippedGroups = [];
+                    $database = db_connect();
+
+                    if ($database->tableExists('tb_mfs')) {
+                        $mfsRows = $database
+                            ->table('tb_mfs')
+                            ->select('mfs_number')
+                            ->where('mfs_number IS NOT NULL', null, false)
+                            ->where('mfs_number !=', '')
+                            ->get()
+                            ->getResultArray();
+
+                        $numericMfsList = [];
+
+                        foreach ($mfsRows as $row) {
+                            $mfsNumberText = trim((string) ($row['mfs_number'] ?? ''));
+                            preg_match('/\d+/', $mfsNumberText, $match);
+                            $numericMfs = isset($match[0]) ? (int) $match[0] : null;
+
+                            if ($numericMfs !== null && $numericMfs > 0) {
+                                $numericMfsList[] = $numericMfs;
+                            }
+                        }
+
+                        $mfsSkippedGroups = $buildSkippedGroups($numericMfsList);
+                    }
+
+                    $fsrSkippedGroups = [];
+
+                    if ($database->tableExists('tb_fsr')) {
+                        $fsrRows = $database
+                            ->table('tb_fsr')
+                            ->select('fsr_number')
+                            ->where('fsr_number IS NOT NULL', null, false)
+                            ->where('fsr_number !=', '')
+                            ->get()
+                            ->getResultArray();
+
+                        $numericFsrList = [];
+
+                        foreach ($fsrRows as $row) {
+                            $fsrNumberText = trim((string) ($row['fsr_number'] ?? ''));
+                            preg_match('/\d+/', $fsrNumberText, $match);
+                            $numericFsr = isset($match[0]) ? (int) $match[0] : null;
+
+                            if ($numericFsr !== null && $numericFsr > 0) {
+                                $numericFsrList[] = $numericFsr;
+                            }
+                        }
+
+                        $fsrSkippedGroups = $buildSkippedGroups($numericFsrList);
+                    }
+                    ?>
+
+                    <div class="card">
+                        <div class="card-body">
+                            <?php
+                            $skippedSections = [
+                                'PMS' => $pmsSkippedGroups,
+                                'MFS' => $mfsSkippedGroups,
+                                'FSR' => $fsrSkippedGroups,
+                            ];
+                            ?>
+
+                            <?php foreach ($skippedSections as $sectionName => $sectionGroups): ?>
+                                <div class="mb-4">
+                                    <h5 class="mb-3"><?= esc($sectionName) ?> Numbers</h5>
+
+                                    <?php if (empty($sectionGroups)): ?>
+                                        <div class="text-muted small">No <?= esc($sectionName) ?> numbers available.</div>
+                                    <?php else: ?>
+                                        <div class="pms-skipped-grid">
+                                            <?php foreach ($sectionGroups as $rangeIndex => $rangeNumbers): ?>
+                                                <?php
+                                                $rangeStart = ($rangeIndex * 50) + 1;
+                                                $rangeEnd = $rangeStart + 49;
+                                                $missingNumbers = [];
+
+                                                for ($value = $rangeStart; $value <= $rangeEnd; $value++) {
+                                                    if (!in_array($value, $rangeNumbers, true)) {
+                                                        $missingNumbers[] = $value;
+                                                    }
+                                                }
+                                                ?>
+
+                                                <div class="pms-skipped-card">
+                                                    <h6><?= $rangeStart ?>-<?= $rangeEnd ?></h6>
+                                                    <?php if (empty($missingNumbers)): ?>
+                                                        <div class="text-muted small">No skipped <?= esc($sectionName) ?></div>
+                                                    <?php else: ?>
+                                                        <div class="pms-skipped-number-list">
+                                                            <?php foreach ($missingNumbers as $missingNumber): ?>
+                                                                <span class="pms-skipped-number"><?= esc($missingNumber) ?></span>
+                                                            <?php endforeach; ?>
+                                                        </div>
+                                                    <?php endif; ?>
+                                                </div>
+                                            <?php endforeach; ?>
+                                        </div>
+                                    <?php endif; ?>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
                 </div>
 
             </div>
@@ -911,7 +1222,43 @@ if (!empty($pms_records)) {
 
 </div>
 
+<script>
+    function setPmsView(view) {
+        const tableView = document.getElementById('pmsTableView');
+        const calendarView = document.getElementById('pmsCalendarView');
+        const skippedView = document.getElementById('pmsSkippedView');
+        const buttons = document.querySelectorAll('.pms-view-switch [data-view]');
 
+        if (!tableView || !calendarView || !skippedView || !buttons.length) {
+            return;
+        }
+
+        const isTable = view === 'table';
+        const isCalendar = view === 'calendar';
+        const isSkipped = view === 'skipped';
+
+        tableView.classList.toggle('d-none', !isTable);
+        calendarView.classList.toggle('d-none', !isCalendar);
+        skippedView.classList.toggle('d-none', !isSkipped);
+
+        buttons.forEach(function (button) {
+            const isSelected = button.dataset.view === view;
+            button.classList.toggle('btn-primary', isSelected);
+            button.classList.toggle('btn-light', !isSelected);
+            button.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('.pms-view-switch [data-view]').forEach(function (button) {
+            button.addEventListener('click', function () {
+                setPmsView(this.dataset.view);
+            });
+        });
+
+        setPmsView('table');
+    });
+</script>
 
 <!-- ============================================================
      MFS VIEW MODAL

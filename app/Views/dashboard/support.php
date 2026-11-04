@@ -293,6 +293,7 @@
                               'done'         => ['label' => 'Completed', 'class' => 'success'],
                               'on_hold'      => ['label' => 'On Hold', 'class' => 'secondary'],
                               'pullout'      => ['label' => 'Pullout', 'class' => 'danger'],
+                              'buyout'       => ['label' => 'Buyout', 'class' => 'info'],
                               'unservicable' => ['label' => 'Unservicable', 'class' => 'dark'],
                               'canceled'     => ['label' => 'Canceled', 'class' => 'secondary'],
                           ];
@@ -390,6 +391,7 @@
                                                     <option value="done">Completed</option>
                                                     <option value="on_hold">On Hold</option>
                                                     <option value="pullout">Pullout</option>
+                                                    <option value="buyout">Buyout</option>
                                                     <option value="unservicable">Unservicable</option>
                                                     <option value="canceled">Canceled</option>
 

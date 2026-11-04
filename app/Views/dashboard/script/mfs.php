@@ -52,6 +52,168 @@ $(document).ready(function () {
         });
     }
 
+    function addAccessoryRow(containerId = 'mfsAccessoryRows') {
+        const rowsContainer = document.getElementById(containerId);
+
+        if (!rowsContainer) {
+            return;
+        }
+
+        const rowCount = rowsContainer.querySelectorAll('.accessory-row').length;
+        const row = document.createElement('div');
+        row.className = 'row g-2 accessory-row align-items-end mt-1';
+        row.innerHTML = `
+            <div class="col-md-6">
+                <label class="form-label small mb-1">Accessory</label>
+                <input type="text"
+                    name="accessories[${rowCount}][name]"
+                    class="form-control"
+                    placeholder="Accessory">
+            </div>
+            <div class="col-md-5">
+                <label class="form-label small mb-1">Quantity</label>
+                <input type="number"
+                    name="accessories[${rowCount}][quantity]"
+                    class="form-control"
+                    min="1"
+                    value="1">
+            </div>
+            <div class="col-md-1 text-end align-self-end">
+                <button type="button"
+                    class="btn btn-outline-danger remove-mfs-accessory"
+                    title="Remove Accessory">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+        `;
+
+        rowsContainer.appendChild(row);
+    }
+
+    function addConsumableRow(containerId = 'mfsConsumableRows') {
+        const rowsContainer = document.getElementById(containerId);
+
+        if (!rowsContainer) {
+            return;
+        }
+
+        const rowCount = rowsContainer.querySelectorAll('.consumable-row').length;
+        const row = document.createElement('div');
+        row.className = 'row g-2 consumable-row align-items-end mt-1';
+        row.innerHTML = `
+            <div class="col-md-5">
+                <label class="form-label small mb-1">Consumable</label>
+                <input type="text"
+                    name="consumables_rows[${rowCount}][name]"
+                    class="form-control"
+                    placeholder="Consumable">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small mb-1">Unit</label>
+                <input type="text"
+                    name="consumables_rows[${rowCount}][unit]"
+                    class="form-control"
+                    placeholder="Unit">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small mb-1">Lot Number</label>
+                <input type="text"
+                    name="consumables_rows[${rowCount}][lot_number]"
+                    class="form-control"
+                    placeholder="Lot Number">
+            </div>
+            <div class="col-md-1 text-end align-self-end">
+                <button type="button"
+                    class="btn btn-outline-danger remove-mfs-consumable"
+                    title="Remove Consumable">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+        `;
+
+        rowsContainer.appendChild(row);
+    }
+
+    document.getElementById('addMfsAccessoryRow')?.addEventListener('click', () => addAccessoryRow('mfsAccessoryRows'));
+    document.getElementById('addMfsConsumableRow')?.addEventListener('click', () => addConsumableRow('mfsConsumableRows'));
+    document.getElementById('editMfsAccessoryRow')?.addEventListener('click', () => addAccessoryRow('editMfsAccessoryRows'));
+    document.getElementById('editMfsConsumableRow')?.addEventListener('click', () => addConsumableRow('editMfsConsumableRows'));
+
+    document.addEventListener('click', function (event) {
+        const target = event.target.closest('.remove-mfs-accessory');
+        if (target) {
+            target.closest('.accessory-row')?.remove();
+            return;
+        }
+
+        const consumableTarget = event.target.closest('.remove-mfs-consumable');
+        if (consumableTarget) {
+            consumableTarget.closest('.consumable-row')?.remove();
+        }
+    });
+
+    function setReceiptUploadPreview(inputId, previewId, viewId, existingUrl = '') {
+        const input = document.getElementById(inputId);
+        const preview = document.getElementById(previewId);
+        const viewLink = document.getElementById(viewId);
+
+        if (!input || !preview) {
+            return;
+        }
+
+        const renderPlaceholder = () => {
+            preview.innerHTML = `
+                <div class="text-muted small">
+                    <i class="bi bi-cloud-upload fs-3 d-block mb-2"></i>
+                    Upload Receipt
+                </div>
+            `;
+
+            if (viewLink) {
+                viewLink.classList.add('d-none');
+                viewLink.href = '#';
+            }
+        };
+
+        const renderImage = (src, altText = 'Receipt preview') => {
+            preview.innerHTML = `
+                <div class="text-center w-100">
+                    <img src="${src}" alt="${altText}" class="img-fluid rounded" style="max-height: 140px; object-fit: contain;" />
+                </div>
+            `;
+
+            if (viewLink) {
+                viewLink.href = src;
+                viewLink.classList.remove('d-none');
+            }
+        };
+
+        if (existingUrl) {
+            renderImage(existingUrl, 'Receipt image');
+        } else {
+            renderPlaceholder();
+        }
+
+        input.onchange = function () {
+            const file = this.files && this.files[0];
+
+            if (!file) {
+                if (existingUrl) {
+                    renderImage(existingUrl, 'Receipt image');
+                } else {
+                    renderPlaceholder();
+                }
+                return;
+            }
+
+            const fileUrl = URL.createObjectURL(file);
+            renderImage(fileUrl, file.name || 'Receipt preview');
+        };
+    }
+
+    setReceiptUploadPreview('mfs_receipt', 'mfsReceiptPreview', 'mfsReceiptView');
+    setReceiptUploadPreview('edit_mfs_receipt', 'editMfsReceiptPreview', 'editMfsReceiptView');
+
     function populateEditMfsMachines(selectedMachine, selectedSerial) {
         const accountSelect = document.getElementById('edit_accounts');
         const machineSelect = document.getElementById('edit_machine');
@@ -62,7 +224,8 @@ $(document).ready(function () {
             return;
         }
 
-        const option = accountSelect.options[accountSelect.selectedIndex];
+        const selectedOption = accountSelect.options[accountSelect.selectedIndex] || null;
+        const option = selectedOption || null;
         let machines = {};
 
         try {
@@ -95,7 +258,7 @@ $(document).ready(function () {
         }
     }
 
-    $('#edit_accounts').on('change', function () {
+    $('#edit_accounts').on('change select2:select select2:clear', function () {
         populateEditMfsMachines('', '');
     });
 
@@ -178,6 +341,10 @@ $(document).ready(function () {
                     r.mfs_number ?? ''
                 );
 
+                $('#edit_pull_out_personnel').val(
+                    r.pull_out_personnel ?? ''
+                );
+
                 $('#edit_service_eng_id').val(
                     r.service_eng_id ?? ''
                 );
@@ -207,18 +374,6 @@ $(document).ready(function () {
                     r.serial_number ?? ''
                 );
 
-                $('#edit_consumable_unit').val(
-                    r.consumable_unit ?? ''
-                );
-
-                $('#edit_consumables').val(
-                    r.consumables ?? ''
-                );
-
-                $('#edit_lot_number').val(
-                    r.lot_number ?? ''
-                );
-
                 $('#edit_reason').val(
                     r.reason ?? ''
                 );
@@ -227,21 +382,78 @@ $(document).ready(function () {
                     r.date_status ?? ''
                 );
 
-                $('#edit_personnel').val(
-                    r.personnel ?? ''
+                $('#edit_returned_personnel').val(
+                    r.returned_personnel ?? ''
                 );
 
                 $('#edit_acknowledged').val(
                     r.acknowledged ?? 0
                 );
 
-                $('#edit_returned').val(
-                    r.returned ?? 0
-                );
-
                 $('#edit_remarks').val(
                     r.remarks ?? ''
                 );
+
+                const receiptId = Number(r.receipt || 0);
+                const receiptUrl = receiptId > 0
+                    ? `<?= site_url('pms/receipt/') ?>${encodeURIComponent(receiptId)}`
+                    : '';
+
+                setReceiptUploadPreview('edit_mfs_receipt', 'editMfsReceiptPreview', 'editMfsReceiptView', receiptUrl);
+
+                const existingAccessories = Array.isArray(r.accessories)
+                    ? r.accessories
+                    : String(r.accessories || '').split(';').map(v => v.trim()).filter(Boolean);
+
+                const existingConsumables = Array.isArray(r.consumables)
+                    ? r.consumables
+                    : String(r.consumables || '').split(';').map(v => v.trim()).filter(Boolean);
+
+                const editAccessoryRows = document.getElementById('editMfsAccessoryRows');
+                if (editAccessoryRows) {
+                    editAccessoryRows.innerHTML = '';
+
+                    if (existingAccessories.length > 0) {
+                        existingAccessories.forEach((entry) => {
+                            const match = entry.split('|');
+                            const name = match[0]?.trim() || '';
+                            const quantity = match[1]?.trim() || '1';
+                            addAccessoryRow('editMfsAccessoryRows');
+                            const row = editAccessoryRows.lastElementChild;
+                            const nameInput = row?.querySelector('input[name^="accessories"][name$="[name]"]');
+                            const quantityInput = row?.querySelector('input[name^="accessories"][name$="[quantity]"]');
+                            if (nameInput) nameInput.value = name;
+                            if (quantityInput) quantityInput.value = quantity;
+                        });
+                    } else {
+                        addAccessoryRow('editMfsAccessoryRows');
+                    }
+                }
+
+                const editConsumableRows = document.getElementById('editMfsConsumableRows');
+                if (editConsumableRows) {
+                    editConsumableRows.innerHTML = '';
+
+                    if (existingConsumables.length > 0) {
+                        existingConsumables.forEach((entry) => {
+                            const match = String(entry).split('|').map(part => part.trim());
+                            const name = match[0] || '';
+                            const hasUnitInEntry = match.length >= 3;
+                            const unitValue = hasUnitInEntry ? match[1] : (r.consumable_unit || '');
+                            const lotNumber = hasUnitInEntry ? match[2] : (match[1] || '');
+                            addConsumableRow('editMfsConsumableRows');
+                            const row = editConsumableRows.lastElementChild;
+                            const nameInput = row?.querySelector('input[name^="consumables_rows"][name$="[name]"]');
+                            const unitInput = row?.querySelector('input[name^="consumables_rows"][name$="[unit]"]');
+                            const lotInput = row?.querySelector('input[name^="consumables_rows"][name$="[lot_number]"]');
+                            if (nameInput) nameInput.value = name;
+                            if (unitInput) unitInput.value = unitValue;
+                            if (lotInput) lotInput.value = lotNumber;
+                        });
+                    } else {
+                        addConsumableRow('editMfsConsumableRows');
+                    }
+                }
 
 
                 // =================================================
@@ -320,13 +532,19 @@ $(document).ready(function () {
         );
 
 
+        const formData = new FormData(form);
+
         $.ajax({
 
             url: $(form).attr('action'),
 
             type: 'POST',
 
-            data: $(form).serialize(),
+            data: formData,
+
+            processData: false,
+
+            contentType: false,
 
             dataType: 'json',
 
@@ -558,6 +776,23 @@ document.addEventListener(
             );
 
 
+        function getSelectedAccountOption(selectElement) {
+            if (!selectElement || !selectElement.value) {
+                return null;
+            }
+
+            const selectedValue = String(selectElement.value).trim();
+
+            if (!selectedValue) {
+                return null;
+            }
+
+            return Array.from(selectElement.options).find(function (option) {
+                return String(option.value).trim() === selectedValue;
+            }) || null;
+        }
+
+
         /*
          * Machine => Serial Number
          */
@@ -570,183 +805,75 @@ document.addEventListener(
 
         if (accountSelect) {
 
-            accountSelect.addEventListener(
-                'change',
-                function () {
+            function refreshClinicDetails(event) {
+                let selected = null;
 
+                if (event && event.params && event.params.data && event.params.data.element) {
+                    selected = event.params.data.element;
+                } else if (accountSelect.selectedIndex >= 0) {
+                    selected = accountSelect.options[accountSelect.selectedIndex];
+                }
 
-                    const selected =
-                        accountSelect.options[
-                            accountSelect.selectedIndex
-                        ];
-
-
-                    // ------------------------------------------------
-                    // NO ACCOUNT SELECTED
-                    // ------------------------------------------------
-
-                    if (
-                        !selected ||
-                        !selected.value
-                    ) {
-
-                        if (addressInput) {
-
-                            addressInput.value =
-                                '';
-
-                        }
-
-
-                        if (machineSelect) {
-
-                            machineSelect.innerHTML =
-                                '<option value="">-- Select Machine --</option>';
-
-                            machineSelect.disabled =
-                                true;
-
-                        }
-
-
-                        if (serialInput) {
-
-                            serialInput.value =
-                                '';
-
-                        }
-
-
-                        currentMachines =
-                            {};
-
-                        return;
-                    }
-
-
-                    // =================================================
-                    // GET ADDRESS
-                    // =================================================
-
-                    const address =
-                        selected.getAttribute(
-                            'data-address'
-                        ) || '';
-
-
+                if (!selected || !selected.value) {
                     if (addressInput) {
-
-                        addressInput.value =
-                            address;
-
+                        addressInput.value = '';
                     }
-
-
-                    // =================================================
-                    // GET MACHINE => SERIAL MAP
-                    // =================================================
-
-                    const machinesJson =
-                        selected.getAttribute(
-                            'data-machines'
-                        ) || '{}';
-
-
-                    try {
-
-                        currentMachines =
-                            JSON.parse(
-                                machinesJson
-                            );
-
-                    } catch (error) {
-
-                        console.error(
-                            'Invalid machine mapping:',
-                            error
-                        );
-
-                        currentMachines =
-                            {};
-
-                    }
-
-
-                    // =================================================
-                    // POPULATE MACHINE DROPDOWN
-                    // =================================================
 
                     if (machineSelect) {
-
-                        machineSelect.innerHTML =
-                            '<option value="">-- Select Machine --</option>';
-
-
-                        const machines =
-                            Object.keys(
-                                currentMachines
-                            );
-
-
-                        if (
-                            machines.length > 0
-                        ) {
-
-                            machines.forEach(
-                                function (machine) {
-
-                                    const option =
-                                        document.createElement(
-                                            'option'
-                                        );
-
-
-                                    option.value =
-                                        machine;
-
-
-                                    option.textContent =
-                                        machine;
-
-
-                                    machineSelect.appendChild(
-                                        option
-                                    );
-
-                                }
-                            );
-
-
-                            machineSelect.disabled =
-                                false;
-
-                        } else {
-
-                            machineSelect.innerHTML =
-                                '<option value="">-- No Machine Found --</option>';
-
-                            machineSelect.disabled =
-                                true;
-
-                        }
-
+                        machineSelect.innerHTML = '<option value="">-- Select Machine --</option>';
+                        machineSelect.disabled = true;
                     }
-
-
-                    // =================================================
-                    // CLEAR SERIAL
-                    // =================================================
 
                     if (serialInput) {
-
-                        serialInput.value =
-                            '';
-
+                        serialInput.value = '';
                     }
 
+                    currentMachines = {};
+                    return;
                 }
-            );
 
+                const address = selected.getAttribute('data-address') || selected.dataset?.address || '';
+
+                if (addressInput) {
+                    addressInput.value = address;
+                }
+
+                const machinesJson = selected.getAttribute('data-machines') || selected.dataset?.machines || '{}';
+
+                try {
+                    currentMachines = JSON.parse(machinesJson);
+                } catch (error) {
+                    console.error('Invalid machine mapping:', error);
+                    currentMachines = {};
+                }
+
+                if (machineSelect) {
+                    machineSelect.innerHTML = '<option value="">-- Select Machine --</option>';
+
+                    const machines = Object.keys(currentMachines);
+
+                    if (machines.length > 0) {
+                        machines.forEach(function (machine) {
+                            const option = document.createElement('option');
+                            option.value = machine;
+                            option.textContent = machine;
+                            machineSelect.appendChild(option);
+                        });
+
+                        machineSelect.disabled = false;
+                    } else {
+                        machineSelect.innerHTML = '<option value="">-- No Machine Found --</option>';
+                        machineSelect.disabled = true;
+                    }
+                }
+
+                if (serialInput) {
+                    serialInput.value = '';
+                }
+            }
+
+            $(accountSelect)
+                .on('change select2:select select2:clear', refreshClinicDetails);
         }
 
 
