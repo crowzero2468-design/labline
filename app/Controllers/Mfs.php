@@ -503,10 +503,10 @@ class Mfs extends BaseController
         if ($database->tableExists('tb_data')) {
 
             $machineData = $database->table('tb_data')
-                ->select('Clinic_name,Address,Machine,SN')
-                ->where('status', 'A')
+                ->select('Clinic_name,Address,Machine,SN,status')
                 ->where('Clinic_name', $accounts)
                 ->where('Machine', $machine)
+                ->orderBy('id', 'DESC')
                 ->limit(1)
                 ->get()
                 ->getRowArray();
@@ -521,7 +521,7 @@ class Mfs extends BaseController
                     );
             }
 
-            // Use official data from tb_data
+            // Allow records even if tb_data status is I; they still exist and may be used for MFS.
             $accounts = trim((string) ($machineData['Clinic_name'] ?? $accounts));
             $address = trim((string) ($machineData['Address'] ?? $address));
             $machine = trim((string) ($machineData['Machine'] ?? $machine));
